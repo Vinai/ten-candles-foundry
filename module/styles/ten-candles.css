@@ -191,6 +191,19 @@
   width: auto;
 }
 
+.tct-gm-panel button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.tct-gm-status {
+  max-width: 12rem;
+  font-family: "Special Elite", "Courier New", monospace;
+  font-size: 0.75rem;
+  color: rgba(216, 201, 168, 0.7);
+  text-shadow: 0 0 4px #000;
+}
+
 /* Foundry around the table: no canvas and its tools, no camera dock (the faces sit at the table instead), no
    macro bar over your own face. */
 body.tct-no-canvas #board,

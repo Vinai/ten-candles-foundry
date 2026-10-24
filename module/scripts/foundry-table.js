@@ -1,7 +1,11 @@
+import { nextDeath } from "./candle-clock.js";
 import { GA_PAINTING, GA_STATE_HOOK, GA_STATE_SETTING, GA_SYSTEM_ID, MODULE_ID, TOTAL_CANDLES } from "./constants.js";
 import { CameraFaces } from "./faces.js";
+import { GMControls } from "./gm-controls.js";
 import { SETTING_CHANGED_HOOK, SETTINGS } from "./settings.js";
 import { TableStage } from "./stage.js";
+
+const GUTTER_TICK_MS = 1000;
 
 /**
  * Glue between Foundry/Game Assistant and the Foundry-independent TableStage: who sits where, their faces and
@@ -32,16 +36,24 @@ export class FoundryTable {
       seats: this.users.map((user) => this.seatData(user)),
       viewer: this.viewerIndex()
     });
-    if (game.user.isGM) this.mountGMPanel();
     this.applyState(this.gaState(), { instant: true });
     this.applyLights({ instant: true });
     this.faces.start();
     this.stage.start();
+    if (game.user.isGM) {
+      this.gm = new GMControls(this);
+      this.gm.mount();
+    }
+    window.setInterval(() => this.applyGutter(), GUTTER_TICK_MS);
 
-    Hooks.on(GA_STATE_HOOK, (state) => this.applyState(state));
+    Hooks.on(GA_STATE_HOOK, (state) => {
+      this.applyState(state);
+      this.gm?.render();
+    });
     Hooks.on(SETTING_CHANGED_HOOK, (key) => {
       if (key === SETTINGS.lightsOut) this.applyLights();
       if (key === SETTINGS.seatOrder) this.refreshSeats();
+      this.gm?.render();
     });
     Hooks.on("updateActor", (actor) => this.refreshCards(actor));
     Hooks.on("updateUser", () => this.refreshSeats());
@@ -74,6 +86,20 @@ export class FoundryTable {
 
   gaState() {
     return game.settings.get(GA_SYSTEM_ID, GA_STATE_SETTING);
+  }
+
+  /**
+   * Candles burning on the table. A failed conflict darkens one at once, while the Game Assistant only counts it
+   * down when the truths are done.
+   */
+  burningCandles(state = this.gaState()) {
+    return state.stage === "ball-of-truths" ? Math.max(state.litCandles - 1, 0) : state.litCandles;
+  }
+
+  /** The candle clock of the current game, or null before the first "Licht aus". */
+  clock() {
+    const clock = game.settings.get(MODULE_ID, SETTINGS.candleClock);
+    return clock?.gameId && clock.gameId === this.gaState().gameId ? clock : null;
   }
 
   /** Connected users plus players with a character (so a dropped connection keeps its seat), clockwise. */
@@ -142,36 +168,30 @@ export class FoundryTable {
   }
 
   applyState(state, { instant = false } = {}) {
-    const lit = new Set(candleOrder(state.gameId).slice(0, state.litCandles));
+    const litCount = this.burningCandles(state);
+    const lit = new Set(candleOrder(state.gameId).slice(0, litCount));
     for (let i = 0; i < TOTAL_CANDLES; i++) {
       if (lit.has(i)) this.stage.table.light(i, { instant });
       else this.stage.table.snuff(i, { instant });
     }
-    this.stage.setDice({
-      player: state.bluePoolRemaining,
-      lost: state.litCandles - state.bluePoolRemaining,
-      gm: TOTAL_CANDLES - state.litCandles
-    });
+    // During the truths the dice wait for the next scene, when the Game Assistant refills the pool.
+    const player = state.stage === "scene" ? state.bluePoolRemaining : litCount;
+    this.stage.setDice({ player, lost: litCount - player, gm: TOTAL_CANDLES - litCount });
+    this.applyGutter();
+  }
+
+  /** The next candle to burn out gutters for its last minute or two, in every browser alike. */
+  applyGutter() {
+    const state = this.gaState();
+    const litCount = this.burningCandles(state);
+    const next = candleOrder(state.gameId)[litCount - 1];
+    const gutter = nextDeath(this.clock(), litCount)?.gutter ?? 0;
+    for (let i = 0; i < TOTAL_CANDLES; i++) this.stage.table.setGutter(i, i === next ? gutter : 0);
   }
 
   applyLights({ instant = false } = {}) {
     const lightsOut = game.settings.get(MODULE_ID, SETTINGS.lightsOut);
     this.stage.table.setRoomLight(lightsOut ? 0 : 1, { instant });
-    this.lightsButton?.replaceChildren(
-      game.i18n.localize(lightsOut ? "TCT.GM.LightsOn" : "TCT.GM.LightsOut")
-    );
-  }
-
-  mountGMPanel() {
-    const panel = document.createElement("div");
-    panel.className = "tct-gm-panel";
-    this.lightsButton = document.createElement("button");
-    this.lightsButton.type = "button";
-    this.lightsButton.addEventListener("click", () =>
-      game.settings.set(MODULE_ID, SETTINGS.lightsOut, !game.settings.get(MODULE_ID, SETTINGS.lightsOut))
-    );
-    panel.append(this.lightsButton);
-    document.body.append(panel);
   }
 
   /** @param names {string[]} user or character names, clockwise */

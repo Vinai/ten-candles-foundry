@@ -17,7 +17,15 @@
     },
     "GM": {
       "LightsOut": "Lights out",
-      "LightsOn": "Lights on"
+      "LightsOn": "Lights on",
+      "Pause": "Pause",
+      "Resume": "Resume",
+      "Draught": "Draught",
+      "DraughtHint": "A draught snuffs the next candle: the scene ends as after a failed conflict. Only you see this button.",
+      "DraughtWaits": "The candle goes out as soon as the conflict or the truths are over.",
+      "ClockWaiting": "The candles burn down from “Lights out”.",
+      "NextCandle": "Next candle dies in {time}",
+      "NextCandlePaused": "Paused – next candle in {time}"
     },
     "Settings": {
       "PlainTable": {

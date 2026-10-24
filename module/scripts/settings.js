@@ -6,6 +6,7 @@ export const SETTING_CHANGED_HOOK = `${MODULE_ID}.settingChanged`;
 export const SETTINGS = {
   seatOrder: "seatOrder",
   lightsOut: "lightsOut",
+  candleClock: "candleClock",
   plainTable: "plainTable"
 };
 
@@ -26,6 +27,15 @@ export function registerSettings() {
     type: Boolean,
     default: false,
     onChange: (value) => Hooks.callAll(SETTING_CHANGED_HOOK, SETTINGS.lightsOut, value)
+  });
+
+  // The real-time burn-down started by the first "Licht aus", see candle-clock.js. Tied to the Game Assistant's game id.
+  game.settings.register(MODULE_ID, SETTINGS.candleClock, {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: {},
+    onChange: (value) => Hooks.callAll(SETTING_CHANGED_HOOK, SETTINGS.candleClock, value)
   });
 
   // Escape hatch for weak machines or trouble: keep Foundry's own canvas and camera dock.
