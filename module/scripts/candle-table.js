@@ -17,6 +17,9 @@ export const PAINTING = {
 };
 
 const FLAME_HEIGHT = 78;
+// The flame wraps the upper wick instead of sitting on its tip.
+const FLAME_SINK = 30;
+const WICK_WIDTH = 3.5;
 const GLOW_RADIUS = 1100;
 const NEAR_GLOW_RADIUS = 260;
 const LIGHT_MAP_SCALE = 0.25;
@@ -284,7 +287,7 @@ export class CandleTable {
     const s = this.scale * LIGHT_MAP_SCALE;
     for (const candle of lit) {
       const x = (this.offsetX + candle.wick.x * this.scale) * LIGHT_MAP_SCALE;
-      const y = (this.offsetY + (candle.wick.y - 25) * this.scale) * LIGHT_MAP_SCALE;
+      const y = (this.offsetY + (candle.wick.y + FLAME_SINK - 45) * this.scale) * LIGHT_MAP_SCALE;
       const level = Math.max(candle.level, 0);
       this.glow(ctx, x, y, GLOW_RADIUS * s, `rgba(255,150,70,${0.42 * level})`);
       this.glow(ctx, x, y, NEAR_GLOW_RADIUS * s, `rgba(255,205,140,${0.55 * level})`);
@@ -302,7 +305,8 @@ export class CandleTable {
   drawFlame(candle) {
     const { ctx } = this;
     const level = Math.max(candle.level, 0);
-    const base = this.toScreen(candle.wick);
+    const tip = this.toScreen(candle.wick);
+    const base = this.toScreen({ x: candle.wick.x, y: candle.wick.y + FLAME_SINK });
     const h = FLAME_HEIGHT * this.scale * (0.35 + 0.65 * Math.min(level, 1.3));
     const w = h * 0.36;
     const tipX = base.x + candle.sway * h;
@@ -346,6 +350,18 @@ export class CandleTable {
     ctx.beginPath();
     ctx.ellipse(base.x, base.y + h * 0.02, w * 0.45, h * 0.07, 0, 0, Math.PI * 2);
     ctx.fill();
+
+    // The wick stays dark inside the flame, with a glowing, slightly bent tip.
+    ctx.globalCompositeOperation = "source-over";
+    ctx.strokeStyle = `rgba(25,14,8,${Math.min(0.85, 0.5 + level * 0.35)})`;
+    ctx.lineWidth = WICK_WIDTH * this.scale;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(base.x, base.y);
+    ctx.quadraticCurveTo(tip.x, tip.y + (base.y - tip.y) * 0.3, tip.x + 4 * this.scale, tip.y);
+    ctx.stroke();
+    ctx.globalCompositeOperation = "lighter";
+    this.glow(ctx, tip.x + 4 * this.scale, tip.y, 4 * this.scale, `rgba(255,110,30,${0.7 * level})`);
   }
 
   drawSmoke() {
