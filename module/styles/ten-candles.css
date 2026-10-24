@@ -344,3 +344,51 @@ body.tct-active .ets-floating-roll {
   60% { opacity: 1; }
   100% { opacity: 0; }
 }
+
+/* A spent trait burns in the bowl: the flame eats in from one corner, the paper glows, chars and sinks into ash. */
+@property --tct-burn {
+  syntax: "<percentage>";
+  inherits: true;
+  initial-value: 0%;
+}
+
+.tct-card.tct-flying.is-burning {
+  animation: tct-burn 2.4s ease-in forwards;
+  -webkit-mask-image: radial-gradient(circle at 80% 100%, transparent var(--tct-burn), #000 calc(var(--tct-burn) + 4%));
+  mask-image: radial-gradient(circle at 80% 100%, transparent var(--tct-burn), #000 calc(var(--tct-burn) + 4%));
+}
+
+/* Its own fire in front of it; the bowl's flames are drawn behind it on the canvas. */
+.tct-card.tct-flying.is-burning::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(to top, rgba(255, 150, 40, 0.85), rgba(255, 190, 80, 0.35) 45%, transparent 80%);
+  mix-blend-mode: screen;
+  animation: tct-burn-glow 0.18s ease-in-out infinite alternate;
+}
+
+@keyframes tct-burn-glow {
+  from { opacity: 0.6; }
+  to { opacity: 1; }
+}
+
+.tct-card.tct-flying.is-burning::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 80% 100%,
+    transparent var(--tct-burn),
+    rgba(255, 200, 90, 0.95) calc(var(--tct-burn) + 3%),
+    rgba(110, 35, 5, 0.75) calc(var(--tct-burn) + 8%),
+    transparent calc(var(--tct-burn) + 18%)
+  );
+}
+
+@keyframes tct-burn {
+  0% { --tct-burn: 0%; filter: brightness(1.3) sepia(0.4); scale: 1; translate: 0 0; }
+  25% { filter: brightness(1.5) sepia(0.6); }
+  100% { --tct-burn: 115%; filter: brightness(0.35) sepia(1); scale: 0.75; translate: 0 0.6vw; }
+}

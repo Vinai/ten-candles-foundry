@@ -8,6 +8,9 @@ const STACK_SPREAD_X = 1.28;
 const STACK_SPREAD_Y = 1.45;
 const TOTAL_DICE = 10;
 const SLIDE_MS = 1800;
+const TO_BOWL_MS = 1400;
+// Matches the tct-burn animation in ten-candles.css.
+const BURN_MS = 2400;
 // Single words fill a card; Moments and Brinks are whole sentences and get smaller writing.
 const LONG_TEXT = 14;
 
@@ -113,15 +116,7 @@ export class TableStage {
    * @returns {Promise<void>} resolves once it has arrived (and is gone again; the recipient's stack shows it then)
    */
   slideCard(from, to, { label, text, faceDown = false }, direction = 1) {
-    const card = document.createElement("div");
-    card.className = "tct-card tct-flying" + (faceDown ? " is-face-down" : "");
-    if (!faceDown) {
-      card.innerHTML = `<span class="tct-card-label"></span><span class="tct-card-text"></span>`;
-      card.querySelector(".tct-card-label").textContent = label;
-      card.querySelector(".tct-card-text").textContent = text ?? "";
-      card.classList.toggle("is-long", (text ?? "").length > LONG_TEXT);
-    }
-    this.root.append(card);
+    const card = this.flyingCard({ label, text, faceDown });
 
     const count = this.seats.length;
     const seatsAway = direction > 0 ? (((to - from) % count) + count) % count : -((((from - to) % count) + count) % count);
@@ -136,6 +131,46 @@ export class TableStage {
     });
     const animation = card.animate(keyframes, { duration: SLIDE_MS, easing: "ease-in-out", fill: "forwards" });
     return animation.finished.then(() => card.remove());
+  }
+
+  /**
+   * A trait is spent: its card is held up, dropped into the bowl and burns there.
+   * @returns {Promise<void>} resolves once only ash is left
+   */
+  async burnCard(seat, { label, text }) {
+    const card = this.flyingCard({ label, text });
+    const { stack } = this.seatElements[seat];
+    const bowl = this.table.bowlOnScreen;
+    const from = { left: stack.style.left, top: stack.style.top };
+    const lift = { left: stack.style.left, top: `${parseFloat(stack.style.top) - 30}px` };
+    const into = { left: `${bowl.x}px`, top: `${bowl.y - bowl.ry * 0.15}px` };
+    const flight = card.animate(
+      [
+        { ...from, transform: "translate(-50%, -50%) rotate(-4deg) scale(1)" },
+        { ...lift, transform: "translate(-50%, -50%) rotate(-2deg) scale(1.25)", offset: 0.3 },
+        // Lands lying flat in the bowl.
+        { ...into, transform: "translate(-50%, -50%) perspective(20vw) rotateX(55deg) rotate(8deg) scale(0.75)" }
+      ],
+      { duration: TO_BOWL_MS, easing: "ease-in-out", fill: "forwards" }
+    );
+    await flight.finished;
+    card.classList.add("is-burning");
+    this.table.flareBowl();
+    await new Promise((resolve) => window.setTimeout(resolve, BURN_MS));
+    card.remove();
+  }
+
+  flyingCard({ label, text, faceDown = false }) {
+    const card = document.createElement("div");
+    card.className = "tct-card tct-flying" + (faceDown ? " is-face-down" : "");
+    if (!faceDown) {
+      card.innerHTML = `<span class="tct-card-label"></span><span class="tct-card-text"></span>`;
+      card.querySelector(".tct-card-label").textContent = label;
+      card.querySelector(".tct-card-text").textContent = text ?? "";
+      card.classList.toggle("is-long", (text ?? "").length > LONG_TEXT);
+    }
+    this.root.append(card);
+    return card;
   }
 
   /** A card lying by the bowl that anyone can touch. */

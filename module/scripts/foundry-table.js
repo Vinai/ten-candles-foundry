@@ -24,6 +24,8 @@ export class FoundryTable {
   constructor() {
     this.faces = new CameraFaces();
     this.ritual = new Ritual(this);
+    // Per actor, the traits last seen unburned, to notice the moment one is spent.
+    this.unburned = new Map();
     const table = this;
     this.api = {
       setSeatOrder: (names) => this.setSeatOrder(names),
@@ -153,24 +155,19 @@ export class FoundryTable {
 
   /**
    * The stack in front of a seat: Brink face down at the bottom, unburned traits on top in the chosen order, and on
-   * top of everything the cards still being written. Sheet fields still holding the Game Assistant's placeholder
-   * have not been written yet.
+   * top of everything the cards still being written.
    */
   cardsOf(user) {
     const system = user.character?.system;
     const pending = [...this.ritual.gmCards(user), ...this.ritual.pendingCards(user)];
     if (!system) return { cards: pending, hope: false };
-    const written = (key) => Boolean(system[key].text) && system[key].text !== game.i18n.localize(PLACEHOLDERS[key]);
-    const unburned = {
-      virtue: system.virtue.available,
-      vice: system.vice.available,
-      moment: !system.momentAttempted
-    };
+    const unburned = unburnedTraits(system);
+    this.unburned.set(user.character.id, unburned);
     const traits = [...system.resourceOrderList]
       .reverse()
-      .filter((key) => unburned[key] && written(key))
-      .map((key) => ({ label: game.i18n.localize(TRAIT_LABELS[key]), text: system[key].text }));
-    const brink = written("brink")
+      .filter((key) => key in unburned)
+      .map((key) => traitCard(key, unburned[key]));
+    const brink = written(system, "brink")
       ? [{ label: game.i18n.localize(this.ritual.brinkLabel(user)), text: system.brink.text, faceDown: true }]
       : [];
     return { cards: [...brink, ...traits, ...pending], hope: system.hopeDieAvailable };
@@ -190,7 +187,15 @@ export class FoundryTable {
 
   refreshActor(actor) {
     const index = this.users.findIndex((user) => user.character === actor);
-    if (index >= 0) this.stage.updateSeat(index, this.seatData(this.users[index]));
+    if (index < 0) return;
+    const before = this.unburned.get(actor.id) ?? {};
+    this.stage.updateSeat(index, this.seatData(this.users[index]));
+    // Spent, not erased: the sheet still has the text, it is just no longer available.
+    for (const key of Object.keys(before)) {
+      if (!(key in this.unburned.get(actor.id)) && written(actor.system, key)) {
+        this.stage.burnCard(index, traitCard(key, actor.system[key].text));
+      }
+    }
   }
 
   refreshCards() {
@@ -266,6 +271,25 @@ export class FoundryTable {
     });
     await game.settings.set(MODULE_ID, SETTINGS.seatOrder, ids);
   }
+}
+
+/** Sheet fields still holding the Game Assistant's placeholder have not been written yet. */
+function written(system, key) {
+  return Boolean(system[key].text) && system[key].text !== game.i18n.localize(PLACEHOLDERS[key]);
+}
+
+/** Virtue, Vice and Moment that are written and not yet burned, by key. */
+function unburnedTraits(system) {
+  const unburned = { virtue: system.virtue.available, vice: system.vice.available, moment: !system.momentAttempted };
+  return Object.fromEntries(
+    Object.keys(TRAIT_LABELS)
+      .filter((key) => unburned[key] && written(system, key))
+      .map((key) => [key, system[key].text])
+  );
+}
+
+function traitCard(key, text) {
+  return { label: game.i18n.localize(TRAIT_LABELS[key]), text };
 }
 
 function loadImage(src) {

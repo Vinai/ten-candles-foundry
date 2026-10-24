@@ -28,6 +28,10 @@ const FRAME_MS = 1000 / 30;
 const LIGHT_UP_MS = 1400;
 const SNUFF_MS = 700;
 const SMOKE_MS = 7000;
+// A card burning in the bowl: quick to catch, a bright flare, then embers.
+const FIRE_MS = 2600;
+const FIRE_HEIGHT = 170;
+const FIRE_TONGUES = 9;
 
 // Room light before "Licht aus" and the residual darkness after it.
 const ROOM_LIT = { r: 0.75, g: 0.62, b: 0.5 };
@@ -53,6 +57,7 @@ export class CandleTable {
       level: 0
     }));
     this.smoke = [];
+    this.fires = [];
     this.lightMap = document.createElement("canvas");
     this.base = document.createElement("canvas");
     this.frame = this.frame.bind(this);
@@ -89,6 +94,18 @@ export class CandleTable {
     this.candles[index].gutter = Math.min(Math.max(amount, 0), 1);
   }
 
+  /** A card catches fire in the bowl. */
+  flareBowl() {
+    // Each tongue gets its own place, size and rhythm so the fire looks ragged, not like a burner.
+    const tongues = Array.from({ length: FIRE_TONGUES }, () => ({
+      u: (Math.random() - 0.5) * 1.1,
+      size: 0.45 + Math.random() * 0.75,
+      speed: 6 + Math.random() * 9,
+      phase: Math.random() * Math.PI * 2
+    }));
+    this.fires.push({ age: 0, seed: Math.random() * 10, level: 0, tongues });
+  }
+
   /** 1 = room lights on, 0 = only candles. Fades smoothly unless `instant`. */
   setRoomLight(value, { instant = false } = {}) {
     this.roomLightTarget = value;
@@ -97,7 +114,8 @@ export class CandleTable {
 
   /** 0–1 brightness for things around the table (faces, cards): room light or what the candles give. */
   get lightLevel() {
-    const candles = this.candles.reduce((sum, c) => sum + Math.max(c.level, 0), 0) / this.candles.length;
+    const fire = this.fires.reduce((sum, f) => sum + f.level, 0);
+    const candles = (this.candles.reduce((sum, c) => sum + Math.max(c.level, 0), 0) + 1.5 * fire) / this.candles.length;
     return Math.max(this.roomLight, candles > 0.005 ? 0.15 + 0.85 * candles : 0);
   }
 
@@ -239,6 +257,7 @@ export class CandleTable {
     this.roomLight += (this.roomLightTarget - this.roomLight) * Math.min(1, dt / 900);
     for (const candle of this.candles) this.update(candle, now, dt);
     this.updateSmoke(dt);
+    this.updateFires(dt);
     this.draw(now);
     this.onFrame?.(this);
   }
@@ -290,6 +309,21 @@ export class CandleTable {
     this.smoke = this.smoke.filter((wisp) => wisp.age < SMOKE_MS);
   }
 
+  updateFires(dt) {
+    for (const fire of this.fires) {
+      fire.age += dt;
+      const k = fire.age / FIRE_MS;
+      // Catches within a fifth of its life, flares, then sinks into embers.
+      fire.level = k < 0.2 ? k / 0.2 : Math.pow(1 - (k - 0.2) / 0.8, 1.6);
+      fire.level *= 1 + 0.15 * Math.sin(fire.age / 45 + fire.seed);
+    }
+    for (const fire of this.fires.filter((f) => f.age >= FIRE_MS)) {
+      const { x, y } = PAINTING.bowl;
+      this.smoke.push({ x, y: y - 10, age: 0, seed: fire.seed });
+    }
+    this.fires = this.fires.filter((f) => f.age < FIRE_MS);
+  }
+
   draw(now) {
     const { ctx, canvas } = this;
     const lit = this.candles.filter((c) => c.level > 0.01);
@@ -307,6 +341,7 @@ export class CandleTable {
 
     ctx.globalCompositeOperation = "lighter";
     for (const candle of lit) this.drawFlame(candle);
+    for (const fire of this.fires) this.drawBowlFire(fire);
     ctx.globalCompositeOperation = "source-over";
   }
 
@@ -327,6 +362,12 @@ export class CandleTable {
       const level = Math.max(candle.level, 0);
       this.glow(ctx, x, y, GLOW_RADIUS * s, `rgba(255,150,70,${0.42 * level})`);
       this.glow(ctx, x, y, NEAR_GLOW_RADIUS * s, `rgba(255,205,140,${0.55 * level})`);
+    }
+    for (const fire of this.fires) {
+      const x = (this.offsetX + PAINTING.bowl.x * this.scale) * LIGHT_MAP_SCALE;
+      const y = (this.offsetY + (PAINTING.bowl.y - 60) * this.scale) * LIGHT_MAP_SCALE;
+      this.glow(ctx, x, y, GLOW_RADIUS * 1.2 * s, `rgba(255,140,60,${0.5 * fire.level})`);
+      this.glow(ctx, x, y, NEAR_GLOW_RADIUS * 1.5 * s, `rgba(255,200,130,${0.6 * fire.level})`);
     }
   }
 
@@ -386,6 +427,34 @@ export class CandleTable {
     ctx.beginPath();
     ctx.ellipse(base.x, base.y + h * 0.02, w * 0.45, h * 0.07, 0, 0, Math.PI * 2);
     ctx.fill();
+  }
+
+  /** A ragged row of tongues licking up out of the bowl. */
+  drawBowlFire(fire) {
+    const { ctx } = this;
+    const { x, y, rx, ry } = PAINTING.bowl;
+    const t = fire.age / 1000;
+    for (const { u, size, speed, phase } of fire.tongues) {
+      const base = this.toScreen({ x: x + u * rx, y: y + ry * 0.25 * Math.cos(u * Math.PI) });
+      const wobble = 0.5 + 0.3 * Math.sin(t * speed + phase) + 0.2 * Math.sin(t * speed * 2.3 + phase * 3);
+      const h = FIRE_HEIGHT * this.scale * fire.level * size * (1 - 0.6 * Math.abs(u)) * (0.5 + 0.7 * wobble);
+      if (h < 1) continue;
+      const w = h * (0.22 + 0.12 * size);
+      const sway = 0.18 * Math.sin(t * speed * 0.4 + phase) * h;
+      const g = ctx.createRadialGradient(base.x, base.y - h * 0.2, 0, base.x, base.y - h * 0.3, h * 0.8);
+      g.addColorStop(0, `rgba(255,235,180,${0.6 * fire.level})`);
+      g.addColorStop(0.4, `rgba(255,150,50,${0.5 * fire.level})`);
+      g.addColorStop(1, "rgba(160,40,0,0)");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.moveTo(base.x - w, base.y);
+      ctx.quadraticCurveTo(base.x - w * 0.8 + sway * 0.4, base.y - h * 0.55, base.x + sway, base.y - h);
+      ctx.quadraticCurveTo(base.x + w * 0.8 + sway * 0.4, base.y - h * 0.55, base.x + w, base.y);
+      ctx.closePath();
+      ctx.fill();
+    }
+    const c = this.toScreen({ x, y: y - 30 });
+    this.glow(ctx, c.x, c.y, rx * 1.4 * this.scale, `rgba(255,150,60,${0.25 * fire.level})`);
   }
 
   drawSmoke() {
