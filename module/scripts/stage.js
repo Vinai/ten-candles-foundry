@@ -155,7 +155,7 @@ export class TableStage {
       this.recorder.innerHTML = `<span class="tct-recorder-grille"></span><span class="tct-recorder-led"></span>`;
       this.root.append(this.recorder);
     }
-    if (this.recorder.classList.contains("is-recording") !== recording) this.sounds.click();
+    if (this.recorder.classList.contains("is-recording") !== recording) this.sounds.click(recording);
     this.recorder.classList.toggle("is-recording", recording);
     const from = this.recorderSeat ?? null;
     this.recorderSeat = seat >= 0 ? seat : null;
@@ -204,7 +204,7 @@ export class TableStage {
     await flight.finished;
     card.classList.add("is-burning");
     this.table.flareBowl();
-    this.sounds.burn(BURN_MS / 1000);
+    this.sounds.burn();
     await new Promise((resolve) => window.setTimeout(resolve, BURN_MS));
     card.remove();
   }
