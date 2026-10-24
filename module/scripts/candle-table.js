@@ -9,7 +9,8 @@
 export const PAINTING = {
   width: 3840,
   height: 2160,
-  focus: { x: 1940, y: 930 },
+  focus: { x: 1940, y: 1010 },
+  tray: { x: 1930, y: 1057, rx: 625, ry: 285 },
   wicks: [
     { x: 1958, y: 748, sink: 18 }, { x: 2205, y: 778, sink: 30 }, { x: 2365, y: 874, sink: 30 },
     { x: 2347, y: 986, sink: 30 }, { x: 2165, y: 1071, sink: 30 }, { x: 1933, y: 1118, sink: 30 },
@@ -88,6 +89,24 @@ export class CandleTable {
   /** 1 = room lights on, 0 = only candles. Fades smoothly. */
   setRoomLight(value) {
     this.roomLightTarget = value;
+  }
+
+  /** 0–1 brightness for things around the table (faces, cards): room light or what the candles give. */
+  get lightLevel() {
+    const candles = this.candles.reduce((sum, c) => sum + Math.max(c.level, 0), 0) / this.candles.length;
+    return Math.max(this.roomLight, candles > 0.005 ? 0.15 + 0.85 * candles : 0);
+  }
+
+  /** The tray's centre and radii in CSS pixels, for placing seats around it. */
+  get trayOnScreen() {
+    const ratio = this.canvas.width / this.canvas.clientWidth;
+    const c = this.toScreen(PAINTING.tray);
+    return {
+      x: c.x / ratio,
+      y: c.y / ratio,
+      rx: (PAINTING.tray.rx * this.scale) / ratio,
+      ry: (PAINTING.tray.ry * this.scale) / ratio
+    };
   }
 
   get litCount() {
@@ -205,6 +224,7 @@ export class CandleTable {
     for (const candle of this.candles) this.update(candle, now, dt);
     this.updateSmoke(dt);
     this.draw(now);
+    this.onFrame?.(this);
   }
 
   update(candle, now, dt) {
