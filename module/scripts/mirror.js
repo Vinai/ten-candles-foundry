@@ -20,7 +20,7 @@ export class ConflictMirror {
     const state = this.table.gaState();
     this.messageId = game.messages.contents.findLast((m) => gaType(m) && this.pinned(m, state))?.id ?? null;
     Hooks.on("createChatMessage", (message) => this.touch(message));
-    Hooks.on("updateChatMessage", (message) => this.touch(message));
+    Hooks.on("updateChatMessage", (message) => this.update(message));
     Hooks.on("deleteChatMessage", (message) => message.id === this.messageId && this.render());
     // Marks them so the styles keep them out of Foundry's chat pop-ups; the bowl shows them already.
     Hooks.on("renderChatMessageHTML", (message, html) => gaType(message) && html.classList.add("tct-ga-card"));
@@ -38,6 +38,15 @@ export class ConflictMirror {
     this.render();
     window.clearTimeout(this.lingerTimer);
     this.lingerTimer = window.setTimeout(() => this.render(), LINGER_MS + 100);
+  }
+
+  /**
+   * The Game Assistant keeps updating its cards, e.g. the last conflict's candle count when a candle burns out.
+   * That keeps a card up while it is showing, but does not bring back one that has gone.
+   */
+  update(message) {
+    const showing = message.id === this.messageId && this.element.classList.contains("is-visible");
+    if (showing || this.pinned(message, this.table.gaState())) this.touch(message);
   }
 
   /** Whether the game is still waiting on this card, however long ago it changed. */
