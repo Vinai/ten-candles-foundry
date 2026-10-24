@@ -74,19 +74,21 @@ export class CandleTable {
     this.running = false;
   }
 
-  /** `instant` skips the match flare, e.g. when a page loads mid-game. */
+  /** `instant` skips the match flare, e.g. when a page loads mid-game. @returns {boolean} whether it was out */
   light(index, { instant = false } = {}) {
     const candle = this.candles[index];
-    if (candle.state === "lit" || candle.state === "lighting") return;
+    if (candle.state === "lit" || candle.state === "lighting") return false;
     Object.assign(candle, { state: instant ? "lit" : "lighting", since: performance.now(), gutter: 0 });
+    return true;
   }
 
-  /** `instant` skips the dying flame and the smoke. */
+  /** `instant` skips the dying flame and the smoke. @returns {boolean} whether it was burning */
   snuff(index, { instant = false } = {}) {
     const candle = this.candles[index];
-    if (candle.state === "unlit" || candle.state === "snuffing") return;
+    if (candle.state === "unlit" || candle.state === "snuffing") return false;
     if (instant) Object.assign(candle, { state: "unlit", level: 0 });
     else Object.assign(candle, { state: "snuffing", since: performance.now(), snuffFrom: candle.level });
+    return true;
   }
 
   /** 0 = steady, 1 = about to drown in its own wax. */

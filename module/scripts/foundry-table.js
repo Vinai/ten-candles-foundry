@@ -51,7 +51,9 @@ export class FoundryTable {
     this.users = this.seatedUsers();
     this.stage = new TableStage(document.body, image, {
       seats: this.users.map((user) => this.seatData(user)),
-      viewer: this.viewerIndex()
+      viewer: this.viewerIndex(),
+      // Foundry's interface channel, so each player's interface volume applies. Silent until their first click.
+      audio: () => (game.audio.locked ? null : game.audio.interface?.gainNode ?? null)
     });
     this.applyState(this.gaState(), { instant: true });
     this.applyLights({ instant: true });
@@ -231,11 +233,7 @@ export class FoundryTable {
 
   applyState(state, { instant = false } = {}) {
     const litCount = this.visibleCandles(state);
-    const lit = new Set(candleOrder(state.gameId).slice(0, litCount));
-    for (let i = 0; i < TOTAL_CANDLES; i++) {
-      if (lit.has(i)) this.stage.table.light(i, { instant });
-      else this.stage.table.snuff(i, { instant });
-    }
+    this.stage.setCandles(new Set(candleOrder(state.gameId).slice(0, litCount)), { instant });
     // No dice on the table before the game starts. During the truths the dice wait for the next scene, when the
     // Game Assistant refills the pool.
     if (!isStarted(this.clock())) this.stage.setDice({ player: 0, lost: 0, gm: 0 });

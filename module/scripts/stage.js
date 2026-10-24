@@ -1,5 +1,6 @@
 import { CandleTable } from "./candle-table.js";
 import { seatPositions } from "./seat-layout.js";
+import { TableSounds } from "./sounds.js";
 
 // Seats sit on an ellipse this much wider/taller than the tray; card stacks lie just outside the tray's rim.
 const SEAT_SPREAD_X = 1.75;
@@ -21,7 +22,9 @@ const LONG_TEXT = 14;
  * Knows nothing about Foundry; callers hand in face elements (camera videos or placeholders) and game state.
  */
 export class TableStage {
-  constructor(parent, image, { seats, viewer }) {
+  /** @param audio {() => AudioNode | null} where the table's sounds go, or null while the browser keeps quiet */
+  constructor(parent, image, { seats, viewer, audio = () => null }) {
+    this.sounds = new TableSounds(audio);
     this.root = document.createElement("div");
     this.root.className = "tct-stage";
     const canvas = document.createElement("canvas");
@@ -152,6 +155,7 @@ export class TableStage {
       this.recorder.innerHTML = `<span class="tct-recorder-grille"></span><span class="tct-recorder-led"></span>`;
       this.root.append(this.recorder);
     }
+    if (this.recorder.classList.contains("is-recording") !== recording) this.sounds.click();
     this.recorder.classList.toggle("is-recording", recording);
     const from = this.recorderSeat ?? null;
     this.recorderSeat = seat >= 0 ? seat : null;
@@ -200,6 +204,7 @@ export class TableStage {
     await flight.finished;
     card.classList.add("is-burning");
     this.table.flareBowl();
+    this.sounds.burn(BURN_MS / 1000);
     await new Promise((resolve) => window.setTimeout(resolve, BURN_MS));
     card.remove();
   }
@@ -215,6 +220,22 @@ export class TableStage {
     }
     this.root.append(card);
     return card;
+  }
+
+  /**
+   * Lights and puts out candles to match `lit` (a set of candle indices). One match is struck for all candles lit
+   * together; a candle going out is heard. `instant` does it silently, e.g. when a page loads mid-game.
+   */
+  setCandles(lit, { instant = false } = {}) {
+    let struck = false;
+    let snuffed = false;
+    this.table.candles.forEach((_, index) => {
+      if (lit.has(index)) struck = this.table.light(index, { instant }) || struck;
+      else snuffed = this.table.snuff(index, { instant }) || snuffed;
+    });
+    if (instant) return;
+    if (struck) this.sounds.strike();
+    if (snuffed) this.sounds.snuff();
   }
 
   /** A card lying by the bowl that anyone can touch. */
