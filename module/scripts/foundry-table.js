@@ -23,6 +23,7 @@ export class FoundryTable {
   async mount() {
     const image = await loadImage(GA_PAINTING);
     await this.adoptPersonalPresentation();
+    await this.allowPlayerVideo();
     this.pauseCanvas();
     document.body.classList.add("tct-active");
 
@@ -53,6 +54,16 @@ export class FoundryTable {
     const state = this.gaState();
     if (game.user !== game.users.activeGM || state.presentationMode === "personal") return;
     await game.evilTenCandles?.state.setPresentationMode("personal");
+  }
+
+  /** Faces are the table: Foundry only lets trusted players broadcast video by default, this world lets everyone. */
+  async allowPlayerVideo() {
+    if (game.user !== game.users.activeGM) return;
+    const permissions = foundry.utils.deepClone(game.settings.get("core", "permissions"));
+    const roles = permissions.BROADCAST_VIDEO ?? [];
+    if (roles.includes(CONST.USER_ROLES.PLAYER)) return;
+    permissions.BROADCAST_VIDEO = [...roles, CONST.USER_ROLES.PLAYER].sort();
+    await game.settings.set("core", "permissions", permissions);
   }
 
   /** Nothing of the canvas is visible under the table, so stop it rendering instead of just covering it. */
