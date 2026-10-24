@@ -8,6 +8,8 @@ const STACK_SPREAD_X = 1.28;
 const STACK_SPREAD_Y = 1.45;
 const TOTAL_DICE = 10;
 const SLIDE_MS = 1800;
+// Single words fill a card; Moments and Brinks are whole sentences and get smaller writing.
+const LONG_TEXT = 14;
 
 /**
  * The whole table as one full-screen layer: candle canvas, faces around the tray, card stacks and dice.
@@ -93,6 +95,7 @@ export class TableStage {
         el.innerHTML = `<span class="tct-card-label"></span><span class="tct-card-text"></span>`;
         el.querySelector(".tct-card-label").textContent = card.label;
         el.querySelector(".tct-card-text").textContent = card.text ?? "";
+        el.classList.toggle("is-long", (card.text ?? "").length > LONG_TEXT);
       }
       pile.append(el);
     });
@@ -116,6 +119,7 @@ export class TableStage {
       card.innerHTML = `<span class="tct-card-label"></span><span class="tct-card-text"></span>`;
       card.querySelector(".tct-card-label").textContent = label;
       card.querySelector(".tct-card-text").textContent = text ?? "";
+      card.classList.toggle("is-long", (text ?? "").length > LONG_TEXT);
     }
     this.root.append(card);
 

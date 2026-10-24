@@ -97,6 +97,7 @@
 .tct-card {
   position: absolute;
   inset: 0;
+  overflow: hidden;
   background: #e9e1cf;
   border-radius: 2px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
@@ -127,6 +128,10 @@
   position: absolute;
   top: 0.2vw;
   left: 0.3vw;
+  right: 0.3vw;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-family: "Special Elite", "Courier New", monospace;
   font-size: 0.45vw;
   color: #6b5f4d;
@@ -140,7 +145,14 @@
   justify-content: center;
   font-family: "Caveat", "Segoe Print", "Bradley Hand", cursive;
   font-size: 1vw;
+  line-height: 1.05;
+  text-align: center;
+  overflow: hidden;
   color: #1d1b2a;
+}
+
+.tct-card.is-long .tct-card-text {
+  font-size: 0.62vw;
 }
 
 .tct-hope-die {
