@@ -538,3 +538,93 @@ body.tct-active #chat-notifications .chat-message.tct-ga-card {
   padding: 0.3rem 0.8rem;
   cursor: pointer;
 }
+
+/* Ritual words over the table: each line rises out of the dark, they linger together and sink back. */
+.tct-phrase {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2vh;
+  padding: 0 16px;
+  pointer-events: none;
+  z-index: 9;
+  font-family: "Special Elite", "Courier New", monospace;
+  font-size: clamp(1.6rem, 4.2vw, 4rem);
+  line-height: 1.2;
+  text-align: center;
+  color: #e9e1cf;
+  text-shadow: 0 0 0.5em rgba(0, 0, 0, 0.95), 0 0 1.4em rgba(255, 170, 90, 0.25);
+  background: radial-gradient(ellipse 50% 32% at 50% 50%, rgba(0, 0, 0, 0.7), transparent);
+  animation: tct-phrase 13s ease-in-out forwards;
+}
+
+.tct-phrase > span {
+  opacity: 0;
+  animation: tct-phrase-line 2.5s ease-out 0.3s forwards;
+}
+
+.tct-phrase > span:nth-child(2) {
+  animation-delay: 2.6s;
+}
+
+/* The last words of the game stay in the dark. */
+.tct-phrase.is-final {
+  animation: tct-phrase-final 3s ease-in forwards;
+}
+
+@keyframes tct-phrase {
+  0% { opacity: 0; }
+  4% { opacity: 1; }
+  78% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes tct-phrase-final {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes tct-phrase-line {
+  from { opacity: 0; filter: blur(6px); letter-spacing: 0.14em; }
+  to { opacity: 1; filter: blur(0); letter-spacing: 0.03em; }
+}
+
+/* The end: after the last candle the table, the faces and everything around them sink into true black, slowly.
+   Only the last words stay above it. The GM keeps a faint panel for the recordings. */
+.tct-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+}
+
+body.tct-the-end .tct-stage::after {
+  opacity: 1;
+  transition: opacity 8s ease-in;
+}
+
+body.tct-the-end :is(#interface, .ets-floating-roll, .tct-write-button, .tct-recorder-panel) {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 8s ease-in;
+}
+
+body.tct-the-end .tct-gm-panel {
+  opacity: 0.25;
+  transition: opacity 1s;
+}
+
+body.tct-the-end .tct-gm-panel:hover {
+  opacity: 1;
+}
+
+/* With the lights back on, the last words have been said. */
+body:not(.tct-the-end) .tct-phrase.is-final {
+  display: none;
+}

@@ -10,6 +10,8 @@ import { TableStage } from "./stage.js";
 
 const GUTTER_TICK_MS = 1000;
 const X_CARD_COOLDOWN_MS = 5000;
+// The truths begin once the candle has gone out and its smoke rises.
+const TRUTHS_DELAY_MS = 1500;
 const TRAIT_LABELS = { virtue: "TCT.Card.Virtue", vice: "TCT.Card.Vice", moment: "TCT.Card.Moment" };
 const PLACEHOLDERS = {
   virtue: "ETC.Character.VirtuePlaceholder",
@@ -65,6 +67,7 @@ export class FoundryTable {
     this.mirror.start();
     game.socket.on(SOCKET, (message) => {
       if (message?.type === "xcard") this.showXCard();
+      if (message?.type === "alive") this.showAlive();
     });
     if (game.user.isGM) {
       this.gm = new GMControls(this);
@@ -233,7 +236,15 @@ export class FoundryTable {
 
   applyState(state, { instant = false } = {}) {
     const litCount = this.visibleCandles(state);
+    if (!instant && isStarted(this.clock()) && litCount < this.litCount) this.showTruths(litCount);
+    // The game's last words stay until a new game lights candles again.
+    if (litCount > 0 && this.finalWords) {
+      this.stage.clearPhrase();
+      this.finalWords = false;
+    }
+    this.litCount = litCount;
     this.stage.setCandles(new Set(candleOrder(state.gameId).slice(0, litCount)), { instant });
+    this.applyEnd();
     // No dice on the table before the game starts. During the truths the dice wait for the next scene, when the
     // Game Assistant refills the pool.
     if (!isStarted(this.clock())) this.stage.setDice({ player: 0, lost: 0, gm: 0 });
@@ -256,6 +267,35 @@ export class FoundryTable {
   applyLights({ instant = false } = {}) {
     const lightsOut = game.settings.get(MODULE_ID, SETTINGS.lightsOut);
     this.stage.table.setRoomLight(lightsOut ? 0 : 1, { instant });
+    this.applyEnd();
+  }
+
+  /**
+   * After the last candle: true black, faces and all, with only the last words left, until the lights come on.
+   * The GM keeps a faint panel for the recordings.
+   */
+  applyEnd() {
+    const end = isStarted(this.clock()) && this.litCount === 0 && game.settings.get(MODULE_ID, SETTINGS.lightsOut);
+    document.body.classList.toggle("tct-the-end", end);
+    // Joined or reloaded in the dark: the words are already there.
+    if (end && !this.finalWords) this.showTruths(0);
+  }
+
+  /** A candle went out: the scene ends and the truths begin, the last time without anyone left to answer. */
+  showTruths(litCount) {
+    const lines = [game.i18n.localize("TCT.Phrase.True"), game.i18n.localize("TCT.Phrase.Dark")];
+    this.finalWords = litCount === 0;
+    this.stage.showPhrase(lines, { delay: TRUTHS_DELAY_MS, final: this.finalWords });
+  }
+
+  /** The GM's cue for the last truth, spoken by all players together. */
+  sayAlive() {
+    game.socket.emit(SOCKET, { type: "alive" });
+    this.showAlive();
+  }
+
+  showAlive() {
+    this.stage.showPhrase([game.i18n.localize("TCT.Phrase.Alive")]);
   }
 
   /** Anyone may touch the X-card; everyone sees that it happened, nobody sees who. */

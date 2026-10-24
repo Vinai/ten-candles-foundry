@@ -18,6 +18,8 @@ export class GMControls {
     this.pauseButton = this.button(() => this.togglePause());
     this.draughtButton = this.button(() => this.draught(), "TCT.GM.Draught");
     this.draughtButton.dataset.tooltip = game.i18n.localize("TCT.GM.DraughtHint");
+    this.aliveButton = this.button(() => this.table.sayAlive(), "TCT.GM.Alive");
+    this.aliveButton.dataset.tooltip = game.i18n.localize("TCT.GM.AliveHint");
     this.recorderButton = this.button(() => this.recorderStep());
     this.playButton = this.button(() => this.table.recorder.play(), "TCT.GM.PlayRecordings");
     this.status = document.createElement("div");
@@ -29,6 +31,7 @@ export class GMControls {
       this.lightsButton,
       this.pauseButton,
       this.draughtButton,
+      this.aliveButton,
       this.recorderButton,
       this.playButton,
       this.status,
@@ -141,6 +144,8 @@ export class GMControls {
     this.pauseButton.textContent = game.i18n.localize(isPaused(clock) ? "TCT.GM.Resume" : "TCT.GM.Pause");
     this.pauseButton.disabled = !isStarted(clock);
     this.draughtButton.disabled = !isStarted(clock) || this.table.gaState().litCandles <= 0;
+    // At the very end nobody is left to answer.
+    this.aliveButton.hidden = !isStarted(clock) || this.table.burningCandles() <= 0;
 
     this.status.textContent = this.statusText(clock);
     this.renderRecorder(clock);

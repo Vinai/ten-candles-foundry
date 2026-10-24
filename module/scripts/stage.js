@@ -258,6 +258,31 @@ export class TableStage {
     return this.mirror;
   }
 
+  /**
+   * Ritual words over the table, line by line: they rise out of the dark, linger and sink back. `final` words stay
+   * until `clearPhrase`. A new phrase replaces the one showing.
+   */
+  showPhrase(lines, { delay = 0, final = false } = {}) {
+    this.clearPhrase();
+    const phrase = (this.phrase = document.createElement("div"));
+    phrase.className = "tct-phrase" + (final ? " is-final" : "");
+    phrase.append(
+      ...lines.map((line) => {
+        const span = document.createElement("span");
+        span.textContent = line;
+        return span;
+      })
+    );
+    phrase.addEventListener("animationend", (event) => event.target === phrase && !final && phrase.remove());
+    this.phraseTimer = window.setTimeout(() => this.root.append(phrase), delay);
+  }
+
+  clearPhrase() {
+    window.clearTimeout(this.phraseTimer);
+    this.phrase?.remove();
+    this.phrase = null;
+  }
+
   /** Big, brief and nameless: someone touched the X-card. */
   flashX() {
     const flash = document.createElement("div");

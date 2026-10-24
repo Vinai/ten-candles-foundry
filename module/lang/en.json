@@ -40,7 +40,14 @@
       "RecorderSkipHint": "Passes the recorder on without a message, e.g. when someone cannot record.",
       "RecorderWith": "Recorder with {name}",
       "RecorderDone": "Messages recorded: {count}",
-      "PlayRecordings": "Play recordings"
+      "PlayRecordings": "Play recordings",
+      "Alive": "And we are alive.",
+      "AliveHint": "Shows everyone the last truth, spoken by all players together. Then the next scene begins."
+    },
+    "Phrase": {
+      "True": "These things are true.",
+      "Dark": "The world is dark.",
+      "Alive": "And we are alive."
     },
     "Settings": {
       "PlainTable": {

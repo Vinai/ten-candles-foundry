@@ -40,7 +40,14 @@
       "RecorderSkipHint": "Reicht den Rekorder ohne Nachricht weiter, z. B. wenn jemand nicht aufnehmen kann.",
       "RecorderWith": "Rekorder bei {name}",
       "RecorderDone": "Aufgenommene Nachrichten: {count}",
-      "PlayRecordings": "Aufnahmen abspielen"
+      "PlayRecordings": "Aufnahmen abspielen",
+      "Alive": "Und wir leben.",
+      "AliveHint": "Zeigt allen die letzte Wahrheit, die alle Spielenden gemeinsam sprechen. Danach beginnt die nächste Szene."
+    },
+    "Phrase": {
+      "True": "Diese Dinge sind wahr.",
+      "Dark": "Die Welt ist dunkel.",
+      "Alive": "Und wir leben."
     },
     "Settings": {
       "PlainTable": {
