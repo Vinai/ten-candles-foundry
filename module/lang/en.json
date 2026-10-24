@@ -25,6 +25,7 @@
       "BrinkOfThem": "I have seen Them …"
     },
     "GM": {
+      "Seats": "Seating",
       "LightsOut": "Lights out",
       "LightsOn": "Lights on",
       "Pause": "Pause",
@@ -83,6 +84,14 @@
       "NoMicrophone": "No microphone available. Please allow the browser to use the microphone.",
       "NoGM": "The GM is not connected – the recorder cannot be passed on right now.",
       "UploadFailed": "A recording could not be stored. The recorder stays with that player, who can try again."
+    },
+    "Seats": {
+      "Title": "Seating",
+      "Hint": "Clockwise as at a real table: you at the top, below you whoever sits on your left, and so on. Virtues go right, Vices and Brinks go left, the recorder travels left.",
+      "You": "GM",
+      "Up": "Move up",
+      "Down": "Move down",
+      "Save": "Apply"
     }
   }
 }

@@ -13,6 +13,7 @@ export class GMControls {
     this.table = table;
     this.panel = document.createElement("div");
     this.panel.className = "tct-gm-panel";
+    this.seatsButton = this.button(() => this.editSeats(), "TCT.GM.Seats");
     this.ritualButton = this.button(() => this.nextRitualStep());
     this.lightsButton = this.button(() => this.toggleLights());
     this.pauseButton = this.button(() => this.togglePause());
@@ -27,6 +28,7 @@ export class GMControls {
     this.recorderStatus = document.createElement("div");
     this.recorderStatus.className = "tct-gm-status";
     this.panel.append(
+      this.seatsButton,
       this.ritualButton,
       this.lightsButton,
       this.pauseButton,
@@ -72,6 +74,52 @@ export class GMControls {
       this.ritualButton.disabled = false;
       this.render();
     }
+  }
+
+  /**
+   * Who sits where, clockwise as at a real table: the GM first, then whoever sits on their left, and so on. Card
+   * passing and the recorder follow this order.
+   */
+  async editSeats() {
+    const escape = foundry.utils.escapeHTML;
+    const t = (key) => escape(game.i18n.localize(`TCT.Seats.${key}`));
+    const row = (user) =>
+      `<li data-user-id="${user.id}"><span>${escape(user.character?.name || user.name)}` +
+      (user.character ? ` <small>(${escape(user.name)})</small>` : "") +
+      `</span><button type="button" data-move="-1" data-tooltip="${t("Up")}">↑</button>` +
+      `<button type="button" data-move="1" data-tooltip="${t("Down")}">↓</button></li>`;
+    const others = this.table.users.filter((user) => user !== game.user);
+    const order = await foundry.applications.api.DialogV2.wait({
+      window: { title: game.i18n.localize("TCT.Seats.Title") },
+      position: { width: 420 },
+      classes: ["tct-seats"],
+      content:
+        `<p>${t("Hint")}</p><ol class="tct-seat-order">` +
+        `<li class="is-gm"><span>${escape(game.user.name)} <small>(${t("You")})</small></span></li>` +
+        others.map(row).join("") +
+        `</ol>`,
+      buttons: [
+        {
+          action: "save",
+          label: game.i18n.localize("TCT.Seats.Save"),
+          default: true,
+          callback: (event, button) => [...button.form.querySelectorAll("li[data-user-id]")].map((li) => li.dataset.userId)
+        }
+      ],
+      render: (event, dialog) => {
+        dialog.element.querySelector(".tct-seat-order").addEventListener("click", (click) => {
+          const button = click.target.closest("[data-move]");
+          if (!button) return;
+          const li = button.closest("li");
+          const target = button.dataset.move === "-1" ? li.previousElementSibling : li.nextElementSibling;
+          // The GM stays on top: the list starts at their seat.
+          if (!target || target.classList.contains("is-gm")) return;
+          if (button.dataset.move === "-1") target.before(li);
+          else target.after(li);
+        });
+      }
+    });
+    if (order) await game.settings.set(MODULE_ID, SETTINGS.seatOrder, [game.user.id, ...order]);
   }
 
   /** Switches the recorder on, or moves it past a player who cannot record. */
@@ -139,6 +187,8 @@ export class GMControls {
     const clock = this.table.clock();
     const ritual = this.table.ritual;
     this.ritualButton.hidden = !ritual.nextLabel || isStarted(clock);
+    // Settled during character creation: the cards were passed along this order.
+    this.seatsButton.hidden = isStarted(clock);
     this.ritualButton.textContent = ritual.nextLabel ?? "";
     this.lightsButton.textContent = game.i18n.localize(this.lightsOut ? "TCT.GM.LightsOn" : "TCT.GM.LightsOut");
     this.pauseButton.textContent = game.i18n.localize(isPaused(clock) ? "TCT.GM.Resume" : "TCT.GM.Pause");

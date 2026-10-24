@@ -644,3 +644,36 @@ body.tct-the-end .tct-gm-panel:hover {
 body:not(.tct-the-end) .tct-phrase.is-final {
   display: none;
 }
+
+/* The GM's seating list: clockwise from their own seat. */
+.tct-seat-order {
+  margin: 0.5rem 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: seat;
+}
+
+/* Numbered by hand: flex rows lose their list markers. */
+.tct-seat-order li::before {
+  counter-increment: seat;
+  content: counter(seat) ".";
+  flex: 0 0 1.4rem;
+  opacity: 0.6;
+}
+
+.tct-seat-order li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.15rem 0;
+}
+
+.tct-seat-order li > span {
+  flex: 1;
+}
+
+.tct-seat-order li > button {
+  flex: 0 0 2rem;
+  width: 2rem;
+  padding: 0;
+}

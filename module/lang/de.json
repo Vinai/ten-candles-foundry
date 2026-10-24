@@ -25,6 +25,7 @@
       "BrinkOfThem": "Ich habe SIE gesehen …"
     },
     "GM": {
+      "Seats": "Sitzordnung",
       "LightsOut": "Licht aus",
       "LightsOn": "Licht an",
       "Pause": "Pause",
@@ -83,6 +84,14 @@
       "NoMicrophone": "Kein Mikrofon verfügbar. Bitte erlaube dem Browser den Zugriff auf das Mikrofon.",
       "NoGM": "Die Spielleitung ist nicht verbunden – der Rekorder kann gerade nicht weitergegeben werden.",
       "UploadFailed": "Eine Aufnahme konnte nicht gespeichert werden. Der Rekorder bleibt bei der Person; sie kann es erneut versuchen."
+    },
+    "Seats": {
+      "Title": "Sitzordnung",
+      "Hint": "Im Uhrzeigersinn wie an einem echten Tisch: oben du, darunter wer links von dir sitzt, und so weiter. Tugenden gehen nach rechts, Laster und Abgründe nach links, der Rekorder wandert nach links.",
+      "You": "Spielleitung",
+      "Up": "Nach oben",
+      "Down": "Nach unten",
+      "Save": "Übernehmen"
     }
   }
 }
