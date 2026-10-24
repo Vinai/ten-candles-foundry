@@ -34,7 +34,13 @@
       "DraughtWaits": "Die Kerze erlischt, sobald der Konflikt bzw. die Wahrheiten vorbei sind.",
       "ClockWaiting": "Die Kerzen brennen ab „Licht aus“ herunter.",
       "NextCandle": "Nächste Kerze erlischt in {time}",
-      "NextCandlePaused": "Pausiert – nächste Kerze in {time}"
+      "NextCandlePaused": "Pausiert – nächste Kerze in {time}",
+      "RecorderOn": "Rekorder einschalten",
+      "RecorderSkip": "Rekorder weiterreichen",
+      "RecorderSkipHint": "Reicht den Rekorder ohne Nachricht weiter, z. B. wenn jemand nicht aufnehmen kann.",
+      "RecorderWith": "Rekorder bei {name}",
+      "RecorderDone": "Aufgenommene Nachrichten: {count}",
+      "PlayRecordings": "Aufnahmen abspielen"
     },
     "Settings": {
       "PlainTable": {
@@ -55,6 +61,21 @@
     },
     "XCard": {
       "Touched": "Jemand hat die X-Karte berührt. Wir lassen das weg und gehen weiter."
+    },
+    "Recorder": {
+      "Hint": "Du hast den Rekorder. Hinterlasse eine letzte Nachricht als deine Figur.",
+      "Record": "● Aufnehmen",
+      "PassEmpty": "Ohne Nachricht weitergeben",
+      "Recording": "● Aufnahme {time} / {max}",
+      "Stop": "■ Stopp",
+      "Recorded": "Aufgenommen. Anhören, neu aufnehmen oder weitergeben.",
+      "Listen": "▶ Anhören",
+      "Again": "Neu aufnehmen",
+      "Pass": "Weitergeben",
+      "Sending": "Wird weitergegeben …",
+      "NoMicrophone": "Kein Mikrofon verfügbar. Bitte erlaube dem Browser den Zugriff auf das Mikrofon.",
+      "NoGM": "Die Spielleitung ist nicht verbunden – der Rekorder kann gerade nicht weitergegeben werden.",
+      "UploadFailed": "Eine Aufnahme konnte nicht gespeichert werden. Der Rekorder bleibt bei der Person; sie kann es erneut versuchen."
     }
   }
 }

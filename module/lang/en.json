@@ -34,7 +34,13 @@
       "DraughtWaits": "The candle goes out as soon as the conflict or the truths are over.",
       "ClockWaiting": "The candles burn down from “Lights out”.",
       "NextCandle": "Next candle dies in {time}",
-      "NextCandlePaused": "Paused – next candle in {time}"
+      "NextCandlePaused": "Paused – next candle in {time}",
+      "RecorderOn": "Switch recorder on",
+      "RecorderSkip": "Pass recorder on",
+      "RecorderSkipHint": "Passes the recorder on without a message, e.g. when someone cannot record.",
+      "RecorderWith": "Recorder with {name}",
+      "RecorderDone": "Messages recorded: {count}",
+      "PlayRecordings": "Play recordings"
     },
     "Settings": {
       "PlainTable": {
@@ -55,6 +61,21 @@
     },
     "XCard": {
       "Touched": "Someone touched the X-card. We drop that and move on."
+    },
+    "Recorder": {
+      "Hint": "You hold the recorder. Leave one last message as your character.",
+      "Record": "● Record",
+      "PassEmpty": "Pass on without a message",
+      "Recording": "● Recording {time} / {max}",
+      "Stop": "■ Stop",
+      "Recorded": "Recorded. Listen, record again or pass it on.",
+      "Listen": "▶ Listen",
+      "Again": "Record again",
+      "Pass": "Pass on",
+      "Sending": "Passing it on …",
+      "NoMicrophone": "No microphone available. Please allow the browser to use the microphone.",
+      "NoGM": "The GM is not connected – the recorder cannot be passed on right now.",
+      "UploadFailed": "A recording could not be stored. The recorder stays with that player, who can try again."
     }
   }
 }

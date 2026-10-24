@@ -8,6 +8,7 @@ export const SETTINGS = {
   lightsOut: "lightsOut",
   candleClock: "candleClock",
   ritual: "ritual",
+  recorder: "recorder",
   plainTable: "plainTable"
 };
 
@@ -46,6 +47,15 @@ export function registerSettings() {
     type: Object,
     default: {},
     onChange: (value) => Hooks.callAll(SETTING_CHANGED_HOOK, SETTINGS.ritual, value)
+  });
+
+  // The parting messages: who holds the recorder, what was recorded, when it is played. See recorder.js.
+  game.settings.register(MODULE_ID, SETTINGS.recorder, {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: {},
+    onChange: (value) => Hooks.callAll(SETTING_CHANGED_HOOK, SETTINGS.recorder, value)
   });
 
   // Escape hatch for weak machines or trouble: keep Foundry's own canvas and camera dock.

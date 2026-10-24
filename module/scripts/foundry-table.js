@@ -3,6 +3,7 @@ import { GA_PAINTING, GA_STATE_HOOK, GA_STATE_SETTING, GA_SYSTEM_ID, MODULE_ID, 
 import { CameraFaces } from "./faces.js";
 import { GMControls } from "./gm-controls.js";
 import { ConflictMirror } from "./mirror.js";
+import { Recorder } from "./recorder.js";
 import { Ritual } from "./ritual.js";
 import { SETTING_CHANGED_HOOK, SETTINGS } from "./settings.js";
 import { TableStage } from "./stage.js";
@@ -25,12 +26,15 @@ export class FoundryTable {
   constructor() {
     this.faces = new CameraFaces();
     this.ritual = new Ritual(this);
+    this.recorder = new Recorder(this);
     // Per actor, the traits last seen unburned, to notice the moment one is spent.
     this.unburned = new Map();
     const table = this;
     this.api = {
       setSeatOrder: (names) => this.setSeatOrder(names),
       setLightsOut: (value) => game.settings.set(MODULE_ID, SETTINGS.lightsOut, value),
+      // For trying the recordings out before the last candle is dark.
+      playRecordings: () => this.recorder.play(),
       get stage() {
         return table.stage;
       }
@@ -65,6 +69,7 @@ export class FoundryTable {
       this.gm.mount();
     }
     this.ritual.start();
+    this.recorder.start();
     window.setInterval(() => this.applyGutter(), GUTTER_TICK_MS);
 
     Hooks.on(GA_STATE_HOOK, (state) => {
@@ -76,6 +81,7 @@ export class FoundryTable {
       if (key === SETTINGS.lightsOut) this.applyLights();
       if (key === SETTINGS.seatOrder) this.refreshSeats();
       if (key === SETTINGS.ritual) this.ritual.onChange();
+      if (key === SETTINGS.recorder) this.recorder.onChange();
       if ([SETTINGS.lightsOut, SETTINGS.candleClock, SETTINGS.ritual].includes(key)) this.applyState(this.gaState());
       this.gm?.render();
       this.renderWriteButton();
@@ -185,6 +191,7 @@ export class FoundryTable {
       users.forEach((user, index) => this.stage.updateSeat(index, this.seatData(user)));
     } else {
       this.stage.setSeats(users.map((user) => this.seatData(user)), this.viewerIndex());
+      this.recorder.refresh();
     }
     this.faces.sync();
   }

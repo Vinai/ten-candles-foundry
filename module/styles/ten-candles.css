@@ -446,3 +446,95 @@ body.tct-active .ets-floating-roll {
 body.tct-active #chat-notifications .chat-message.tct-ga-card {
   display: none;
 }
+
+/* An old dictaphone lying by the holder's cards; its light is red while it records. */
+.tct-recorder {
+  position: absolute;
+  width: 1.5vw;
+  height: 2.6vw;
+  transform: translate(-50%, -50%) rotate(-12deg);
+  background: linear-gradient(160deg, #3a3631, #1b1916 70%);
+  border: 1px solid rgba(216, 201, 168, 0.25);
+  border-radius: 0.3vw;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+  filter: brightness(calc(0.35 + 0.9 * var(--tct-light)));
+  z-index: 3;
+}
+
+.tct-recorder-grille {
+  position: absolute;
+  top: 0.35vw;
+  left: 0.25vw;
+  right: 0.25vw;
+  height: 1vw;
+  border-radius: 0.15vw;
+  background: repeating-linear-gradient(to bottom, #0c0b0a 0 0.1vw, #4a453e 0.1vw 0.2vw);
+}
+
+.tct-recorder-led {
+  position: absolute;
+  bottom: 0.4vw;
+  left: 50%;
+  width: 0.32vw;
+  height: 0.32vw;
+  margin-left: -0.16vw;
+  border-radius: 50%;
+  background: #3a1210;
+}
+
+.tct-recorder.is-recording .tct-recorder-led {
+  background: #ff3b2f;
+  box-shadow: 0 0 0.5vw 0.15vw rgba(255, 60, 40, 0.8);
+  animation: tct-led 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes tct-led {
+  from { opacity: 0.6; }
+  to { opacity: 1; }
+}
+
+/* The holder's controls, where the write button sits during character creation. */
+.tct-recorder-panel {
+  position: fixed;
+  z-index: 80;
+  right: calc(50% + 15vw);
+  bottom: 2.5rem;
+  max-width: 24rem;
+  padding: 0.6rem 0.8rem;
+  font-family: "Special Elite", "Courier New", monospace;
+  color: #d8c9a8;
+  background: rgba(20, 16, 12, 0.88);
+  border: 1px solid rgba(216, 201, 168, 0.35);
+  border-radius: 4px;
+}
+
+.tct-recorder-panel[hidden] {
+  display: none;
+}
+
+.tct-recorder-panel.is-recording {
+  border-color: rgba(255, 70, 50, 0.7);
+}
+
+.tct-recorder-text {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+}
+
+.tct-recorder-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.tct-recorder-buttons button {
+  width: auto;
+  font-family: inherit;
+  font-size: 0.9rem;
+  color: inherit;
+  background: rgba(40, 32, 24, 0.9);
+  border: 1px solid rgba(216, 201, 168, 0.35);
+  border-radius: 3px;
+  padding: 0.3rem 0.8rem;
+  cursor: pointer;
+}

@@ -11,6 +11,8 @@ const SLIDE_MS = 1800;
 const TO_BOWL_MS = 1400;
 // Matches the tct-burn animation in ten-candles.css.
 const BURN_MS = 2400;
+// The recorder lies beside a seat's cards, a little clockwise of them.
+const RECORDER_OFFSET = 0.32;
 // Single words fill a card; Moments and Brinks are whole sentences and get smaller writing.
 const LONG_TEXT = 14;
 
@@ -117,20 +119,62 @@ export class TableStage {
    */
   slideCard(from, to, { label, text, faceDown = false }, direction = 1) {
     const card = this.flyingCard({ label, text, faceDown });
+    return this.travel(card, from, to, direction).finished.then(() => card.remove());
+  }
 
+  /** Moves an element along the ring of stacks from one seat to another. @returns {Animation} */
+  travel(element, from, to, direction = 1, offset = 0) {
     const count = this.seats.length;
     const seatsAway = direction > 0 ? (((to - from) % count) + count) % count : -((((from - to) % count) + count) % count);
-    const startAngle = this.seatElements[from].angle;
+    const startAngle = this.seatElements[from].angle + offset;
     const sweep = (seatsAway * 2 * Math.PI) / count;
-    const tray = this.table.trayOnScreen;
     const keyframes = Array.from({ length: 25 }, (_, i) => {
-      const angle = startAngle + (sweep * i) / 24;
-      const x = tray.x + Math.cos(angle) * tray.rx * STACK_SPREAD_X;
-      const y = tray.y + Math.sin(angle) * tray.ry * STACK_SPREAD_Y;
+      const { x, y } = this.ringPoint(startAngle + (sweep * i) / 24);
       return { left: `${x}px`, top: `${y}px` };
     });
-    const animation = card.animate(keyframes, { duration: SLIDE_MS, easing: "ease-in-out", fill: "forwards" });
-    return animation.finished.then(() => card.remove());
+    return element.animate(keyframes, { duration: SLIDE_MS, easing: "ease-in-out", fill: "forwards" });
+  }
+
+  /** A point on the ring the card stacks lie on. */
+  ringPoint(angle) {
+    const tray = this.table.trayOnScreen;
+    return { x: tray.x + Math.cos(angle) * tray.rx * STACK_SPREAD_X, y: tray.y + Math.sin(angle) * tray.ry * STACK_SPREAD_Y };
+  }
+
+  /**
+   * The voice recorder in front of `seat`, or put away (null). Travels round the table when it changes hands.
+   * Its light is on while it records.
+   */
+  setRecorder(seat, { recording = false, instant = false } = {}) {
+    if (!this.recorder) {
+      this.recorder = document.createElement("div");
+      this.recorder.className = "tct-recorder";
+      this.recorder.innerHTML = `<span class="tct-recorder-grille"></span><span class="tct-recorder-led"></span>`;
+      this.root.append(this.recorder);
+    }
+    this.recorder.classList.toggle("is-recording", recording);
+    const from = this.recorderSeat ?? null;
+    this.recorderSeat = seat >= 0 ? seat : null;
+    this.recorder.hidden = this.recorderSeat === null;
+    if (instant || from === null || this.recorderSeat === null || from === this.recorderSeat) {
+      this.placeRecorder();
+      return;
+    }
+    this.recorderTrip?.cancel();
+    const trip = (this.recorderTrip = this.travel(this.recorder, from, this.recorderSeat, 1, RECORDER_OFFSET));
+    trip.finished
+      .then(() => {
+        this.placeRecorder();
+        trip.cancel();
+      })
+      .catch(() => {});
+  }
+
+  placeRecorder() {
+    if (!this.recorder || !this.seatElements[this.recorderSeat]) return;
+    const { x, y } = this.ringPoint(this.seatElements[this.recorderSeat].angle + RECORDER_OFFSET);
+    this.recorder.style.left = `${x}px`;
+    this.recorder.style.top = `${y}px`;
   }
 
   /**
@@ -244,9 +288,11 @@ export class TableStage {
       seat.classList.toggle("is-far", Math.sin(pos.angle) < -0.2);
       seat.style.left = `${pos.x}px`;
       seat.style.top = `${pos.y}px`;
-      stack.style.left = `${tray.x + Math.cos(pos.angle) * tray.rx * STACK_SPREAD_X}px`;
-      stack.style.top = `${tray.y + Math.sin(pos.angle) * tray.ry * STACK_SPREAD_Y}px`;
+      const point = this.ringPoint(pos.angle);
+      stack.style.left = `${point.x}px`;
+      stack.style.top = `${point.y}px`;
     });
+    this.placeRecorder();
     if (this.xCard) {
       const bowl = this.table.bowlOnScreen;
       this.xCard.style.left = `${bowl.x + bowl.rx * 1.55}px`;
