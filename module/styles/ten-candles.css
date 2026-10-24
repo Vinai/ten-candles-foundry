@@ -3,6 +3,9 @@
 .tct-stage {
   position: fixed;
   inset: 0;
+  /* Above Foundry's canvas and pause banner, below its UI (sidebar, chat, windows) and the Game Assistant's buttons. */
+  z-index: 5;
+  background: #000;
   pointer-events: none;
   --tct-light: 1;
   --tct-face-width: 15vw;
@@ -53,6 +56,25 @@
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+/* Live camera when there is one, otherwise the user's avatar. */
+.tct-face-media {
+  width: 100%;
+  height: 100%;
+}
+
+.tct-face-media video,
+.tct-face-media.has-video img {
+  display: none;
+}
+
+.tct-face-media.has-video video {
+  display: block;
+}
+
+.tct-face-media video.is-self {
+  transform: scaleX(-1);
 }
 
 .tct-name {
@@ -145,3 +167,46 @@
 .tct-die.is-gm { background: #7a2421; }
 
 .tct-dice-gap { width: 1.2vw; }
+
+/* The GM's controls, top left where Foundry's canvas tools would be. Above Foundry's UI layer, below windows. */
+.tct-gm-panel {
+  position: fixed;
+  z-index: 70;
+  top: 1rem;
+  left: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.tct-gm-panel button {
+  font-family: "Special Elite", "Courier New", monospace;
+  font-size: 0.9rem;
+  color: #d8c9a8;
+  background: rgba(20, 16, 12, 0.85);
+  border: 1px solid rgba(216, 201, 168, 0.35);
+  border-radius: 3px;
+  padding: 0.3rem 0.9rem;
+  cursor: pointer;
+  width: auto;
+}
+
+/* Foundry around the table: no canvas and its tools, no camera dock (the faces sit at the table instead), no
+   macro bar over your own face. */
+body.tct-no-canvas #board,
+body.tct-no-canvas #scene-navigation,
+body.tct-active #camera-views,
+body.tct-active #hotbar {
+  display: none;
+}
+
+/* Hidden but still holding its column, so the player list stays at the bottom left. */
+body.tct-no-canvas #scene-controls {
+  visibility: hidden;
+}
+
+/* The Game Assistant's roll button moves from under your face to beside it. */
+body.tct-active .ets-floating-roll {
+  left: calc(50% + 15vw);
+  bottom: 2.5rem;
+}

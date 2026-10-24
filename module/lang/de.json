@@ -14,6 +14,16 @@
       "Brink": "Ich habe dich gesehen …",
       "BrinkByThem": "SIE haben dich gesehen …",
       "BrinkOfThem": "Ich habe SIE gesehen …"
+    },
+    "GM": {
+      "LightsOut": "Licht aus",
+      "LightsOn": "Licht an"
+    },
+    "Settings": {
+      "PlainTable": {
+        "Name": "Schlichter Tisch",
+        "Hint": "Zeigt Foundrys normale Szene und Kameraleiste statt des Kerzentischs. Für schwache Rechner oder wenn etwas nicht funktioniert."
+      }
     }
   }
 }

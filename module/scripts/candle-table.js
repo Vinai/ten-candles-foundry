@@ -69,16 +69,19 @@ export class CandleTable {
     this.running = false;
   }
 
-  light(index) {
+  /** `instant` skips the match flare, e.g. when a page loads mid-game. */
+  light(index, { instant = false } = {}) {
     const candle = this.candles[index];
     if (candle.state === "lit" || candle.state === "lighting") return;
-    Object.assign(candle, { state: "lighting", since: performance.now(), gutter: 0 });
+    Object.assign(candle, { state: instant ? "lit" : "lighting", since: performance.now(), gutter: 0 });
   }
 
-  snuff(index) {
+  /** `instant` skips the dying flame and the smoke. */
+  snuff(index, { instant = false } = {}) {
     const candle = this.candles[index];
     if (candle.state === "unlit" || candle.state === "snuffing") return;
-    Object.assign(candle, { state: "snuffing", since: performance.now(), snuffFrom: candle.level });
+    if (instant) Object.assign(candle, { state: "unlit", level: 0 });
+    else Object.assign(candle, { state: "snuffing", since: performance.now(), snuffFrom: candle.level });
   }
 
   /** 0 = steady, 1 = about to drown in its own wax. */
@@ -86,9 +89,10 @@ export class CandleTable {
     this.candles[index].gutter = Math.min(Math.max(amount, 0), 1);
   }
 
-  /** 1 = room lights on, 0 = only candles. Fades smoothly. */
-  setRoomLight(value) {
+  /** 1 = room lights on, 0 = only candles. Fades smoothly unless `instant`. */
+  setRoomLight(value, { instant = false } = {}) {
     this.roomLightTarget = value;
+    if (instant) this.roomLight = value;
   }
 
   /** 0–1 brightness for things around the table (faces, cards): room light or what the candles give. */

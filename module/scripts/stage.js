@@ -70,6 +70,13 @@ export class TableStage {
     this.layout();
   }
 
+  /** Replace one seat's name, cards and hope die without rebuilding the table. */
+  updateSeat(index, data) {
+    this.seats[index] = data;
+    this.seatElements[index].seat.querySelector(".tct-name").textContent = data.name;
+    this.renderStack(index);
+  }
+
   renderStack(index) {
     const data = this.seats[index];
     const { stack } = this.seatElements[index];

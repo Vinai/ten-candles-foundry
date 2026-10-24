@@ -14,6 +14,16 @@
       "Brink": "I have seen you …",
       "BrinkByThem": "They have seen you …",
       "BrinkOfThem": "I have seen Them …"
+    },
+    "GM": {
+      "LightsOut": "Lights out",
+      "LightsOn": "Lights on"
+    },
+    "Settings": {
+      "PlainTable": {
+        "Name": "Plain table",
+        "Hint": "Shows Foundry's normal scene and camera dock instead of the candle table. For weak computers or when something doesn't work."
+      }
     }
   }
 }
