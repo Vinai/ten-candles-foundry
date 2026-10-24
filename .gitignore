@@ -8,3 +8,6 @@ dev/
 
 # Session planning (player names) — kept private
 DESIGN.md
+
+# Foundry downloads (licensed, not redistributable)
+*.zip
