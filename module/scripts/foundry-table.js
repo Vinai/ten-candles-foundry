@@ -2,6 +2,7 @@ import { isStarted, nextDeath } from "./candle-clock.js";
 import { GA_PAINTING, GA_STATE_HOOK, GA_STATE_SETTING, GA_SYSTEM_ID, MODULE_ID, SOCKET, TOTAL_CANDLES } from "./constants.js";
 import { CameraFaces } from "./faces.js";
 import { GMControls } from "./gm-controls.js";
+import { ConflictMirror } from "./mirror.js";
 import { Ritual } from "./ritual.js";
 import { SETTING_CHANGED_HOOK, SETTINGS } from "./settings.js";
 import { TableStage } from "./stage.js";
@@ -54,6 +55,8 @@ export class FoundryTable {
     this.stage.start();
     this.mountWriteButton();
     this.stage.addXCard(() => this.touchXCard());
+    this.mirror = new ConflictMirror(this, this.stage.addMirror());
+    this.mirror.start();
     game.socket.on(SOCKET, (message) => {
       if (message?.type === "xcard") this.showXCard();
     });
@@ -66,6 +69,7 @@ export class FoundryTable {
 
     Hooks.on(GA_STATE_HOOK, (state) => {
       this.applyState(state);
+      this.mirror.render();
       this.gm?.render();
     });
     Hooks.on(SETTING_CHANGED_HOOK, (key) => {

@@ -392,3 +392,57 @@ body.tct-active .ets-floating-roll {
   25% { filter: brightness(1.5) sepia(0.6); }
   100% { --tct-burn: 115%; filter: brightness(0.35) sepia(1); scale: 0.75; translate: 0 0.6vw; }
 }
+
+/* The Game Assistant's current card over the bowl, readable in any darkness: it brings its own pool of light. */
+.tct-mirror {
+  position: absolute;
+  width: clamp(280px, 21vw, 380px);
+  max-height: 72vh;
+  transform: translate(-50%, -50%) scale(0.96);
+  z-index: 4;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.8s ease, transform 0.8s ease, visibility 0s linear 0.8s;
+}
+
+.tct-mirror.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, -50%) scale(1);
+  pointer-events: auto;
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.tct-mirror::before {
+  content: "";
+  position: absolute;
+  inset: -45% -60%;
+  z-index: -1;
+  background: radial-gradient(closest-side, rgba(255, 205, 150, 0.32), rgba(255, 170, 90, 0.12) 55%, transparent);
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.tct-mirror > .chat-message {
+  max-height: 72vh;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: none;
+  border: none;
+  box-shadow: none;
+}
+
+/* Who posted it and when, and the delete button, belong to the chat log, not the table. */
+.tct-mirror > .chat-message > .message-header {
+  display: none;
+}
+
+.tct-mirror .ets-conflict-card {
+  box-shadow: 0 0 2.5rem rgba(0, 0, 0, 0.85);
+}
+
+body.tct-active #chat-notifications .chat-message.tct-ga-card {
+  display: none;
+}

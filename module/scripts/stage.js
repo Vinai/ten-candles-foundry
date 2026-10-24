@@ -184,6 +184,15 @@ export class TableStage {
     this.layout();
   }
 
+  /** The place above the bowl where the current conflict lies in a pool of light. */
+  addMirror() {
+    this.mirror = document.createElement("div");
+    this.mirror.className = "tct-mirror";
+    this.root.append(this.mirror);
+    this.layout();
+    return this.mirror;
+  }
+
   /** Big, brief and nameless: someone touched the X-card. */
   flashX() {
     const flash = document.createElement("div");
@@ -242,6 +251,11 @@ export class TableStage {
       const bowl = this.table.bowlOnScreen;
       this.xCard.style.left = `${bowl.x + bowl.rx * 1.55}px`;
       this.xCard.style.top = `${bowl.y - bowl.ry * 0.2}px`;
+    }
+    if (this.mirror) {
+      const bowl = this.table.bowlOnScreen;
+      this.mirror.style.left = `${bowl.x}px`;
+      this.mirror.style.top = `${bowl.y}px`;
     }
     this.dice.style.left = `${tray.x}px`;
     this.dice.style.top = `${tray.y + tray.ry + 10}px`;
