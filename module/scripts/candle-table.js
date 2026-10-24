@@ -19,7 +19,6 @@ export const PAINTING = {
 const FLAME_HEIGHT = 78;
 // The flame wraps the upper wick instead of sitting on its tip.
 const FLAME_SINK = 30;
-const WICK_WIDTH = 3.5;
 const GLOW_RADIUS = 1100;
 const NEAR_GLOW_RADIUS = 260;
 const LIGHT_MAP_SCALE = 0.25;
@@ -305,7 +304,6 @@ export class CandleTable {
   drawFlame(candle) {
     const { ctx } = this;
     const level = Math.max(candle.level, 0);
-    const tip = this.toScreen(candle.wick);
     const base = this.toScreen({ x: candle.wick.x, y: candle.wick.y + FLAME_SINK });
     const h = FLAME_HEIGHT * this.scale * (0.35 + 0.65 * Math.min(level, 1.3));
     const w = h * 0.36;
@@ -334,14 +332,15 @@ export class CandleTable {
       ctx.fill();
     };
 
+    // Translucent enough that the painted wick shows through the lower flame.
     body(1, [
-      [0, `rgba(255,235,190,${0.9 * level})`],
-      [0.45, `rgba(255,160,60,${0.65 * level})`],
+      [0, `rgba(255,225,170,${0.55 * level})`],
+      [0.45, `rgba(255,150,55,${0.45 * level})`],
       [1, "rgba(160,40,0,0)"]
     ]);
     body(0.55, [
-      [0, `rgba(255,255,245,${level})`],
-      [0.6, `rgba(255,230,160,${0.8 * level})`],
+      [0, `rgba(255,250,235,${0.6 * level})`],
+      [0.6, `rgba(255,225,150,${0.45 * level})`],
       [1, "rgba(255,180,80,0)"]
     ]);
 
@@ -350,18 +349,6 @@ export class CandleTable {
     ctx.beginPath();
     ctx.ellipse(base.x, base.y + h * 0.02, w * 0.45, h * 0.07, 0, 0, Math.PI * 2);
     ctx.fill();
-
-    // The wick stays dark inside the flame, with a glowing, slightly bent tip.
-    ctx.globalCompositeOperation = "source-over";
-    ctx.strokeStyle = `rgba(25,14,8,${Math.min(0.85, 0.5 + level * 0.35)})`;
-    ctx.lineWidth = WICK_WIDTH * this.scale;
-    ctx.lineCap = "round";
-    ctx.beginPath();
-    ctx.moveTo(base.x, base.y);
-    ctx.quadraticCurveTo(tip.x, tip.y + (base.y - tip.y) * 0.3, tip.x + 4 * this.scale, tip.y);
-    ctx.stroke();
-    ctx.globalCompositeOperation = "lighter";
-    this.glow(ctx, tip.x + 4 * this.scale, tip.y, 4 * this.scale, `rgba(255,110,30,${0.7 * level})`);
   }
 
   drawSmoke() {
