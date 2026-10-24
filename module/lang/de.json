@@ -52,6 +52,9 @@
       "BrinkHint": "Für {name}: was du an ihr oder ihm gesehen hast. Die Karte geht verdeckt nach links.",
       "BrinkByThemHint": "Für {name}: was SIE an ihr oder ihm gesehen haben. Die Karte geht verdeckt nach links.",
       "BrinkOfThemHint": "Was du von IHNEN gesehen hast. Die Karte geht verdeckt an die Spielleitung."
+    },
+    "XCard": {
+      "Touched": "Jemand hat die X-Karte berührt. Wir lassen das weg und gehen weiter."
     }
   }
 }

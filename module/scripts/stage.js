@@ -138,6 +138,26 @@ export class TableStage {
     return animation.finished.then(() => card.remove());
   }
 
+  /** A card lying by the bowl that anyone can touch. */
+  addXCard(onClick) {
+    this.xCard = document.createElement("button");
+    this.xCard.type = "button";
+    this.xCard.className = "tct-xcard";
+    this.xCard.textContent = "X";
+    this.xCard.addEventListener("click", onClick);
+    this.root.append(this.xCard);
+    this.layout();
+  }
+
+  /** Big, brief and nameless: someone touched the X-card. */
+  flashX() {
+    const flash = document.createElement("div");
+    flash.className = "tct-xflash";
+    flash.textContent = "X";
+    this.root.append(flash);
+    flash.addEventListener("animationend", () => flash.remove(), { once: true });
+  }
+
   createDice() {
     const row = document.createElement("div");
     row.className = "tct-dice";
@@ -183,6 +203,11 @@ export class TableStage {
       stack.style.left = `${tray.x + Math.cos(pos.angle) * tray.rx * STACK_SPREAD_X}px`;
       stack.style.top = `${tray.y + Math.sin(pos.angle) * tray.ry * STACK_SPREAD_Y}px`;
     });
+    if (this.xCard) {
+      const bowl = this.table.bowlOnScreen;
+      this.xCard.style.left = `${bowl.x + bowl.rx * 1.55}px`;
+      this.xCard.style.top = `${bowl.y - bowl.ry * 0.2}px`;
+    }
     this.dice.style.left = `${tray.x}px`;
     this.dice.style.top = `${tray.y + tray.ry + 10}px`;
   }

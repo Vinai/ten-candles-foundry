@@ -113,6 +113,18 @@ export class CandleTable {
     };
   }
 
+  /** The bowl's centre and radii in CSS pixels. */
+  get bowlOnScreen() {
+    const ratio = this.canvas.width / this.canvas.clientWidth;
+    const c = this.toScreen(PAINTING.bowl);
+    return {
+      x: c.x / ratio,
+      y: c.y / ratio,
+      rx: (PAINTING.bowl.rx * this.scale) / ratio,
+      ry: (PAINTING.bowl.ry * this.scale) / ratio
+    };
+  }
+
   get litCount() {
     return this.candles.filter((c) => c.state === "lit" || c.state === "lighting").length;
   }

@@ -1,5 +1,5 @@
 import { isStarted, nextDeath } from "./candle-clock.js";
-import { GA_PAINTING, GA_STATE_HOOK, GA_STATE_SETTING, GA_SYSTEM_ID, MODULE_ID, TOTAL_CANDLES } from "./constants.js";
+import { GA_PAINTING, GA_STATE_HOOK, GA_STATE_SETTING, GA_SYSTEM_ID, MODULE_ID, SOCKET, TOTAL_CANDLES } from "./constants.js";
 import { CameraFaces } from "./faces.js";
 import { GMControls } from "./gm-controls.js";
 import { Ritual } from "./ritual.js";
@@ -7,6 +7,7 @@ import { SETTING_CHANGED_HOOK, SETTINGS } from "./settings.js";
 import { TableStage } from "./stage.js";
 
 const GUTTER_TICK_MS = 1000;
+const X_CARD_COOLDOWN_MS = 5000;
 const TRAIT_LABELS = { virtue: "TCT.Card.Virtue", vice: "TCT.Card.Vice", moment: "TCT.Card.Moment" };
 const PLACEHOLDERS = {
   virtue: "ETC.Character.VirtuePlaceholder",
@@ -50,6 +51,10 @@ export class FoundryTable {
     this.faces.start();
     this.stage.start();
     this.mountWriteButton();
+    this.stage.addXCard(() => this.touchXCard());
+    game.socket.on(SOCKET, (message) => {
+      if (message?.type === "xcard") this.showXCard();
+    });
     if (game.user.isGM) {
       this.gm = new GMControls(this);
       this.gm.mount();
@@ -237,6 +242,19 @@ export class FoundryTable {
   applyLights({ instant = false } = {}) {
     const lightsOut = game.settings.get(MODULE_ID, SETTINGS.lightsOut);
     this.stage.table.setRoomLight(lightsOut ? 0 : 1, { instant });
+  }
+
+  /** Anyone may touch the X-card; everyone sees that it happened, nobody sees who. */
+  touchXCard() {
+    if (Date.now() - (this.lastXCard ?? 0) < X_CARD_COOLDOWN_MS) return;
+    game.socket.emit(SOCKET, { type: "xcard" });
+    this.showXCard();
+  }
+
+  showXCard() {
+    this.lastXCard = Date.now();
+    this.stage.flashX();
+    ui.notifications.warn(game.i18n.localize("TCT.XCard.Touched"));
   }
 
   /** @param names {string[]} user or character names, clockwise */

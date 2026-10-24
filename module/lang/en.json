@@ -52,6 +52,9 @@
       "BrinkHint": "For {name}: what you have seen of them. The card goes face down to your left.",
       "BrinkByThemHint": "For {name}: what THEY have seen of them. The card goes face down to your left.",
       "BrinkOfThemHint": "What you have seen of THEM. The card goes face down to the GM."
+    },
+    "XCard": {
+      "Touched": "Someone touched the X-card. We drop that and move on."
     }
   }
 }

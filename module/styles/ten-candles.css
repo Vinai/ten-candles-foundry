@@ -299,3 +299,48 @@ body.tct-active .ets-floating-roll {
   border-bottom: 1px solid rgba(80, 120, 170, 0.5);
   border-radius: 0;
 }
+
+/* The X-card by the bowl: always within reach, never in the way. */
+.tct-xcard {
+  position: absolute;
+  transform: translate(-50%, -50%) rotate(8deg);
+  width: 2.3vw;
+  height: 1.5vw;
+  padding: 0;
+  font-family: "Special Elite", "Courier New", monospace;
+  font-size: 1.1vw;
+  line-height: 1.5vw;
+  color: #7a2421;
+  background: #e9e1cf;
+  border: none;
+  border-radius: 2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  filter: brightness(calc(0.25 + 0.8 * var(--tct-light))) sepia(0.3);
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.tct-xcard:hover {
+  filter: brightness(1) sepia(0.2);
+}
+
+.tct-xflash {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Special Elite", "Courier New", monospace;
+  font-size: 40vh;
+  color: #e9e1cf;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 10;
+  animation: tct-xflash 3.5s ease-out forwards;
+}
+
+@keyframes tct-xflash {
+  0% { opacity: 0; }
+  10% { opacity: 1; }
+  60% { opacity: 1; }
+  100% { opacity: 0; }
+}
