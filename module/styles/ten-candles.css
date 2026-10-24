@@ -1,5 +1,20 @@
 /* Ten Candles – Tisch */
 
+/* Bundled, so every player sees the same typewriter and handwriting (licences in ../fonts/). */
+@font-face {
+  font-family: "Special Elite";
+  src: url("../fonts/SpecialElite-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Caveat";
+  src: url("../fonts/Caveat-Variable.ttf") format("truetype");
+  font-weight: 400 700;
+  font-display: swap;
+}
+
 .tct-stage {
   position: fixed;
   inset: 0;
@@ -144,7 +159,8 @@
   align-items: center;
   justify-content: center;
   font-family: "Caveat", "Segoe Print", "Bradley Hand", cursive;
-  font-size: 1vw;
+  font-size: calc(1.45vw * var(--tct-fit, 1));
+  font-weight: 600;
   line-height: 1.05;
   text-align: center;
   overflow: hidden;
@@ -152,7 +168,7 @@
 }
 
 .tct-card.is-long .tct-card-text {
-  font-size: 0.62vw;
+  font-size: calc(0.85vw * var(--tct-fit, 1));
 }
 
 .tct-hope-die {

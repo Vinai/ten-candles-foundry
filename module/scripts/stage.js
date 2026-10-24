@@ -16,6 +16,8 @@ const BURN_MS = 2400;
 const RECORDER_OFFSET = 0.32;
 // Single words fill a card; Moments and Brinks are whole sentences and get smaller writing.
 const LONG_TEXT = 14;
+// Writing shrinks until it fits its card, but no smaller than this share of its size.
+const MIN_FIT = 0.45;
 
 /**
  * The whole table as one full-screen layer: candle canvas, faces around the tray, card stacks and dice.
@@ -41,6 +43,8 @@ export class TableStage {
       this.layout();
     };
     window.addEventListener("resize", this.onResize);
+    // Cards drawn before the handwriting arrived were measured in another font.
+    document.fonts.load('600 1em "Caveat"').then(() => this.root.querySelectorAll(".tct-card-text").forEach(fitText));
   }
 
   start() {
@@ -113,6 +117,7 @@ export class TableStage {
       pile.append(die);
     }
     stack.replaceChildren(pile);
+    stack.querySelectorAll(".tct-card-text").forEach(fitText);
   }
 
   /**
@@ -219,6 +224,7 @@ export class TableStage {
       card.classList.toggle("is-long", (text ?? "").length > LONG_TEXT);
     }
     this.root.append(card);
+    card.querySelectorAll(".tct-card-text").forEach(fitText);
     return card;
   }
 
@@ -359,5 +365,14 @@ export class TableStage {
       this.root.style.setProperty("--tct-light", level);
       this.lastLight = level;
     }
+  }
+}
+
+/** Shrinks a card's writing step by step until nothing sticks out. Sizes stay relative to the screen width. */
+function fitText(text) {
+  const overflows = () => text.scrollHeight > text.clientHeight + 1 || text.scrollWidth > text.clientWidth + 1;
+  for (let fit = 1; fit >= MIN_FIT; fit -= 0.05) {
+    text.style.setProperty("--tct-fit", fit.toFixed(2));
+    if (!overflows()) return;
   }
 }
