@@ -7,6 +7,7 @@ export const SETTINGS = {
   seatOrder: "seatOrder",
   lightsOut: "lightsOut",
   candleClock: "candleClock",
+  ritual: "ritual",
   plainTable: "plainTable"
 };
 
@@ -36,6 +37,15 @@ export function registerSettings() {
     type: Object,
     default: {},
     onChange: (value) => Hooks.callAll(SETTING_CHANGED_HOOK, SETTINGS.candleClock, value)
+  });
+
+  // Character creation in progress, see ritual.js. Tied to the Game Assistant's game id.
+  game.settings.register(MODULE_ID, SETTINGS.ritual, {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: {},
+    onChange: (value) => Hooks.callAll(SETTING_CHANGED_HOOK, SETTINGS.ritual, value)
   });
 
   // Escape hatch for weak machines or trouble: keep Foundry's own canvas and camera dock.

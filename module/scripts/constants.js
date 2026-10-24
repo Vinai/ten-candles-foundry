@@ -1,4 +1,5 @@
 export const MODULE_ID = "ten-candles-foundry";
+export const SOCKET = `module.${MODULE_ID}`;
 
 // Integration points of the Ten Candles – Game Assistant system (read-only use, see DESIGN.md).
 export const GA_SYSTEM_ID = "tencandles-ga";

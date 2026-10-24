@@ -1,11 +1,20 @@
 {
   "TCT": {
     "Warn": {
-      "WrongSystem": "Ten Candles – Tisch benötigt das System „Ten Candles – Game Assistant“."
+      "WrongSystem": "Ten Candles – Tisch benötigt das System „Ten Candles – Game Assistant“.",
+      "NoCharacter": "{name} hat keine Figur – die Karte konnte nicht abgelegt werden."
     },
     "Ritual": {
       "WorldIsDark": "Diese Dinge sind wahr. Die Welt ist dunkel.",
-      "WeAreAlive": "Und wir leben."
+      "WeAreAlive": "Und wir leben.",
+      "Step": {
+        "Traits": "Tugend & Laster schreiben",
+        "Pass": "Karten weitergeben",
+        "Moments": "Momente schreiben",
+        "MomentsDone": "Momente fertig",
+        "Brinks": "„Ich habe dich gesehen …“ schreiben"
+      },
+      "Written": "{done} von {total} geschrieben"
     },
     "Card": {
       "Virtue": "Tugend",
@@ -32,6 +41,17 @@
         "Name": "Schlichter Tisch",
         "Hint": "Zeigt Foundrys normale Szene und Kameraleiste statt des Kerzentischs. Für schwache Rechner oder wenn etwas nicht funktioniert."
       }
+    },
+    "Write": {
+      "Button": "Karte schreiben",
+      "Done": "Fertig",
+      "TraitsTitle": "Tugend und Laster",
+      "TraitsHint": "Je ein Wort oder eine kurze Wendung. Die Tugend geht an {right}, das Laster an {left}.",
+      "MomentTitle": "Ich werde Hoffnung finden …",
+      "MomentHint": "Ein Moment, in dem deine Figur Hoffnung finden könnte. Die Karte bleibt bei dir.",
+      "BrinkHint": "Für {name}: was du an ihr oder ihm gesehen hast. Die Karte geht verdeckt nach links.",
+      "BrinkByThemHint": "Für {name}: was SIE an ihr oder ihm gesehen haben. Die Karte geht verdeckt nach links.",
+      "BrinkOfThemHint": "Was du von IHNEN gesehen hast. Die Karte geht verdeckt an die Spielleitung."
     }
   }
 }

@@ -13,13 +13,14 @@ export class GMControls {
     this.table = table;
     this.panel = document.createElement("div");
     this.panel.className = "tct-gm-panel";
+    this.ritualButton = this.button(() => this.nextRitualStep());
     this.lightsButton = this.button(() => this.toggleLights());
     this.pauseButton = this.button(() => this.togglePause());
     this.draughtButton = this.button(() => this.draught(), "TCT.GM.Draught");
     this.draughtButton.dataset.tooltip = game.i18n.localize("TCT.GM.DraughtHint");
     this.status = document.createElement("div");
     this.status.className = "tct-gm-status";
-    this.panel.append(this.lightsButton, this.pauseButton, this.draughtButton, this.status);
+    this.panel.append(this.ritualButton, this.lightsButton, this.pauseButton, this.draughtButton, this.status);
   }
 
   mount() {
@@ -45,6 +46,16 @@ export class GMControls {
     // The candles start burning down the first time the lights go out.
     if (lightsOut && !isStarted(this.table.clock())) await this.saveClock(start(this.table.clock() ?? this.newClock()));
     await game.settings.set(MODULE_ID, SETTINGS.lightsOut, lightsOut);
+  }
+
+  async nextRitualStep() {
+    this.ritualButton.disabled = true;
+    try {
+      await this.table.ritual.next();
+    } finally {
+      this.ritualButton.disabled = false;
+      this.render();
+    }
   }
 
   async togglePause() {
@@ -98,18 +109,27 @@ export class GMControls {
 
   render() {
     const clock = this.table.clock();
+    const ritual = this.table.ritual;
+    this.ritualButton.hidden = !ritual.nextLabel || isStarted(clock);
+    this.ritualButton.textContent = ritual.nextLabel ?? "";
     this.lightsButton.textContent = game.i18n.localize(this.lightsOut ? "TCT.GM.LightsOn" : "TCT.GM.LightsOut");
     this.pauseButton.textContent = game.i18n.localize(isPaused(clock) ? "TCT.GM.Resume" : "TCT.GM.Pause");
     this.pauseButton.disabled = !isStarted(clock);
     this.draughtButton.disabled = !isStarted(clock) || this.table.gaState().litCandles <= 0;
 
-    const next = nextDeath(clock, this.table.burningCandles());
-    if (!isStarted(clock)) this.status.textContent = game.i18n.localize("TCT.GM.ClockWaiting");
-    else if (!next) this.status.textContent = "";
-    else {
-      const key = isPaused(clock) ? "TCT.GM.NextCandlePaused" : "TCT.GM.NextCandle";
-      this.status.textContent = game.i18n.format(key, { time: formatDuration(next.remaining) });
+    this.status.textContent = this.statusText(clock);
+  }
+
+  statusText(clock) {
+    const ritual = this.table.ritual;
+    if (!isStarted(clock)) {
+      if (ritual.step.writes) return game.i18n.format("TCT.Ritual.Written", ritual.progress);
+      return game.i18n.localize("TCT.GM.ClockWaiting");
     }
+    const next = nextDeath(clock, this.table.burningCandles());
+    if (!next) return "";
+    const key = isPaused(clock) ? "TCT.GM.NextCandlePaused" : "TCT.GM.NextCandle";
+    return game.i18n.format(key, { time: formatDuration(next.remaining) });
   }
 }
 

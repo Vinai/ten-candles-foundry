@@ -1,11 +1,19 @@
-import { nextDeath } from "./candle-clock.js";
+import { isStarted, nextDeath } from "./candle-clock.js";
 import { GA_PAINTING, GA_STATE_HOOK, GA_STATE_SETTING, GA_SYSTEM_ID, MODULE_ID, TOTAL_CANDLES } from "./constants.js";
 import { CameraFaces } from "./faces.js";
 import { GMControls } from "./gm-controls.js";
+import { Ritual } from "./ritual.js";
 import { SETTING_CHANGED_HOOK, SETTINGS } from "./settings.js";
 import { TableStage } from "./stage.js";
 
 const GUTTER_TICK_MS = 1000;
+const TRAIT_LABELS = { virtue: "TCT.Card.Virtue", vice: "TCT.Card.Vice", moment: "TCT.Card.Moment" };
+const PLACEHOLDERS = {
+  virtue: "ETC.Character.VirtuePlaceholder",
+  vice: "ETC.Character.VicePlaceholder",
+  moment: "ETC.Character.MomentPlaceholder",
+  brink: "ETC.Character.BrinkPlaceholder"
+};
 
 /**
  * Glue between Foundry/Game Assistant and the Foundry-independent TableStage: who sits where, their faces and
@@ -14,6 +22,7 @@ const GUTTER_TICK_MS = 1000;
 export class FoundryTable {
   constructor() {
     this.faces = new CameraFaces();
+    this.ritual = new Ritual(this);
     const table = this;
     this.api = {
       setSeatOrder: (names) => this.setSeatOrder(names),
@@ -40,10 +49,12 @@ export class FoundryTable {
     this.applyLights({ instant: true });
     this.faces.start();
     this.stage.start();
+    this.mountWriteButton();
     if (game.user.isGM) {
       this.gm = new GMControls(this);
       this.gm.mount();
     }
+    this.ritual.start();
     window.setInterval(() => this.applyGutter(), GUTTER_TICK_MS);
 
     Hooks.on(GA_STATE_HOOK, (state) => {
@@ -53,9 +64,12 @@ export class FoundryTable {
     Hooks.on(SETTING_CHANGED_HOOK, (key) => {
       if (key === SETTINGS.lightsOut) this.applyLights();
       if (key === SETTINGS.seatOrder) this.refreshSeats();
+      if (key === SETTINGS.ritual) this.ritual.onChange();
+      if ([SETTINGS.lightsOut, SETTINGS.candleClock, SETTINGS.ritual].includes(key)) this.applyState(this.gaState());
       this.gm?.render();
+      this.renderWriteButton();
     });
-    Hooks.on("updateActor", (actor) => this.refreshCards(actor));
+    Hooks.on("updateActor", (actor) => this.refreshActor(actor));
     Hooks.on("updateUser", () => this.refreshSeats());
     Hooks.on("userConnected", () => this.refreshSeats());
     Hooks.on("canvasReady", () => this.pauseCanvas());
@@ -96,6 +110,12 @@ export class FoundryTable {
     return state.stage === "ball-of-truths" ? Math.max(state.litCandles - 1, 0) : state.litCandles;
   }
 
+  /** Candles on the table: lit step by step during character creation, then burning down from "Licht aus". */
+  visibleCandles(state = this.gaState()) {
+    const burning = this.burningCandles(state);
+    return isStarted(this.clock()) ? burning : Math.min(burning, this.ritual.candles);
+  }
+
   /** The candle clock of the current game, or null before the first "Licht aus". */
   clock() {
     const clock = game.settings.get(MODULE_ID, SETTINGS.candleClock);
@@ -122,19 +142,20 @@ export class FoundryTable {
     return {
       name: user.character?.name || user.name,
       face: this.faces.get(user),
-      ...this.cardsOf(user.character)
+      ...this.cardsOf(user)
     };
   }
 
-  /** The stack in front of a player: Brink face down at the bottom, unburned traits on top in the chosen order. */
-  cardsOf(actor) {
-    const system = actor?.system;
-    if (!system) return { cards: [], hope: false };
-    const label = {
-      virtue: game.i18n.localize("TCT.Card.Virtue"),
-      vice: game.i18n.localize("TCT.Card.Vice"),
-      moment: game.i18n.localize("TCT.Card.Moment")
-    };
+  /**
+   * The stack in front of a seat: Brink face down at the bottom, unburned traits on top in the chosen order, and on
+   * top of everything the cards still being written. Sheet fields still holding the Game Assistant's placeholder
+   * have not been written yet.
+   */
+  cardsOf(user) {
+    const system = user.character?.system;
+    const pending = [...this.ritual.gmCards(user), ...this.ritual.pendingCards(user)];
+    if (!system) return { cards: pending, hope: false };
+    const written = (key) => Boolean(system[key].text) && system[key].text !== game.i18n.localize(PLACEHOLDERS[key]);
     const unburned = {
       virtue: system.virtue.available,
       vice: system.vice.available,
@@ -142,12 +163,12 @@ export class FoundryTable {
     };
     const traits = [...system.resourceOrderList]
       .reverse()
-      .filter((key) => unburned[key])
-      .map((key) => ({ label: label[key], text: system[key].text }));
-    return {
-      cards: [{ label: game.i18n.localize("TCT.Card.Brink"), faceDown: true }, ...traits],
-      hope: system.hopeDieAvailable
-    };
+      .filter((key) => unburned[key] && written(key))
+      .map((key) => ({ label: game.i18n.localize(TRAIT_LABELS[key]), text: system[key].text }));
+    const brink = written("brink")
+      ? [{ label: game.i18n.localize(this.ritual.brinkLabel(user)), text: system.brink.text, faceDown: true }]
+      : [];
+    return { cards: [...brink, ...traits, ...pending], hope: system.hopeDieAvailable };
   }
 
   refreshSeats() {
@@ -162,28 +183,52 @@ export class FoundryTable {
     this.faces.sync();
   }
 
-  refreshCards(actor) {
+  refreshActor(actor) {
     const index = this.users.findIndex((user) => user.character === actor);
     if (index >= 0) this.stage.updateSeat(index, this.seatData(this.users[index]));
   }
 
+  refreshCards() {
+    this.users.forEach((user, index) => this.stage.updateSeat(index, this.seatData(user)));
+  }
+
+  /** Lets a writer reopen their card until it is passed. Sits left of their own face, opposite the roll button. */
+  mountWriteButton() {
+    this.writeButton = document.createElement("button");
+    this.writeButton.type = "button";
+    this.writeButton.className = "tct-write-button";
+    this.writeButton.textContent = game.i18n.localize("TCT.Write.Button");
+    this.writeButton.addEventListener("click", () => this.ritual.write());
+    document.body.append(this.writeButton);
+    this.renderWriteButton();
+  }
+
+  renderWriteButton() {
+    const state = this.ritual.state();
+    this.writeButton.hidden = !this.ritual.step.writes || Boolean(state.passing) || !this.ritual.writers().includes(game.user);
+  }
+
   applyState(state, { instant = false } = {}) {
-    const litCount = this.burningCandles(state);
+    const litCount = this.visibleCandles(state);
     const lit = new Set(candleOrder(state.gameId).slice(0, litCount));
     for (let i = 0; i < TOTAL_CANDLES; i++) {
       if (lit.has(i)) this.stage.table.light(i, { instant });
       else this.stage.table.snuff(i, { instant });
     }
-    // During the truths the dice wait for the next scene, when the Game Assistant refills the pool.
-    const player = state.stage === "scene" ? state.bluePoolRemaining : litCount;
-    this.stage.setDice({ player, lost: litCount - player, gm: TOTAL_CANDLES - litCount });
+    // No dice on the table before the game starts. During the truths the dice wait for the next scene, when the
+    // Game Assistant refills the pool.
+    if (!isStarted(this.clock())) this.stage.setDice({ player: 0, lost: 0, gm: 0 });
+    else {
+      const player = state.stage === "scene" ? Math.min(state.bluePoolRemaining, litCount) : litCount;
+      this.stage.setDice({ player, lost: litCount - player, gm: TOTAL_CANDLES - litCount });
+    }
     this.applyGutter();
   }
 
   /** The next candle to burn out gutters for its last minute or two, in every browser alike. */
   applyGutter() {
     const state = this.gaState();
-    const litCount = this.burningCandles(state);
+    const litCount = this.visibleCandles(state);
     const next = candleOrder(state.gameId)[litCount - 1];
     const gutter = nextDeath(this.clock(), litCount)?.gutter ?? 0;
     for (let i = 0; i < TOTAL_CANDLES; i++) this.stage.table.setGutter(i, i === next ? gutter : 0);

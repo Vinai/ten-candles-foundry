@@ -109,6 +109,16 @@
   );
 }
 
+/* A card on its way round the table to another seat. */
+.tct-card.tct-flying {
+  inset: auto;
+  width: 5.2vw;
+  height: 3.3vw;
+  transform: translate(-50%, -50%) rotate(-4deg);
+  filter: brightness(calc(0.15 + 0.9 * var(--tct-light))) sepia(0.3);
+  z-index: 2;
+}
+
 .tct-card.is-face-down {
   background: #d8cfbb;
 }
@@ -222,4 +232,58 @@ body.tct-no-canvas #scene-controls {
 body.tct-active .ets-floating-roll {
   left: calc(50% + 15vw);
   bottom: 2.5rem;
+}
+
+/* Reopens your card while the table is writing; left of your own face. */
+.tct-write-button {
+  position: fixed;
+  z-index: 80;
+  right: calc(50% + 15vw);
+  bottom: 2.5rem;
+  width: auto;
+  padding: 0.55rem 1rem;
+  font-family: "Special Elite", "Courier New", monospace;
+  font-size: 1rem;
+  color: #d8c9a8;
+  background: rgba(20, 16, 12, 0.85);
+  border: 1px solid rgba(216, 201, 168, 0.35);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.tct-write-button[hidden] {
+  display: none;
+}
+
+/* The write-a-card dialog looks like an index card. */
+.tct-write .window-content {
+  background: #e9e1cf;
+  color: #1d1b2a;
+}
+
+.tct-write-hint {
+  font-family: "Special Elite", "Courier New", monospace;
+  font-size: 0.85rem;
+  color: #4a4234;
+}
+
+.tct-write-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-bottom: 0.6rem;
+  font-family: "Special Elite", "Courier New", monospace;
+  font-size: 0.8rem;
+  color: #6b5f4d;
+}
+
+.tct-write-field input {
+  font-family: "Caveat", "Segoe Print", "Bradley Hand", cursive;
+  font-size: 1.5rem;
+  height: auto;
+  color: #1d1b2a;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(80, 120, 170, 0.5);
+  border-radius: 0;
 }

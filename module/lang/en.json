@@ -1,11 +1,20 @@
 {
   "TCT": {
     "Warn": {
-      "WrongSystem": "Ten Candles – Table requires the “Ten Candles – Game Assistant” system."
+      "WrongSystem": "Ten Candles – Table requires the “Ten Candles – Game Assistant” system.",
+      "NoCharacter": "{name} has no character – the card could not be placed."
     },
     "Ritual": {
       "WorldIsDark": "These things are true. The world is dark.",
-      "WeAreAlive": "And we are alive."
+      "WeAreAlive": "And we are alive.",
+      "Step": {
+        "Traits": "Write virtues & vices",
+        "Pass": "Pass the cards",
+        "Moments": "Write moments",
+        "MomentsDone": "Moments done",
+        "Brinks": "Write “I have seen you …”"
+      },
+      "Written": "{done} of {total} written"
     },
     "Card": {
       "Virtue": "Virtue",
@@ -32,6 +41,17 @@
         "Name": "Plain table",
         "Hint": "Shows Foundry's normal scene and camera dock instead of the candle table. For weak computers or when something doesn't work."
       }
+    },
+    "Write": {
+      "Button": "Write card",
+      "Done": "Done",
+      "TraitsTitle": "Virtue and vice",
+      "TraitsHint": "One word or a short phrase each. The virtue goes to {right}, the vice to {left}.",
+      "MomentTitle": "I will find hope …",
+      "MomentHint": "A moment in which your character could find hope. This card stays with you.",
+      "BrinkHint": "For {name}: what you have seen of them. The card goes face down to your left.",
+      "BrinkByThemHint": "For {name}: what THEY have seen of them. The card goes face down to your left.",
+      "BrinkOfThemHint": "What you have seen of THEM. The card goes face down to the GM."
     }
   }
 }
