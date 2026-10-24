@@ -1,0 +1,10 @@
+# Rulebook is copyrighted — never commit
+*.pdf
+
+# Local Foundry install, licence and world data
+dev/
+
+.DS_Store
+
+# Session planning (player names) — kept private
+DESIGN.md

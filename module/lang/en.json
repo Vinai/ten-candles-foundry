@@ -1,0 +1,19 @@
+{
+  "TCT": {
+    "Warn": {
+      "WrongSystem": "Ten Candles – Table requires the “Ten Candles – Game Assistant” system."
+    },
+    "Ritual": {
+      "WorldIsDark": "These things are true. The world is dark.",
+      "WeAreAlive": "And we are alive."
+    },
+    "Card": {
+      "Virtue": "Virtue",
+      "Vice": "Vice",
+      "Moment": "I will find hope …",
+      "Brink": "I have seen you …",
+      "BrinkByThem": "They have seen you …",
+      "BrinkOfThem": "I have seen Them …"
+    }
+  }
+}
