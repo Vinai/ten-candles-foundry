@@ -5,20 +5,21 @@
  */
 
 // Wick tips and bowl centre measured on the Game Assistant tray painting (3840×2160), clockwise from the top.
+// `sink` is how far the flame base sits below the tip; the back candles' wicks are foreshortened and shorter.
 export const PAINTING = {
   width: 3840,
   height: 2160,
   focus: { x: 1940, y: 930 },
   wicks: [
-    { x: 1958, y: 748 }, { x: 2205, y: 778 }, { x: 2365, y: 874 }, { x: 2347, y: 986 }, { x: 2165, y: 1071 },
-    { x: 1933, y: 1118 }, { x: 1690, y: 1076 }, { x: 1510, y: 981 }, { x: 1515, y: 858 }, { x: 1700, y: 804 }
+    { x: 1958, y: 748, sink: 18 }, { x: 2205, y: 778, sink: 30 }, { x: 2365, y: 874, sink: 30 },
+    { x: 2347, y: 986, sink: 30 }, { x: 2165, y: 1071, sink: 30 }, { x: 1933, y: 1118, sink: 30 },
+    { x: 1690, y: 1076, sink: 30 }, { x: 1510, y: 981, sink: 30 }, { x: 1515, y: 858, sink: 30 },
+    { x: 1700, y: 804, sink: 14 }
   ],
   bowl: { x: 1940, y: 965, rx: 150, ry: 58, depth: 62 }
 };
 
 const FLAME_HEIGHT = 78;
-// The flame wraps the upper wick instead of sitting on its tip.
-const FLAME_SINK = 30;
 const GLOW_RADIUS = 1100;
 const NEAR_GLOW_RADIUS = 260;
 const LIGHT_MAP_SCALE = 0.25;
@@ -286,7 +287,7 @@ export class CandleTable {
     const s = this.scale * LIGHT_MAP_SCALE;
     for (const candle of lit) {
       const x = (this.offsetX + candle.wick.x * this.scale) * LIGHT_MAP_SCALE;
-      const y = (this.offsetY + (candle.wick.y + FLAME_SINK - 45) * this.scale) * LIGHT_MAP_SCALE;
+      const y = (this.offsetY + (candle.wick.y + candle.wick.sink - 45) * this.scale) * LIGHT_MAP_SCALE;
       const level = Math.max(candle.level, 0);
       this.glow(ctx, x, y, GLOW_RADIUS * s, `rgba(255,150,70,${0.42 * level})`);
       this.glow(ctx, x, y, NEAR_GLOW_RADIUS * s, `rgba(255,205,140,${0.55 * level})`);
@@ -304,7 +305,7 @@ export class CandleTable {
   drawFlame(candle) {
     const { ctx } = this;
     const level = Math.max(candle.level, 0);
-    const base = this.toScreen({ x: candle.wick.x, y: candle.wick.y + FLAME_SINK });
+    const base = this.toScreen({ x: candle.wick.x, y: candle.wick.y + candle.wick.sink });
     const h = FLAME_HEIGHT * this.scale * (0.35 + 0.65 * Math.min(level, 1.3));
     const w = h * 0.36;
     const tipX = base.x + candle.sway * h;
