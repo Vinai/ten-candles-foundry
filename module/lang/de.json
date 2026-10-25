@@ -83,7 +83,9 @@
       "Listen": "▶ Anhören",
       "Again": "Neu aufnehmen",
       "Pass": "Weitergeben",
+      "Opening": "Mikrofon wird geöffnet …",
       "Sending": "Wird weitergegeben …",
+      "PassFailed": "Das Weitergeben hat nicht geklappt. Deine Aufnahme ist noch da – versuche es noch einmal.",
       "NoMicrophone": "Kein Mikrofon verfügbar. Bitte erlaube dem Browser den Zugriff auf das Mikrofon.",
       "NoGM": "Die Spielleitung ist nicht verbunden – der Rekorder kann gerade nicht weitergegeben werden.",
       "UploadFailed": "Eine Aufnahme konnte nicht gespeichert werden. Der Rekorder bleibt bei der Person; sie kann es erneut versuchen."

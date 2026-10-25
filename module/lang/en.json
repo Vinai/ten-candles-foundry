@@ -83,7 +83,9 @@
       "Listen": "▶ Listen",
       "Again": "Record again",
       "Pass": "Pass on",
+      "Opening": "Opening the microphone …",
       "Sending": "Passing it on …",
+      "PassFailed": "Passing it on did not work. Your recording is still here – please try again.",
       "NoMicrophone": "No microphone available. Please allow the browser to use the microphone.",
       "NoGM": "The GM is not connected – the recorder cannot be passed on right now.",
       "UploadFailed": "A recording could not be stored. The recorder stays with that player, who can try again."

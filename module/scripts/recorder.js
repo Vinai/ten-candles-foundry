@@ -6,11 +6,16 @@ const MAX_RECORDING_MS = 90_000;
 const BITS_PER_SECOND = 48_000;
 // Base64 characters per socket message; a full 90 s message needs a handful.
 const CHUNK_CHARS = 200_000;
+// A full message even from a browser that ignores our bitrate and records at 256 kbps; anything bigger is refused.
+const MAX_CHUNKS = Math.ceil(((MAX_RECORDING_MS / 1000) * 256_000 * 4) / 3 / 8 / CHUNK_CHARS);
 const FOLDER = "ten-candles-recordings";
 // A browser only joins a playback the GM started just now, never one it finds in the settings after a reload.
 const PLAYBACK_FRESH_MS = 15_000;
 const PAUSE_BETWEEN_MS = 1500;
+// The holder gives up waiting for the GM after this long and may pass again.
+const PASS_TIMEOUT_MS = 45_000;
 const MIME_TYPES = ["audio/webm;codecs=opus", "audio/mp4", "audio/webm"];
+const EXTENSIONS = { "audio/webm": "webm", "audio/mp4": "m4a", "audio/ogg": "ogg" };
 
 /**
  * The voice recorder of "How It Begins": once the lights are out the GM switches it on and passes it left, each
@@ -18,14 +23,22 @@ const MIME_TYPES = ["audio/webm;codecs=opus", "audio/mp4", "audio/webm"];
  * the GM plays all messages, in the order they were recorded, in every browser.
  *
  * World setting `recorder`: {gameId, started, holder, recordings: [{userId, path}], playback: {at}}. Players cannot
- * upload files, so a recording travels to the active GM over the module socket and the GM's browser stores it.
+ * upload files, so a recording travels to the active GM over the module socket and the GM's browser stores it. The
+ * holder keeps the recording until the GM has stored it and passed the recorder on.
  */
 export class Recorder {
   constructor(table) {
     this.table = table;
-    this.mode = "idle"; // idle | recording | recorded | sending
+    this.mode = "idle"; // idle | opening | recording | recorded | sending
     this.blob = null;
+    // Bumped whenever this browser's recorder work is called off, so late microphone grants are ignored.
+    this.session = 0;
+    // GM side: the transfer of the current holder, {id, mime, total, chunks}, by sender.
     this.incoming = new Map();
+    this.storing = null;
+    // Another holder's red light, as last signalled by them.
+    this.light = { holder: null, on: false };
+    this.playback = 0;
   }
 
   start() {
@@ -34,7 +47,8 @@ export class Recorder {
     this.panel.addEventListener("click", (event) => this.onClick(event));
     document.body.append(this.panel);
     this.lastPlayback = this.state().playback?.at ?? 0;
-    game.socket.on(SOCKET, (message) => this.onSocket(message));
+    this.gameId = this.state().gameId;
+    game.socket.on(SOCKET, (message, senderId) => this.onSocket(message, senderId));
     this.onChange({ instant: true });
   }
 
@@ -70,9 +84,16 @@ export class Recorder {
 
   onChange({ instant = false } = {}) {
     const state = this.state();
+    // A new game: whatever was going on belongs to the old one.
+    if (state.gameId !== this.gameId) {
+      this.gameId = state.gameId;
+      this.stopPlayback();
+      this.incoming.clear();
+    }
     const holder = this.holder;
     if (holder !== game.user && this.mode !== "idle") this.reset();
-    this.table.stage.setRecorder(holder ? this.table.users.indexOf(holder) : -1, { recording: this.recording, instant });
+    for (const sender of this.incoming.keys()) if (sender !== holder?.id) this.incoming.delete(sender);
+    this.table.stage.setRecorder(this.seatOf(holder), { recording: this.lit(holder), instant });
     if (state.playback?.at > this.lastPlayback) {
       this.lastPlayback = state.playback.at;
       if (Date.now() - state.playback.at < PLAYBACK_FRESH_MS) this.playAll(state.recordings ?? []);
@@ -83,7 +104,18 @@ export class Recorder {
   /** After seats moved, the recorder stays with its holder without crossing the table. */
   refresh() {
     const holder = this.holder;
-    this.table.stage.setRecorder(holder ? this.table.users.indexOf(holder) : -1, { recording: this.recording, instant: true });
+    this.table.stage.setRecorder(this.seatOf(holder), { recording: this.lit(holder), instant: true });
+  }
+
+  seatOf(holder) {
+    return holder ? this.table.users.indexOf(holder) : -1;
+  }
+
+  /** Whether the red light is on: our own recording, or what the holder last signalled. */
+  lit(holder) {
+    if (!holder) return false;
+    if (holder === game.user) return this.recording;
+    return this.light.holder === holder.id && this.light.on;
   }
 
   // Holder ---------------------------------------------------------------------------------------------------------
@@ -97,6 +129,7 @@ export class Recorder {
     const elapsed = this.recording ? formatSeconds(Date.now() - this.startedAt) : "";
     const views = {
       idle: [t("Hint"), button("record", "Record") + button("pass", "PassEmpty")],
+      opening: [t("Opening"), ""],
       recording: [t("Recording", { time: elapsed, max: formatSeconds(MAX_RECORDING_MS) }), button("stop", "Stop")],
       recorded: [t("Recorded"), button("listen", "Listen") + button("record", "Again") + button("pass", "Pass")],
       sending: [t("Sending"), ""]
@@ -123,30 +156,60 @@ export class Recorder {
     return this.mode === "recording";
   }
 
+  /** Mode to fall back to when something does not work out: whatever was recorded before is still there. */
+  get resting() {
+    return this.blob ? "recorded" : "idle";
+  }
+
   async record() {
-    this.blob = null;
+    if (!["idle", "recorded"].includes(this.mode) || this.holder !== game.user) return;
+    const session = this.session;
+    this.mode = "opening";
+    this.render();
+    let stream;
     try {
-      this.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
     } catch (error) {
+      if (session !== this.session) return;
       console.warn(`${MODULE_ID} | No microphone`, error);
       ui.notifications.error(game.i18n.localize("TCT.Recorder.NoMicrophone"));
+      this.mode = this.resting;
+      this.render();
       return;
     }
-    const mimeType = MIME_TYPES.find((type) => MediaRecorder.isTypeSupported(type));
-    const parts = [];
-    const stream = this.stream;
-    const media = (this.media = new MediaRecorder(stream, { mimeType, audioBitsPerSecond: BITS_PER_SECOND }));
-    media.addEventListener("dataavailable", (event) => event.data.size && parts.push(event.data));
-    media.addEventListener("stop", () => {
+    // Skipped or reset while the browser asked for the microphone: nobody wants this recording any more.
+    if (session !== this.session || this.holder !== game.user) {
       stream.getTracks().forEach((track) => track.stop());
-      // Passed on or reset meanwhile: this recording is not wanted any more.
-      if (this.media !== media) return;
-      this.blob = new Blob(parts, { type: media.mimeType });
-      this.mode = "recorded";
-      this.signal();
+      return;
+    }
+    let media;
+    const parts = [];
+    try {
+      const mimeType = MIME_TYPES.find((type) => MediaRecorder.isTypeSupported(type));
+      media = new MediaRecorder(stream, { mimeType, audioBitsPerSecond: BITS_PER_SECOND });
+      media.addEventListener("dataavailable", (event) => event.data.size && parts.push(event.data));
+      media.addEventListener("stop", () => {
+        stream.getTracks().forEach((track) => track.stop());
+        // Passed on or reset meanwhile: this recording is not wanted any more.
+        if (this.media !== media) return;
+        this.media = null;
+        // Only a finished recording replaces the one before.
+        if (parts.length) this.blob = new Blob(parts, { type: media.mimeType });
+        this.mode = this.resting;
+        this.signal();
+        this.render();
+      });
+      media.start(1000);
+    } catch (error) {
+      stream.getTracks().forEach((track) => track.stop());
+      console.warn(`${MODULE_ID} | Could not record`, error);
+      ui.notifications.error(game.i18n.localize("TCT.Recorder.NoMicrophone"));
+      this.mode = this.resting;
       this.render();
-    });
-    media.start(1000);
+      return;
+    }
+    this.stream = stream;
+    this.media = media;
     this.startedAt = Date.now();
     this.mode = "recording";
     this.signal();
@@ -170,34 +233,58 @@ export class Recorder {
     audio.play();
   }
 
-  /** Hands the recorder on, with the message if there is one; the GM's browser keeps it and passes the recorder. */
+  /**
+   * Hands the recorder on, with the message if there is one. The GM's browser stores it and passes the recorder; if
+   * that does not happen, the holder still has the recording and can try again.
+   */
   async pass() {
-    if (!game.users.activeGM) {
+    if (!["idle", "recorded"].includes(this.mode)) return;
+    const gm = game.users.activeGM;
+    if (!gm) {
       ui.notifications.warn(game.i18n.localize("TCT.Recorder.NoGM"));
       return;
     }
-    this.mode = "sending";
-    this.render();
+    const session = this.session;
     const id = this.blob ? foundry.utils.randomID() : null;
+    this.mode = "sending";
+    this.transfer = id;
+    this.render();
+    const to = { recipients: [gm.id] };
     if (this.blob) {
       const data = await blobToBase64(this.blob);
+      if (session !== this.session) return;
       const total = Math.ceil(data.length / CHUNK_CHARS);
       for (let index = 0; index < total; index++) {
         const chunk = data.slice(index * CHUNK_CHARS, (index + 1) * CHUNK_CHARS);
-        game.socket.emit(SOCKET, { type: "recording", writer: game.user.id, id, index, total, mime: this.blob.type, chunk });
+        game.socket.emit(SOCKET, { type: "recording", id, index, total, mime: this.blob.type, chunk }, to);
       }
     }
-    game.socket.emit(SOCKET, { type: "recorder-pass", writer: game.user.id, id });
+    game.socket.emit(SOCKET, { type: "recorder-pass", id }, to);
+    window.clearTimeout(this.passTimer);
+    this.passTimer = window.setTimeout(() => this.passFailed(session, id, "PassFailed"), PASS_TIMEOUT_MS);
+  }
+
+  /** The pass did not go through; back to the recording, which is still here. */
+  passFailed(session, id, message) {
+    if (session !== this.session || this.mode !== "sending" || this.transfer !== id) return;
+    window.clearTimeout(this.passTimer);
+    this.mode = this.resting;
+    ui.notifications.error(game.i18n.localize(`TCT.Recorder.${message}`));
+    this.render();
   }
 
   reset() {
+    this.session++;
     window.clearInterval(this.ticker);
+    window.clearTimeout(this.passTimer);
     const media = this.media;
     this.media = null;
     if (media?.state === "recording") media.stop();
     this.stream?.getTracks().forEach((track) => track.stop());
+    this.stream = null;
     this.mode = "idle";
     this.blob = null;
+    this.transfer = null;
   }
 
   /** Everyone sees the recorder's light while it records. */
@@ -206,35 +293,35 @@ export class Recorder {
     this.refresh();
   }
 
-  onSocket(message) {
+  onSocket(message, senderId) {
     if (message?.type === "recorder-light") {
-      this.table.stage.setRecorder(this.holder ? this.table.users.indexOf(this.holder) : -1, {
-        recording: Boolean(message.on),
-        instant: true
-      });
+      // Only the holder's own browser can switch their light.
+      if (senderId !== this.state().holder) return;
+      this.light = { holder: senderId, on: Boolean(message.on) };
+      this.refresh();
       return;
     }
-    if (message?.type === "recorder-failed" && message.writer === game.user.id && this.mode === "sending") {
-      this.mode = "recorded";
-      ui.notifications.error(game.i18n.localize("TCT.Recorder.UploadFailed"));
-      this.render();
+    if (message?.type === "recorder-failed") {
+      if (senderId === game.users.activeGM?.id) this.passFailed(this.session, message.id ?? null, "UploadFailed");
       return;
     }
     if (game.user !== game.users.activeGM) return;
-    if (message?.type === "recording") this.receiveChunk(message);
-    if (message?.type === "recorder-pass") this.receivePass(message);
+    if (message?.type === "recording") this.receiveChunk(senderId, message);
+    if (message?.type === "recorder-pass") this.receivePass(senderId, message);
   }
 
   // GM side --------------------------------------------------------------------------------------------------------
 
   /** The GM switches the recorder on and passes it to the player on their left. */
   async switchOn() {
+    if (game.user !== game.users.activeGM) return;
     const gm = this.table.users.find((user) => user.isGM);
     await this.save({ ...this.state(), started: true, holder: this.nextHolder(gm)?.id ?? null, recordings: [] });
   }
 
   /** For a player who dropped out or is stuck: the recorder moves on without a message. */
   async skip() {
+    if (game.user !== game.users.activeGM) return;
     const holder = this.holder;
     if (holder) await this.save({ ...this.state(), holder: this.nextHolder(holder)?.id ?? null });
   }
@@ -252,66 +339,119 @@ export class Recorder {
     return null;
   }
 
-  receiveChunk({ writer, id, index, total, mime, chunk }) {
-    const entry = this.incoming.get(id) ?? { writer, mime, total, chunks: [] };
-    entry.chunks[index] = chunk;
-    this.incoming.set(id, entry);
-  }
-
-  async receivePass({ writer, id }) {
-    const state = this.state();
-    if (state.holder !== writer) return;
-    let recordings = state.recordings ?? [];
-    const entry = id && this.incoming.get(id);
-    this.incoming.delete(id);
-    if (entry && entry.chunks.filter(Boolean).length === entry.total) {
-      try {
-        const path = await this.upload(writer, entry.chunks.join(""), entry.mime);
-        recordings = [...recordings.filter((r) => r.userId !== writer), { userId: writer, path }];
-      } catch (error) {
-        console.error(`${MODULE_ID} | Could not store the recording of ${writer}`, error);
-        ui.notifications.error(game.i18n.localize("TCT.Recorder.UploadFailed"));
-        game.socket.emit(SOCKET, { type: "recorder-failed", writer });
-        return;
-      }
+  /** Takes a piece of the holder's recording; anything from anyone else, or out of bounds, is dropped. */
+  receiveChunk(senderId, { id, index, total, mime, chunk }) {
+    if (senderId !== this.state().holder || typeof id !== "string") return;
+    if (!Number.isInteger(total) || total < 1 || total > MAX_CHUNKS) return;
+    if (!Number.isInteger(index) || index < 0 || index >= total) return;
+    if (typeof chunk !== "string" || chunk.length > CHUNK_CHARS || !EXTENSIONS[baseType(mime)]) return;
+    let entry = this.incoming.get(senderId);
+    // One transfer per holder: a new attempt replaces the old one.
+    if (entry?.id !== id) {
+      entry = { id, mime: baseType(mime), total, chunks: [] };
+      this.incoming.set(senderId, entry);
     }
-    const holder = game.users.get(writer);
-    await this.save({ ...this.state(), holder: this.nextHolder(holder)?.id ?? null, recordings });
+    if (entry.total !== total || entry.mime !== baseType(mime)) return;
+    entry.chunks[index] = chunk;
   }
 
-  async upload(writer, base64, mime) {
+  /**
+   * The holder passes on: with a complete recording, it is stored first; without one (`id` null), the recorder just
+   * moves on. Anything incomplete goes back to the holder as failed, who still has the recording.
+   */
+  async receivePass(senderId, { id }) {
+    const state = this.state();
+    if (state.holder !== senderId) return;
+    if (id === null || id === undefined) {
+      await this.passOn(state.gameId, senderId, null);
+      return;
+    }
+    const entry = this.incoming.get(senderId);
+    const complete = entry?.id === id && entry.chunks.filter(Boolean).length === entry.total;
+    if (!complete) {
+      this.reportFailure(senderId, id);
+      return;
+    }
+    // The same pass arriving twice is stored once.
+    if (this.storing === id) return;
+    this.storing = id;
+    try {
+      const path = await this.upload(state.gameId, senderId, entry.chunks.join(""), entry.mime);
+      this.incoming.delete(senderId);
+      await this.passOn(state.gameId, senderId, path);
+    } catch (error) {
+      console.error(`${MODULE_ID} | Could not store the recording of ${senderId}`, error);
+      ui.notifications.error(game.i18n.localize("TCT.Recorder.UploadFailed"));
+      this.reportFailure(senderId, id);
+    } finally {
+      this.storing = null;
+    }
+  }
+
+  /** Moves the recorder on from `writer`, if nothing else happened meanwhile (a skip, a new game). */
+  async passOn(gameId, writer, path) {
+    const state = this.state();
+    if (state.gameId !== gameId || state.holder !== writer) return;
+    const recordings = path
+      ? [...(state.recordings ?? []).filter((r) => r.userId !== writer), { userId: writer, path }]
+      : state.recordings ?? [];
+    await this.save({ ...state, holder: this.nextHolder(game.users.get(writer))?.id ?? null, recordings });
+  }
+
+  reportFailure(writer, id) {
+    game.socket.emit(SOCKET, { type: "recorder-failed", id }, { recipients: [writer] });
+  }
+
+  async upload(gameId, writer, base64, mime) {
     const FilePicker = foundry.applications.apps.FilePicker.implementation;
     const source = globalThis.ForgeVTT?.usingTheForge ? "forgevtt" : "data";
-    const type = mime.split(";")[0];
-    const extension = type === "audio/mp4" ? "m4a" : "webm";
     const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-    const name = `${this.state().gameId}-${writer}-${Date.now()}.${extension}`.replace(/[^\w.-]/g, "_");
+    const name = `${gameId}-${writer}-${Date.now()}.${EXTENSIONS[mime]}`.replace(/[^\w.-]/g, "_");
     try {
       await FilePicker.browse(source, FOLDER);
     } catch {
       await FilePicker.createDirectory(source, FOLDER);
     }
-    const result = await FilePicker.upload(source, FOLDER, new File([bytes], name, { type }), {}, { notify: false });
+    const result = await FilePicker.upload(source, FOLDER, new File([bytes], name, { type: mime }), {}, { notify: false });
     if (!result?.path) throw new Error("Upload returned no path");
     return result.path;
   }
 
   /** After the last truth: every browser plays the messages, one after the other. */
   play() {
+    if (game.user !== game.users.activeGM) return;
     return this.save({ ...this.state(), playback: { at: Date.now() } });
   }
 
+  /** Plays the messages in turn. Starting again stops the run before, so they never play twice over each other. */
   async playAll(recordings) {
+    this.stopPlayback();
+    const run = this.playback;
     for (const { path } of recordings) {
+      if (run !== this.playback) return;
       await new Promise((resolve) => {
-        const audio = new Audio(path);
+        const audio = (this.audio = new Audio(path));
         audio.addEventListener("ended", resolve, { once: true });
         audio.addEventListener("error", resolve, { once: true });
+        audio.addEventListener("tct-stop", resolve, { once: true });
         audio.play().catch(resolve);
       });
       await new Promise((resolve) => window.setTimeout(resolve, PAUSE_BETWEEN_MS));
     }
   }
+
+  stopPlayback() {
+    this.playback++;
+    const audio = this.audio;
+    this.audio = null;
+    if (!audio) return;
+    audio.pause();
+    audio.dispatchEvent(new Event("tct-stop"));
+  }
+}
+
+function baseType(mime) {
+  return String(mime ?? "").split(";")[0].trim();
 }
 
 function blobToBase64(blob) {
