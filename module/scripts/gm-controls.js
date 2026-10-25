@@ -45,6 +45,8 @@ export class GMControls {
 
   mount() {
     document.body.append(this.panel);
+    Hooks.on("pauseGame", (paused) => this.followFoundryPause(paused));
+    this.syncPause();
     this.render();
     this.timer = window.setInterval(() => this.tick(), TICK_MS);
   }
@@ -141,6 +143,28 @@ export class GMControls {
       else await recorder.skip();
     } finally {
       this.recorderButton.disabled = false;
+    }
+  }
+
+  /**
+   * Foundry's own pause goes with the candle clock: paused exactly while the clock is, never before "Licht aus".
+   * Without that, a player on the plain table would see "Game paused" during character creation.
+   */
+  syncPause() {
+    if (!this.inCharge) return;
+    const clock = this.table.clock();
+    const paused = isStarted(clock) && isPaused(clock);
+    if (game.paused !== paused) game.togglePause(paused, { broadcast: true });
+  }
+
+  /** The GM paused Foundry itself (space bar): the candle clock follows. */
+  followFoundryPause(paused) {
+    if (!this.inCharge) return;
+    const clock = this.table.clock();
+    if (!isStarted(clock)) {
+      if (paused) game.togglePause(false, { broadcast: true });
+    } else if (paused !== isPaused(clock)) {
+      this.saveClock(paused ? pause(clock) : resume(clock));
     }
   }
 

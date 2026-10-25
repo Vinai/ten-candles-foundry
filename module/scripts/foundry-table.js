@@ -133,8 +133,11 @@ export class FoundryTable {
       if (key === SETTINGS.ritual) this.ritual.onChange();
       if (key === SETTINGS.recorder) this.recorder.onChange();
       if (key === SETTINGS.truths) this.applyTruths();
-      // The stacks are locked from "Licht aus".
-      if (key === SETTINGS.candleClock) this.sheets.renderAll();
+      // The stacks are locked from "Licht aus"; Foundry's pause follows the clock.
+      if (key === SETTINGS.candleClock) {
+        this.sheets.renderAll();
+        this.gm?.syncPause();
+      }
       if ([SETTINGS.lightsOut, SETTINGS.candleClock, SETTINGS.ritual].includes(key)) this.applyState(this.gaState());
       this.gm?.render();
       this.renderWriteButton();
