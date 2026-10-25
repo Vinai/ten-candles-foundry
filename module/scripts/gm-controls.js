@@ -175,13 +175,12 @@ export class GMControls {
 
   /**
    * A candle going out on its own ends the scene like a failed conflict: one candle fewer, the dice pool refilled.
-   * Waits while a conflict or the truths are under way; the candle keeps guttering until then.
+   * Waits while a conflict or the truths are under way (until "Und wir leben."); the candle keeps guttering until then.
    */
   async darkenCandle() {
     const state = this.table.gaState();
-    if (!this.inCharge || this.darkening || state.stage !== "scene" || state.activeResolution || state.litCandles <= 0) {
-      return false;
-    }
+    const busy = state.stage !== "scene" || state.activeResolution || this.table.truths.active;
+    if (!this.inCharge || this.darkening || busy || state.litCandles <= 0) return false;
     this.darkening = true;
     try {
       const litCandles = state.litCandles - 1;
@@ -230,6 +229,8 @@ export class GMControls {
     this.draughtButton.disabled = !isStarted(clock) || this.table.gaState().litCandles <= 0;
     // At the very end nobody is left to answer.
     this.aliveButton.hidden = !isStarted(clock) || this.table.burningCandles() <= 0;
+    // Lit up while the truths are being spoken: they end with this button.
+    this.aliveButton.classList.toggle("is-urgent", this.table.truths.active);
 
     this.status.textContent = this.statusText(clock);
     this.renderRecorder(clock);

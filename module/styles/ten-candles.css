@@ -171,15 +171,23 @@
   font-size: calc(0.85vw * var(--tct-fit, 1));
 }
 
+/* The hope die: gold, lying on the corner of the top card, where it never covers a face. */
 .tct-hope-die {
   position: absolute;
-  right: -1.6vw;
-  top: 0.6vw;
-  width: 1.2vw;
-  height: 1.2vw;
-  border-radius: 0.2vw;
-  background: #f2e6c9;
-  box-shadow: 0 0 0.8vw 0.25vw rgba(255, 200, 120, 0.55);
+  right: -0.45vw;
+  bottom: -0.45vw;
+  width: 1.3vw;
+  height: 1.3vw;
+  border-radius: 0.22vw;
+  background:
+    radial-gradient(circle at 25% 25%, #2a2112 0.13vw, transparent 0.15vw),
+    radial-gradient(circle at 75% 25%, #2a2112 0.13vw, transparent 0.15vw),
+    radial-gradient(circle at 50% 50%, #2a2112 0.13vw, transparent 0.15vw),
+    radial-gradient(circle at 25% 75%, #2a2112 0.13vw, transparent 0.15vw),
+    radial-gradient(circle at 75% 75%, #2a2112 0.13vw, transparent 0.15vw),
+    #e4c977;
+  box-shadow: inset 0 -0.12vw 0 rgba(0, 0, 0, 0.3), 0 0 0.9vw 0.3vw rgba(255, 205, 110, 0.6);
+  transform: rotate(-12deg);
 }
 
 /* The communal and GM dice pools under the tray. */
@@ -334,7 +342,7 @@ body.tct-active .ets-floating-roll {
   filter: brightness(calc(0.25 + 0.8 * var(--tct-light))) sepia(0.3);
   pointer-events: auto;
   cursor: pointer;
-  /* Above the card over the bowl, so it can always be touched; below the black of the end. */
+  /* Above the card over the bowl, so it can always be touched (it lies beside it anyway); below the black of the end. */
   z-index: 5;
 }
 
@@ -384,7 +392,7 @@ body.tct-active .ets-floating-roll {
 }
 
 .tct-card.tct-flying.is-burning {
-  animation: tct-burn 2.4s ease-in forwards;
+  animation: tct-burn 10s cubic-bezier(.45, .05, .65, .95) forwards;
   -webkit-mask-image: radial-gradient(circle at 80% 100%, transparent var(--tct-burn), #000 calc(var(--tct-burn) + 4%));
   mask-image: radial-gradient(circle at 80% 100%, transparent var(--tct-burn), #000 calc(var(--tct-burn) + 4%));
 }
@@ -420,8 +428,163 @@ body.tct-active .ets-floating-roll {
 
 @keyframes tct-burn {
   0% { --tct-burn: 0%; filter: brightness(1.3) sepia(0.4); scale: 1; translate: 0 0; }
-  25% { filter: brightness(1.5) sepia(0.6); }
+  10% { --tct-burn: 4%; filter: brightness(1.6) sepia(0.6); }
+  70% { filter: brightness(1.1) sepia(0.85); }
   100% { --tct-burn: 115%; filter: brightness(0.35) sepia(1); scale: 0.75; translate: 0 0.6vw; }
+}
+
+/* The fire over a burning card: tongues of flame, sparks and smoke, catching, burning on and dying down. */
+.tct-fire {
+  position: absolute;
+  z-index: 3;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  animation: tct-fire-life 10s ease-in-out forwards;
+}
+
+@keyframes tct-fire-life {
+  0% { opacity: 0; transform: scale(0.3); }
+  10% { opacity: 1; transform: scale(1); }
+  65% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.4); }
+}
+
+.tct-flame {
+  position: absolute;
+  left: var(--x);
+  bottom: -0.6vw;
+  width: calc(1.9vw * var(--size));
+  height: calc(4.6vw * var(--size));
+  margin-left: calc(-0.95vw * var(--size));
+  border-radius: 50% 50% 45% 45% / 70% 70% 30% 30%;
+  background: radial-gradient(
+    ellipse 42% 58% at 50% 80%,
+    rgba(255, 250, 225, 0.95) 0%,
+    rgba(255, 215, 110, 0.9) 18%,
+    rgba(255, 140, 40, 0.7) 40%,
+    rgba(200, 60, 15, 0.3) 62%,
+    transparent 80%
+  );
+  filter: blur(0.32vw);
+  mix-blend-mode: screen;
+  transform-origin: 50% 100%;
+  animation: tct-flame var(--speed) ease-in-out var(--delay) infinite alternate;
+}
+
+/* The glow the fire throws on the bowl around it. */
+.tct-fire::before {
+  content: "";
+  position: absolute;
+  left: -4vw;
+  top: -3vw;
+  width: 8vw;
+  height: 5vw;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255, 170, 70, 0.45), rgba(255, 110, 30, 0.15) 60%, transparent);
+  mix-blend-mode: screen;
+  animation: tct-burn-glow 0.25s ease-in-out infinite alternate;
+}
+
+@keyframes tct-flame {
+  0% { transform: scale(1, 0.85) skewX(-3deg); opacity: 0.85; }
+  50% { transform: scale(0.9, 1.15) skewX(4deg); opacity: 1; }
+  100% { transform: scale(1.05, 0.95) skewX(-5deg) translateY(-0.2vw); opacity: 0.8; }
+}
+
+.tct-spark {
+  position: absolute;
+  left: var(--x);
+  bottom: 0;
+  width: 0.18vw;
+  height: 0.18vw;
+  border-radius: 50%;
+  background: #ffd27a;
+  box-shadow: 0 0 0.3vw 0.1vw rgba(255, 160, 60, 0.9);
+  opacity: 0;
+  animation: tct-spark var(--speed) ease-out var(--delay) infinite;
+}
+
+@keyframes tct-spark {
+  0% { opacity: 1; transform: translate(0, 0); }
+  100% { opacity: 0; transform: translate(var(--drift), -7vw); }
+}
+
+.tct-smoke {
+  position: absolute;
+  left: var(--x);
+  bottom: 1vw;
+  width: 3vw;
+  height: 3vw;
+  margin-left: -1.5vw;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(140, 130, 120, 0.35), transparent);
+  filter: blur(0.4vw);
+  opacity: 0;
+  animation: tct-smoke 4s ease-out var(--delay) infinite;
+}
+
+@keyframes tct-smoke {
+  0% { opacity: 0; transform: translateY(0) scale(0.5); }
+  20% { opacity: 0.7; }
+  100% { opacity: 0; transform: translateY(-9vw) scale(2.2); }
+}
+
+/* Dice thrown across the table, settling on what the game rolled; a skull for each 1. */
+.tct-roll-die {
+  position: absolute;
+  z-index: 6;
+  width: 2.1vw;
+  height: 2.1vw;
+  box-sizing: border-box;
+  display: grid;
+  grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+  place-items: center;
+  padding: 0.3vw;
+  border-radius: 0.35vw;
+  color: #f1ece2;
+  box-shadow: inset 0 -0.2vw 0 rgba(0, 0, 0, 0.35), inset 0 0.15vw 0 rgba(255, 255, 255, 0.18), 0 0.3vw 0.6vw rgba(0, 0, 0, 0.8);
+  filter: brightness(calc(0.35 + 0.75 * var(--tct-light)));
+  transition: opacity 0.6s ease;
+}
+
+.tct-roll-die.is-player { background: #2d4f7c; }
+.tct-roll-die.is-gm { background: #7a2421; }
+.tct-roll-die.is-hope { background: #e4c977; color: #2a2112; box-shadow: 0 0 1vw 0.3vw rgba(255, 210, 120, 0.55); }
+.tct-roll-die.is-gone { opacity: 0; }
+
+.tct-roll-die > span {
+  width: 0.36vw;
+  height: 0.36vw;
+  border-radius: 50%;
+}
+
+.tct-roll-die > .is-pip { background: currentColor; }
+
+.tct-roll-die > .tct-skull {
+  grid-area: 1 / 1 / 4 / 4;
+  width: 100%;
+  height: 100%;
+  color: #0b0b0d;
+}
+
+.tct-roll-die.is-player > .tct-skull,
+.tct-roll-die.is-gm > .tct-skull {
+  color: #f1ece2;
+}
+
+/* On the Game Assistant's conflict card: a small black skull instead of a rolled 1. */
+.tct-skull-face {
+  display: inline-grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.tct-skull-face .tct-skull {
+  width: 1.05em;
+  height: 1.05em;
+  color: #0b0c0e;
 }
 
 /* The Game Assistant's current card over the bowl, readable in any darkness: it brings its own pool of light. */
@@ -433,7 +596,18 @@ body.tct-active .ets-floating-roll {
   z-index: 4;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.8s ease, transform 0.8s ease, visibility 0s linear 0.8s;
+  transition: opacity 0.5s ease, transform 0.5s ease, visibility 0s linear 0.5s;
+}
+
+.tct-mirror.is-slow {
+  transition: opacity 1.5s ease, transform 1.5s ease, visibility 0s linear 1.5s;
+}
+
+.tct-mirror .ets-conflict-status.is-cancelled,
+.chat-message .ets-conflict-status.is-cancelled {
+  white-space: nowrap;
+  padding-inline: 0.7rem;
+  font-size: 0.85rem;
 }
 
 .tct-mirror.is-visible {
@@ -589,7 +763,7 @@ body.tct-active #chat-notifications .chat-message.tct-ga-card {
   color: #e9e1cf;
   text-shadow: 0 0 0.5em rgba(0, 0, 0, 0.95), 0 0 1.4em rgba(255, 170, 90, 0.25);
   background: radial-gradient(ellipse 50% 32% at 50% 50%, rgba(0, 0, 0, 0.7), transparent);
-  animation: tct-phrase 13s ease-in-out forwards;
+  animation: tct-phrase 9s ease-in-out forwards;
 }
 
 .tct-phrase > span {
@@ -691,4 +865,90 @@ body:not(.tct-the-end) .tct-phrase.is-final {
   flex: 0 0 2rem;
   width: 2rem;
   padding: 0;
+}
+
+/* The table's truths card: the number of truths for the players, who speaks which one for the GM. */
+.tct-truths-card {
+  padding: 1rem 1.2rem;
+  font-family: "Special Elite", "Courier New", monospace;
+  color: #e9e1cf;
+  text-align: center;
+  background: rgba(16, 13, 10, 0.92);
+  border: 1px solid rgba(216, 201, 168, 0.35);
+  border-radius: 6px;
+  box-shadow: 0 0 2rem rgba(0, 0, 0, 0.8);
+}
+
+.tct-truths-card h3 {
+  margin: 0 0 0.6rem;
+  font-family: inherit;
+  font-size: 1.4rem;
+  border: none;
+}
+
+.tct-truths-count {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.tct-truths-left,
+.tct-truths-opening {
+  margin: 0 0 0.5rem;
+}
+
+.tct-truths-opening {
+  font-style: italic;
+  color: #c9b98f;
+}
+
+.tct-truths-list {
+  margin: 0.4rem 0 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.tct-truths-list li {
+  padding: 0.2rem 0;
+  border-top: 1px solid rgba(216, 201, 168, 0.15);
+}
+
+.tct-truths-list li.is-alive {
+  color: #f3d58a;
+}
+
+/* While the truths are spoken nobody rolls. */
+body.tct-truths :is(.ets-floating-roll, .ets-sheet-roll) {
+  display: none !important;
+}
+
+/* The GM's cue that the truths are still being spoken. */
+.tct-gm-panel button.is-urgent {
+  color: #1b130a;
+  background: #e9c46a;
+  border-color: #f3d58a;
+  box-shadow: 0 0 0.8rem rgba(240, 190, 90, 0.7);
+  animation: tct-urgent 1.6s ease-in-out infinite alternate;
+}
+
+@keyframes tct-urgent {
+  from { box-shadow: 0 0 0.4rem rgba(240, 190, 90, 0.4); }
+  to { box-shadow: 0 0 1.1rem rgba(240, 190, 90, 0.9); }
+}
+
+/* Only the GM reads the Game Assistant's darkness card; the table's truths card says it for everyone else. */
+.chat-message.tct-hidden {
+  display: none;
+}
+
+/* In the narrow chat the Moment card's two buttons sit one above the other, so no word breaks in two. */
+.chat-log .etc-instant-chat-actions,
+#chat-notifications .etc-instant-chat-actions {
+  grid-template-columns: 1fr;
+}
+
+.chat-log .tct-ga-card button,
+#chat-notifications .tct-ga-card button {
+  overflow-wrap: normal;
+  word-break: normal;
 }

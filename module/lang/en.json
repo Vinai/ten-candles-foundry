@@ -97,6 +97,16 @@
       "Up": "Move up",
       "Down": "Move down",
       "Save": "Apply"
+    },
+    "Truths": {
+      "Title": "Establishing truths",
+      "One": "1 truth",
+      "Many": "{count} truths",
+      "CandleLeft": "Only one candle is left.",
+      "CandlesLeft": "{count} candles are left.",
+      "Opening": "These things are true. The world is dark.",
+      "Truth": "Truth {n}: {name}",
+      "Alive": "Truth {n}: And we are alive."
     }
   }
 }

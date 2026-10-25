@@ -1,9 +1,11 @@
 import { GA_SYSTEM_ID, MODULE_ID } from "./constants.js";
 import { FoundryTable } from "./foundry-table.js";
+import { decorateCards } from "./ga-cards.js";
 import { registerSettings, SETTINGS } from "./settings.js";
 
 Hooks.once("init", () => {
   registerSettings();
+  if (game.system.id === GA_SYSTEM_ID) decorateCards();
 });
 
 Hooks.once("ready", async () => {

@@ -160,11 +160,13 @@ export class Ritual {
       for (const kind of kinds) {
         if (!cards[kind] || !writer) continue;
         const recipient = this.recipient(writer, kind);
-        // Brinks travel face down; only writer and recipient know what they say. Virtues go right, the rest left.
+        // Brinks travel face down, and every card does for those who neither wrote nor get it (the GM sees all).
+        // Virtues go right, the rest left.
+        const involved = game.user.isGM || writer.isSelf || recipient.isSelf;
         this.table.stage.slideCard(
           users.indexOf(writer),
           users.indexOf(recipient),
-          { label: game.i18n.localize(LABELS[kind]), text: cards[kind], faceDown: kind === "brink" },
+          { label: game.i18n.localize(LABELS[kind]), text: cards[kind], faceDown: kind === "brink" || !involved },
           kind === "virtue" ? -1 : 1
         );
       }

@@ -21,8 +21,15 @@ export class PlainStage {
     return Promise.resolve();
   }
 
+  rollDice() {
+    return Promise.resolve();
+  }
+
+  clearDice() {}
+
   showPhrase(lines) {
     ui.notifications.info(lines.join(" "));
+    return Promise.resolve();
   }
 
   addXCard(onClick) {

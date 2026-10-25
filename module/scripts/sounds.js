@@ -26,7 +26,7 @@ export class TableSounds {
     this.play("candle-out");
   }
 
-  /** A card burning in the bowl, about three seconds. */
+  /** A card burning in the bowl, from catching to embers: ten seconds. */
   burn() {
     this.play("card-burn");
   }

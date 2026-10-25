@@ -9,6 +9,7 @@ export const SETTINGS = {
   candleClock: "candleClock",
   ritual: "ritual",
   recorder: "recorder",
+  truths: "truths",
   plainTable: "plainTable"
 };
 
@@ -56,6 +57,15 @@ export function registerSettings() {
     type: Object,
     default: {},
     onChange: (value) => Hooks.callAll(SETTING_CHANGED_HOOK, SETTINGS.recorder, value)
+  });
+
+  // The truths after a candle went out, until the GM's "Und wir leben.". See truths.js.
+  game.settings.register(MODULE_ID, SETTINGS.truths, {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: {},
+    onChange: (value) => Hooks.callAll(SETTING_CHANGED_HOOK, SETTINGS.truths, value)
   });
 
   // Escape hatch for weak machines or trouble: keep Foundry's own canvas and camera dock.

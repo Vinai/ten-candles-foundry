@@ -28,8 +28,8 @@ const FRAME_MS = 1000 / 30;
 const LIGHT_UP_MS = 1400;
 const SNUFF_MS = 700;
 const SMOKE_MS = 7000;
-// A card burning in the bowl: quick to catch, a bright flare, then embers.
-const FIRE_MS = 2600;
+// A card burning in the bowl: it catches, burns brightly a while, then sinks into embers.
+const FIRE_MS = 10000;
 const FIRE_HEIGHT = 170;
 const FIRE_TONGUES = 9;
 
@@ -315,8 +315,8 @@ export class CandleTable {
     for (const fire of this.fires) {
       fire.age += dt;
       const k = fire.age / FIRE_MS;
-      // Catches within a fifth of its life, flares, then sinks into embers.
-      fire.level = k < 0.2 ? k / 0.2 : Math.pow(1 - (k - 0.2) / 0.8, 1.6);
+      // Catches within an eighth of its life, burns on, then sinks into embers.
+      fire.level = k < 0.12 ? k / 0.12 : k < 0.65 ? 1 : Math.pow(1 - (k - 0.65) / 0.35, 1.4);
       fire.level *= 1 + 0.15 * Math.sin(fire.age / 45 + fire.seed);
     }
     for (const fire of this.fires.filter((f) => f.age >= FIRE_MS)) {

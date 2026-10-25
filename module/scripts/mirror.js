@@ -1,11 +1,15 @@
-import { GA_SYSTEM_ID } from "./constants.js";
+import { decorateCard, gaType } from "./ga-cards.js";
 
 // How long a card stays above the bowl after its last change once nothing in the game still needs it.
 const LINGER_MS = 20000;
+// Cards of a conflict and its truths go as soon as the game is done with them; the table shows what follows.
+const NO_LINGER = new Set(["resolution", "ball-of-truths", "darkness-progression"]);
 
 /**
  * The Game Assistant's latest chat card (conflict, Moment, truths, …) lies above the bowl in a pool of light, so
  * nobody needs the chat. It is the real message rendered once more: the Game Assistant wires up its buttons itself.
+ * While the truths are spoken, the table's own truths card lies there instead (the GM keeps the Game Assistant's
+ * card while it still has a button to press). The table can hold it back while dice roll or a card burns.
  */
 export class ConflictMirror {
   constructor(table, element) {
@@ -13,6 +17,7 @@ export class ConflictMirror {
     this.element = element;
     this.messageId = null;
     this.touchedAt = 0;
+    this.holds = 0;
   }
 
   start() {
@@ -22,8 +27,19 @@ export class ConflictMirror {
     Hooks.on("createChatMessage", (message) => this.touch(message));
     Hooks.on("updateChatMessage", (message) => this.update(message));
     Hooks.on("deleteChatMessage", (message) => message.id === this.messageId && this.render());
-    // Marks them so the styles keep them out of Foundry's chat pop-ups; the bowl shows them already.
-    Hooks.on("renderChatMessageHTML", (message, html) => gaType(message) && html.classList.add("tct-ga-card"));
+    this.render();
+  }
+
+  /** Keeps the bowl clear until `release`; holds nest. `slow` lets the card fade out the slow way. */
+  hold({ slow = false } = {}) {
+    this.holds++;
+    this.element.classList.toggle("is-slow", slow);
+    this.render();
+  }
+
+  release() {
+    this.holds = Math.max(this.holds - 1, 0);
+    if (!this.holds) this.element.classList.remove("is-slow");
     this.render();
   }
 
@@ -63,21 +79,29 @@ export class ConflictMirror {
     }
   }
 
-  async render() {
+  /** What lies over the bowl right now: a rendered element, or null for nothing. */
+  async content() {
+    const state = this.table.gaState();
     const message = game.messages.get(this.messageId);
-    const show = message && (this.pinned(message, this.table.gaState()) || Date.now() - this.touchedAt < LINGER_MS);
+    const pinned = message && this.pinned(message, state);
+    // The GM presses the Game Assistant's button before the truths; everyone else sees the table's truths card.
+    if (this.table.truths.active && !(game.user.isGM && pinned && gaType(message) === "ball-of-truths")) {
+      return this.table.truths.card();
+    }
+    const recent = message && !NO_LINGER.has(gaType(message)) && Date.now() - this.touchedAt < LINGER_MS;
+    if (!pinned && !recent) return null;
+    return message.renderHTML();
+  }
+
+  async render() {
     const token = (this.renderToken = Symbol());
-    if (!show) {
+    const html = this.holds ? null : await this.content();
+    if (token !== this.renderToken) return;
+    if (!html) {
       this.element.classList.remove("is-visible");
       return;
     }
-    const html = await message.renderHTML();
-    if (token !== this.renderToken) return;
     this.element.replaceChildren(html);
     this.element.classList.add("is-visible");
   }
-}
-
-function gaType(message) {
-  return message.flags?.[GA_SYSTEM_ID]?.type ?? null;
 }

@@ -4,15 +4,28 @@ import { CameraFaces } from "./faces.js";
 import { GMControls } from "./gm-controls.js";
 import { ConflictMirror } from "./mirror.js";
 import { PlainStage } from "./plain-stage.js";
+import { seeded } from "./random.js";
 import { Recorder } from "./recorder.js";
 import { Ritual } from "./ritual.js";
 import { SETTING_CHANGED_HOOK, SETTINGS } from "./settings.js";
 import { TableStage } from "./stage.js";
+import { Truths } from "./truths.js";
 
 const GUTTER_TICK_MS = 1000;
 const X_CARD_COOLDOWN_MS = 5000;
-// The truths begin once the candle has gone out and its smoke rises.
-const TRUTHS_DELAY_MS = 1500;
+// A candle goes out: the cards over the bowl fade, the candle dies, its smoke rises a while, then the GM's words.
+const CLEAR_MS = 800;
+const SMOKE_MS = 3000;
+// A card burned for a reroll: the conflict card fades slowly, a pause, the card burns, a pause, then the dice.
+const BURN_FADE_MS = 1500;
+const BEFORE_BURN_MS = 2400;
+const AFTER_BURN_MS = 5000;
+// The conflict card comes back this long after the dice came to rest.
+const AFTER_DICE_MS = 2000;
+// A trait spent during its owner's conflict waits this long for the Game Assistant to say it was for a reroll.
+const REROLL_WAIT_MS = 2500;
+// A failure or seized narration this recent put the candle out; otherwise it burned down or was blown out.
+const CAUSE_MS = 15000;
 const TRAIT_LABELS = { virtue: "TCT.Card.Virtue", vice: "TCT.Card.Vice", moment: "TCT.Card.Moment" };
 const PLACEHOLDERS = {
   virtue: "ETC.Character.VirtuePlaceholder",
@@ -30,8 +43,15 @@ export class FoundryTable {
     this.faces = new CameraFaces();
     this.ritual = new Ritual(this);
     this.recorder = new Recorder(this);
+    this.truths = new Truths(this);
     // Per actor, the traits last seen unburned, to notice the moment one is spent.
     this.unburned = new Map();
+    // Traits spent for a reroll that still lie on their stack until their turn to burn, by "actorId:key".
+    this.rerollBurns = new Map();
+    // What the table shows happens one thing after the other: dice, a burning card, a candle going out.
+    this.beats = Promise.resolve();
+    // Rolls of the Game Assistant's conflicts already thrown on this table, by "resolutionId:historyIndex".
+    this.thrown = new Set();
     const table = this;
     this.api = {
       setSeatOrder: (names) => this.setSeatOrder(names),
@@ -77,6 +97,9 @@ export class FoundryTable {
       this.mirror = new ConflictMirror(this, this.stage.addMirror());
       this.mirror.start();
     }
+    // Rolls from before this page loaded are not thrown again.
+    this.observeRolls(this.gaState(), { replay: false });
+    this.applyTruths();
     game.socket.on(SOCKET, (message) => {
       if (message?.type === "xcard") this.showXCard();
       if (message?.type === "alive") this.showAlive();
@@ -91,6 +114,7 @@ export class FoundryTable {
 
     Hooks.on(GA_STATE_HOOK, (state) => {
       if (state.gameId !== this.gameId) this.newGame(state);
+      this.observeRolls(state);
       this.applyState(state);
       this.mirror?.render();
       this.gm?.onGaState(state);
@@ -101,6 +125,7 @@ export class FoundryTable {
       if (key === SETTINGS.seatOrder) this.refreshSeats();
       if (key === SETTINGS.ritual) this.ritual.onChange();
       if (key === SETTINGS.recorder) this.recorder.onChange();
+      if (key === SETTINGS.truths) this.applyTruths();
       if ([SETTINGS.lightsOut, SETTINGS.candleClock, SETTINGS.ritual].includes(key)) this.applyState(this.gaState());
       this.gm?.render();
       this.renderWriteButton();
@@ -119,6 +144,7 @@ export class FoundryTable {
     this.gameId = state.gameId;
     this.stage.clearPhrase();
     this.finalWords = false;
+    this.applyTruths();
     this.ritual.onChange();
     this.recorder.onChange();
     this.renderWriteButton();
@@ -200,18 +226,22 @@ export class FoundryTable {
 
   /**
    * The stack in front of a seat: Brink face down at the bottom, unburned traits on top in the chosen order, and on
-   * top of everything the cards still being written.
+   * top of everything the cards still being written. Players see only their own stack, the GM sees every one; the
+   * hope die is there for all to see.
    */
   cardsOf(user) {
     const system = user.character?.system;
-    const pending = [...this.ritual.gmCards(user), ...this.ritual.pendingCards(user)];
+    const own = game.user.isGM || user.isSelf;
+    const pending = own ? [...this.ritual.gmCards(user), ...this.ritual.pendingCards(user)] : [];
     if (!system) return { cards: pending, hope: false };
     const unburned = unburnedTraits(system);
     this.unburned.set(user.character.id, unburned);
+    if (!own) return { cards: [], hope: system.hopeDieAvailable };
+    const waiting = (key) => this.rerollBurns.get(`${user.character.id}:${key}`);
     const traits = [...system.resourceOrderList]
       .reverse()
-      .filter((key) => key in unburned)
-      .map((key) => traitCard(key, unburned[key]));
+      .filter((key) => key in unburned || waiting(key))
+      .map((key) => waiting(key) ?? traitCard(key, unburned[key]));
     const brink = written(system, "brink")
       ? [{ label: game.i18n.localize(this.ritual.brinkLabel(user)), text: system.brink.text, faceDown: true }]
       : [];
@@ -232,16 +262,33 @@ export class FoundryTable {
   }
 
   refreshActor(actor) {
-    const index = this.users.findIndex((user) => user.character === actor);
+    const index = this.seatOf(actor);
     if (index < 0) return;
-    const before = this.unburned.get(actor.id) ?? {};
-    this.stage.updateSeat(index, this.seatData(this.users[index]));
     // Spent, not erased: the sheet still has the text, it is just no longer available.
+    const before = this.unburned.get(actor.id) ?? {};
+    const now = unburnedTraits(actor.system);
+    const resolution = this.gaState().activeResolution;
     for (const key of Object.keys(before)) {
-      if (!(key in this.unburned.get(actor.id)) && written(actor.system, key)) {
-        this.stage.burnCard(index, traitCard(key, actor.system[key].text));
-      }
+      if (key in now || !written(actor.system, key)) continue;
+      const card = traitCard(key, actor.system[key].text);
+      if (resolution?.actorId === actor.id && key !== "moment") this.awaitReroll(actor, key, card);
+      else this.beat(() => this.stage.burnCard(this.seatOf(actor), card));
     }
+    this.stage.updateSeat(index, this.seatData(this.users[index]));
+  }
+
+  /**
+   * A trait spent during its owner's conflict is most likely burned for a reroll; it stays on the stack until the
+   * conflict gets to it. Burned from the sheet instead, nothing claims it and it burns after a moment.
+   */
+  awaitReroll(actor, key, card) {
+    const id = `${actor.id}:${key}`;
+    this.rerollBurns.set(id, card);
+    window.setTimeout(() => {
+      if (!this.rerollBurns.has(id)) return;
+      this.takeRerollBurn(actor.id, key);
+      this.beat(() => this.stage.burnCard(this.seatOf(actor), card));
+    }, REROLL_WAIT_MS);
   }
 
   refreshCards() {
@@ -266,15 +313,19 @@ export class FoundryTable {
 
   applyState(state, { instant = false } = {}) {
     const litCount = this.visibleCandles(state);
-    if (!instant && isStarted(this.clock()) && litCount < this.litCount) this.showTruths(litCount);
-    // The game's last words stay until a new game lights candles again.
-    if (litCount > 0 && this.finalWords) {
-      this.stage.clearPhrase();
-      this.finalWords = false;
+    if (!instant && isStarted(this.clock()) && litCount < this.litCount) {
+      // The table takes its time over a candle going out; see candleOut.
+      if (!this.snuffing) this.candleOut(state);
+    } else if (!this.snuffing) {
+      // The game's last words stay until a new game lights candles again.
+      if (litCount > 0 && this.finalWords) {
+        this.stage.clearPhrase();
+        this.finalWords = false;
+      }
+      this.litCount = litCount;
+      this.stage.setCandles(new Set(candleOrder(state.gameId).slice(0, litCount)), { instant });
+      this.applyEnd();
     }
-    this.litCount = litCount;
-    this.stage.setCandles(new Set(candleOrder(state.gameId).slice(0, litCount)), { instant });
-    this.applyEnd();
     // No dice on the table before the game starts. During the truths the dice wait for the next scene, when the
     // Game Assistant refills the pool.
     if (!isStarted(this.clock())) this.stage.setDice({ player: 0, lost: 0, gm: 0 });
@@ -283,6 +334,145 @@ export class FoundryTable {
       this.stage.setDice({ player, lost: litCount - player, gm: TOTAL_CANDLES - litCount });
     }
     this.applyGutter();
+  }
+
+  /**
+   * A candle goes out, by a failed conflict, seized narration, burning down or a draught. The cards over the bowl
+   * fade, the candle dies, its smoke rises, the GM's words follow, and only then the truths card. The active GM
+   * starts the truths.
+   */
+  candleOut(state) {
+    this.snuffing = true;
+    const candles = this.visibleCandles(state);
+    if (candles > 0) this.truths.begin(candles, this.firstSpeaker(state));
+    // Held from now, not from when its turn comes, so nothing new pops up over the bowl meanwhile.
+    this.mirror?.hold();
+    this.beat(async () => {
+      try {
+        await wait(CLEAR_MS);
+        this.snuffing = false;
+        const now = this.gaState();
+        this.litCount = this.visibleCandles(now);
+        this.stage.setCandles(new Set(candleOrder(now.gameId).slice(0, this.litCount)));
+        this.applyEnd();
+        this.applyGutter();
+        if (this.litCount === 0) return;
+        await wait(SMOKE_MS);
+        await this.stage.showPhrase([game.i18n.localize("TCT.Phrase.True"), game.i18n.localize("TCT.Phrase.Dark")]);
+      } finally {
+        this.snuffing = false;
+        this.mirror?.release();
+      }
+    });
+  }
+
+  /** Who speaks the first truth: whoever's failure or seized narration put the candle out, otherwise the GM. */
+  firstSpeaker(state) {
+    const last = state.lastResolution;
+    const recent = last && Date.now() - (last.updatedAt ?? 0) < CAUSE_MS;
+    const byPlayer = recent && (state.stage === "ball-of-truths" || last.narrationSeized);
+    return (byPlayer && game.users.get(last.playerId)) || this.users.find((user) => user.isGM) || game.user;
+  }
+
+  /** While the truths are spoken nobody rolls; the GM's "Und wir leben." ends them. */
+  applyTruths() {
+    document.body.classList.toggle("tct-truths", this.truths.active);
+    this.mirror?.render();
+    this.gm?.render();
+  }
+
+  /** Queues something the table shows, after whatever it is showing now. */
+  beat(show) {
+    const run = this.beats.then(show);
+    this.beats = run.catch((error) => console.error(`${MODULE_ID} | Table`, error));
+    return run;
+  }
+
+  /**
+   * New rolls in the Game Assistant's current conflict are thrown across the table, and the conflict card waits for
+   * them. Its history says what was rolled: the player's pool with the hope die, the GM's pool, a reroll of the 1s
+   * for a burned trait, or the whole pool again for the Brink.
+   */
+  observeRolls(state, { replay = true } = {}) {
+    for (const resolution of [state.activeResolution, state.lastResolution]) {
+      const history = resolution?.history ?? [];
+      history.forEach((entry, index) => {
+        const key = `${resolution.id}:${index}`;
+        if (this.thrown.has(key)) return;
+        this.thrown.add(key);
+        if (replay && resolution === state.activeResolution) this.throwEntry(resolution, entry, history[index + 1], key);
+      });
+    }
+  }
+
+  throwEntry(resolution, entry, next, seed) {
+    const player = this.users.findIndex((user) => user.id === resolution.playerId);
+    const dice = (values, kind) => (values ?? []).map((value) => ({ value, kind }));
+    switch (entry.type) {
+      case "player-roll": {
+        const hope = next?.type === "hope-roll" ? [{ value: next.result, kind: "hope" }] : [];
+        return this.throwDice(player, [...dice(entry.results, "player"), ...hope], seed);
+      }
+      case "gm-roll":
+        return this.throwDice(this.users.findIndex((user) => user.isGM), dice(entry.results, "gm"), seed);
+      case "limit":
+        return this.throwDice(player, dice(entry.results, "player"), seed);
+      case "virtue":
+      case "vice":
+        return this.burnForReroll(resolution, entry.type, dice(entry.results, "player"), seed);
+    }
+  }
+
+  throwDice(seat, dice, seed) {
+    if (!dice.length) return;
+    this.mirror?.hold();
+    return this.beat(async () => {
+      try {
+        await this.stage.rollDice(seat, dice, seed);
+        await wait(AFTER_DICE_MS);
+      } finally {
+        this.stage.clearDice();
+        this.mirror?.release();
+      }
+    });
+  }
+
+  /** A trait burned for a reroll: the conflict card fades, the card burns in the bowl, then the 1s are rolled again. */
+  burnForReroll(resolution, key, dice, seed) {
+    const actor = game.actors.get(resolution.actorId);
+    const card = this.takeRerollBurn(actor?.id, key) ?? traitCard(key, actor?.system[key]?.text ?? "");
+    this.mirror?.hold({ slow: true });
+    return this.beat(async () => {
+      try {
+        await wait(BURN_FADE_MS + BEFORE_BURN_MS);
+        await this.stage.burnCard(this.seatOf(actor), card);
+        await wait(AFTER_BURN_MS);
+        await this.stage.rollDice(this.seatOf(actor), dice, seed);
+        await wait(AFTER_DICE_MS);
+      } finally {
+        this.stage.clearDice();
+        this.mirror?.release();
+      }
+    });
+  }
+
+  /** The card leaves its stack only when it is its turn to burn. */
+  takeRerollBurn(actorId, key) {
+    const id = `${actorId}:${key}`;
+    const card = this.rerollBurns.get(id) ?? null;
+    this.rerollBurns.delete(id);
+    const actor = game.actors.get(actorId);
+    if (card && actor) this.refreshSeatOf(actor);
+    return card;
+  }
+
+  seatOf(actor) {
+    return this.users.findIndex((user) => user.character === actor);
+  }
+
+  refreshSeatOf(actor) {
+    const index = this.seatOf(actor);
+    if (index >= 0) this.stage.updateSeat(index, this.seatData(this.users[index]));
   }
 
   /** The next candle to burn out gutters for its last minute or two, in every browser alike. */
@@ -309,18 +499,20 @@ export class FoundryTable {
     // A plain table has no black to fade into; the last words still come.
     document.body.classList.toggle("tct-the-end", end && !this.plain);
     // Joined or reloaded in the dark: the words are already there.
-    if (end && !this.finalWords) this.showTruths(0);
+    if (end && !this.finalWords) this.showFinalWords();
   }
 
-  /** A candle went out: the scene ends and the truths begin, the last time without anyone left to answer. */
-  showTruths(litCount) {
-    const lines = [game.i18n.localize("TCT.Phrase.True"), game.i18n.localize("TCT.Phrase.Dark")];
-    this.finalWords = litCount === 0;
-    this.stage.showPhrase(lines, { delay: TRUTHS_DELAY_MS, final: this.finalWords });
+  /** The last candle is out: the GM's words, this time without anyone left to answer. They stay. */
+  showFinalWords() {
+    this.finalWords = true;
+    this.stage.showPhrase([game.i18n.localize("TCT.Phrase.True"), game.i18n.localize("TCT.Phrase.Dark")], {
+      final: true
+    });
   }
 
-  /** The GM's cue for the last truth, spoken by all players together. */
+  /** The GM's cue for the last truth, spoken by all players together; the truths are over. */
   sayAlive() {
+    this.truths.end();
     game.socket.emit(SOCKET, { type: "alive" });
     this.showAlive();
   }
@@ -372,6 +564,10 @@ function traitCard(key, text) {
   return { label: game.i18n.localize(TRAIT_LABELS[key]), text };
 }
 
+function wait(ms) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
 function loadImage(src) {
   const image = new Image();
   image.src = src;
@@ -380,14 +576,7 @@ function loadImage(src) {
 
 /** Which candle goes out first: a fixed shuffle per game, the same in every browser. */
 function candleOrder(seed) {
-  let a = 2166136261;
-  for (const ch of String(seed ?? "")) a = Math.imul(a ^ ch.charCodeAt(0), 16777619);
-  const random = () => {
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
+  const random = seeded(seed);
   const order = Array.from({ length: TOTAL_CANDLES }, (_, i) => i);
   for (let i = order.length - 1; i > 0; i--) {
     const j = Math.floor(random() * (i + 1));

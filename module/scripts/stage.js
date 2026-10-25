@@ -1,4 +1,5 @@
 import { CandleTable } from "./candle-table.js";
+import { RollingDice } from "./rolling-dice.js";
 import { seatPositions } from "./seat-layout.js";
 import { TableSounds } from "./sounds.js";
 
@@ -8,10 +9,20 @@ const SEAT_SPREAD_Y = 2.3;
 const STACK_SPREAD_X = 1.28;
 const STACK_SPREAD_Y = 1.45;
 const TOTAL_DICE = 10;
+// The dice row hangs this far below the tray; its dice and the stacks are sized in vw (see ten-candles.css).
+const DICE_ROW_GAP = 10;
+const DIE_VW = 1.1;
+const STACK_GAP_VW = 0.4;
+const STACK_HALF_VW = 1.65;
+const MAX_PEEK_VW = 0.72;
 const SLIDE_MS = 1800;
+// A passed card fades where it arrives; the recipient's stack shows it from then on.
+const ARRIVE_FADE_MS = 400;
 const TO_BOWL_MS = 1400;
-// Matches the tct-burn animation in ten-candles.css.
-const BURN_MS = 2400;
+// Matches the tct-burn and tct-fire animations in ten-candles.css, and the card-burn sound.
+const BURN_MS = 10000;
+const FLAMES = 7;
+const SPARKS = 14;
 // The recorder lies beside a seat's cards, a little clockwise of them.
 const RECORDER_OFFSET = 0.32;
 // Single words fill a card; Moments and Brinks are whole sentences and get smaller writing.
@@ -37,6 +48,7 @@ export class TableStage {
     this.table = new CandleTable(canvas, image);
     this.table.onFrame = () => this.updateLight();
     this.dice = this.createDice();
+    this.rolling = new RollingDice(this.root);
     this.setSeats(seats, viewer);
     this.onResize = () => {
       this.table.resize();
@@ -127,7 +139,9 @@ export class TableStage {
    */
   slideCard(from, to, { label, text, faceDown = false }, direction = 1) {
     const card = this.flyingCard({ label, text, faceDown });
-    return this.travel(card, from, to, direction).finished.then(() => card.remove());
+    return this.travel(card, from, to, direction)
+      .finished.then(() => card.animate([{ opacity: 1 }, { opacity: 0 }], { duration: ARRIVE_FADE_MS, fill: "forwards" }).finished)
+      .then(() => card.remove());
   }
 
   /** Moves an element along the ring of stacks from one seat to another. @returns {Animation} */
@@ -208,10 +222,64 @@ export class TableStage {
     );
     await flight.finished;
     card.classList.add("is-burning");
+    const fire = this.fire(into);
     this.table.flareBowl();
     this.sounds.burn();
     await new Promise((resolve) => window.setTimeout(resolve, BURN_MS));
     card.remove();
+    fire.remove();
+  }
+
+  /** Flames licking up from the card, sparks and smoke rising: each tongue with its own size and rhythm. */
+  fire(at) {
+    const fire = document.createElement("div");
+    fire.className = "tct-fire";
+    fire.style.left = at.left;
+    fire.style.top = at.top;
+    const part = (className, props) => {
+      const el = document.createElement("span");
+      el.className = className;
+      for (const [name, value] of Object.entries(props)) el.style.setProperty(name, value);
+      fire.append(el);
+    };
+    for (let i = 0; i < FLAMES; i++) {
+      part("tct-flame", {
+        "--x": `${(i / (FLAMES - 1) - 0.5) * 2.8 + (Math.random() - 0.5) * 0.5}vw`,
+        "--size": (0.6 + Math.random() * 0.7 - Math.abs(i / (FLAMES - 1) - 0.5) * 0.5).toFixed(2),
+        "--speed": `${(0.35 + Math.random() * 0.35).toFixed(2)}s`,
+        "--delay": `${(-Math.random()).toFixed(2)}s`
+      });
+    }
+    for (let i = 0; i < SPARKS; i++) {
+      part("tct-spark", {
+        "--x": `${(Math.random() - 0.5) * 2.8}vw`,
+        "--drift": `${(Math.random() - 0.5) * 3}vw`,
+        "--speed": `${(1.2 + Math.random() * 1.4).toFixed(2)}s`,
+        "--delay": `${(Math.random() * 8).toFixed(2)}s`
+      });
+    }
+    for (let i = 0; i < 3; i++) part("tct-smoke", { "--delay": `${2 + i * 2.5}s`, "--x": `${(i - 1) * 1.2}vw` });
+    this.root.append(fire);
+    return fire;
+  }
+
+  /**
+   * Dice thrown from a seat onto the tray around the bowl, landing on the given faces.
+   * @param dice {{value: number, kind: "player"|"hope"|"gm"}[]}
+   * @returns {Promise<void>} once they are at rest
+   */
+  rollDice(seat, dice, seed) {
+    const bowl = this.table.bowlOnScreen;
+    const tray = this.table.trayOnScreen;
+    const from = this.seatElements[seat] ? this.ringPoint(this.seatElements[seat].angle) : { x: tray.x, y: tray.y + tray.ry };
+    const rx = tray.rx * 0.62;
+    const ry = tray.ry * 0.62;
+    const hole = Math.min((bowl.rx * 1.3) / rx, 0.8);
+    return this.rolling.roll(from, { x: bowl.x, y: bowl.y, rx, ry, hole }, dice, seed);
+  }
+
+  clearDice() {
+    this.rolling.clear();
   }
 
   flyingCard({ label, text, faceDown = false }) {
@@ -267,9 +335,12 @@ export class TableStage {
   /**
    * Ritual words over the table, line by line: they rise out of the dark, linger and sink back. `final` words stay
    * until `clearPhrase`. A new phrase replaces the one showing.
+   * @returns {Promise<void>} once the words have sunk back (or were replaced); at once for final words
    */
   showPhrase(lines, { delay = 0, final = false } = {}) {
     this.clearPhrase();
+    const done = new Promise((resolve) => (this.phraseDone = resolve));
+    if (final) this.phraseDone();
     const phrase = (this.phrase = document.createElement("div"));
     phrase.className = "tct-phrase" + (final ? " is-final" : "");
     phrase.append(
@@ -279,14 +350,20 @@ export class TableStage {
         return span;
       })
     );
-    phrase.addEventListener("animationend", (event) => event.target === phrase && !final && phrase.remove());
+    phrase.addEventListener("animationend", (event) => {
+      if (event.target !== phrase || final) return;
+      phrase.remove();
+      this.phraseDone?.();
+    });
     this.phraseTimer = window.setTimeout(() => this.root.append(phrase), delay);
+    return done;
   }
 
   clearPhrase() {
     window.clearTimeout(this.phraseTimer);
     this.phrase?.remove();
     this.phrase = null;
+    this.phraseDone?.();
   }
 
   /** Big, brief and nameless: someone touched the X-card. */
@@ -342,12 +419,15 @@ export class TableStage {
       seat.style.top = `${pos.y}px`;
       const point = this.ringPoint(pos.angle);
       stack.style.left = `${point.x}px`;
-      stack.style.top = `${point.y}px`;
+      // Your own stack lies below the dice row, however many cards it holds.
+      stack.style.top = `${pos.isViewer ? Math.max(point.y, this.belowDice(tray)) : point.y}px`;
     });
     this.placeRecorder();
     if (this.xCard) {
+      // Beside the card over the bowl, never under it.
       const bowl = this.table.bowlOnScreen;
-      this.xCard.style.left = `${bowl.x + bowl.rx * 1.55}px`;
+      const mirrorHalf = Math.min(Math.max(280, window.innerWidth * 0.21), 380) / 2;
+      this.xCard.style.left = `${bowl.x + Math.max(bowl.rx * 1.55, mirrorHalf + 0.025 * window.innerWidth)}px`;
       this.xCard.style.top = `${bowl.y - bowl.ry * 0.2}px`;
     }
     if (this.mirror) {
@@ -356,7 +436,13 @@ export class TableStage {
       this.mirror.style.top = `${bowl.y}px`;
     }
     this.dice.style.left = `${tray.x}px`;
-    this.dice.style.top = `${tray.y + tray.ry + 10}px`;
+    this.dice.style.top = `${tray.y + tray.ry + DICE_ROW_GAP}px`;
+  }
+
+  /** Where a stack's centre must be to clear the dice row under the tray, even with all cards fanned out. */
+  belowDice(tray) {
+    const vw = window.innerWidth / 100;
+    return tray.y + tray.ry + DICE_ROW_GAP + (DIE_VW + STACK_GAP_VW + STACK_HALF_VW + MAX_PEEK_VW) * vw;
   }
 
   updateLight() {

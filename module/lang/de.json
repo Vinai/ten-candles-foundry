@@ -97,6 +97,16 @@
       "Up": "Nach oben",
       "Down": "Nach unten",
       "Save": "Übernehmen"
+    },
+    "Truths": {
+      "Title": "Ritual der Wahrheiten",
+      "One": "1 Wahrheit",
+      "Many": "{count} Wahrheiten",
+      "CandleLeft": "Nur eine Kerze bleibt.",
+      "CandlesLeft": "{count} Kerzen bleiben.",
+      "Opening": "Diese Dinge sind wahr. Die Welt ist dunkel.",
+      "Truth": "{n}. Wahrheit: {name}",
+      "Alive": "{n}. Wahrheit: Und wir leben."
     }
   },
   "ETC.Chat.ProvisionalPlayerNarrates": "{name} sollte das Narrativ erhalten.",
