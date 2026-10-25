@@ -107,6 +107,9 @@
       "Opening": "These things are true. The world is dark.",
       "Truth": "Truth {n}: {name}",
       "Alive": "Truth {n}: And we are alive."
+    },
+    "Sheet": {
+      "Button": "Character sheet"
     }
   }
 }

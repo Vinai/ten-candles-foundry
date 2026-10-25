@@ -8,6 +8,7 @@ import { seeded } from "./random.js";
 import { Recorder } from "./recorder.js";
 import { Ritual } from "./ritual.js";
 import { SETTING_CHANGED_HOOK, SETTINGS } from "./settings.js";
+import { CharacterSheets } from "./sheets.js";
 import { TableStage } from "./stage.js";
 import { Truths } from "./truths.js";
 
@@ -44,6 +45,9 @@ export class FoundryTable {
     this.ritual = new Ritual(this);
     this.recorder = new Recorder(this);
     this.truths = new Truths(this);
+    this.sheets = new CharacterSheets(this);
+    // A conflict or Moment request already seen, so a sheet only makes way for a new one.
+    this.seenRequests = new Set();
     // Per actor, the traits last seen unburned, to notice the moment one is spent.
     this.unburned = new Map();
     // Traits spent for a reroll that still lie on their stack until their turn to burn, by "actorId:key".
@@ -91,7 +95,7 @@ export class FoundryTable {
     this.applyLights({ instant: true });
     if (!plain) this.faces.start();
     this.stage.start();
-    this.mountWriteButton();
+    this.mountOwnControls();
     this.stage.addXCard(() => this.touchXCard());
     if (!plain) {
       this.mirror = new ConflictMirror(this, this.stage.addMirror());
@@ -99,6 +103,8 @@ export class FoundryTable {
     }
     // Rolls from before this page loaded are not thrown again.
     this.observeRolls(this.gaState(), { replay: false });
+    this.sheets.start();
+    this.makeWayFor(this.gaState(), { initial: true });
     this.applyTruths();
     game.socket.on(SOCKET, (message) => {
       if (message?.type === "xcard") this.showXCard();
@@ -115,6 +121,7 @@ export class FoundryTable {
     Hooks.on(GA_STATE_HOOK, (state) => {
       if (state.gameId !== this.gameId) this.newGame(state);
       this.observeRolls(state);
+      this.makeWayFor(state);
       this.applyState(state);
       this.mirror?.render();
       this.gm?.onGaState(state);
@@ -126,6 +133,8 @@ export class FoundryTable {
       if (key === SETTINGS.ritual) this.ritual.onChange();
       if (key === SETTINGS.recorder) this.recorder.onChange();
       if (key === SETTINGS.truths) this.applyTruths();
+      // The stacks are locked from "Licht aus".
+      if (key === SETTINGS.candleClock) this.sheets.renderAll();
       if ([SETTINGS.lightsOut, SETTINGS.candleClock, SETTINGS.ritual].includes(key)) this.applyState(this.gaState());
       this.gm?.render();
       this.renderWriteButton();
@@ -270,6 +279,8 @@ export class FoundryTable {
     const resolution = this.gaState().activeResolution;
     for (const key of Object.keys(before)) {
       if (key in now || !written(actor.system, key)) continue;
+      // The sheet makes way, so the burning can be seen.
+      this.sheets.close(actor);
       const card = traitCard(key, actor.system[key].text);
       if (resolution?.actorId === actor.id && key !== "moment") this.awaitReroll(actor, key, card);
       else this.beat(() => this.stage.burnCard(this.seatOf(actor), card));
@@ -295,18 +306,41 @@ export class FoundryTable {
     this.users.forEach((user, index) => this.stage.updateSeat(index, this.seatData(user)));
   }
 
-  /** Lets a writer reopen their card until it is passed. Sits left of their own face, opposite the roll button. */
-  mountWriteButton() {
-    this.writeButton = document.createElement("button");
-    this.writeButton.type = "button";
-    this.writeButton.className = "tct-write-button";
-    this.writeButton.textContent = game.i18n.localize("TCT.Write.Button");
-    this.writeButton.addEventListener("click", () => this.ritual.write());
-    document.body.append(this.writeButton);
+  /**
+   * Left of your own face, opposite the roll button: your character sheet, the card you are writing and the recorder
+   * when you hold it, one above the other.
+   */
+  mountOwnControls() {
+    this.ownControls = document.createElement("div");
+    this.ownControls.className = "tct-own-controls";
+    document.body.append(this.ownControls);
+    const button = (className, label, onClick) => {
+      const el = document.createElement("button");
+      el.type = "button";
+      el.className = className;
+      el.textContent = game.i18n.localize(label);
+      el.addEventListener("click", onClick);
+      this.ownControls.append(el);
+      return el;
+    };
+    this.sheetButton = button("tct-sheet-button", "TCT.Sheet.Button", () => game.user.character && this.sheets.toggle(game.user.character));
+    this.writeButton = button("tct-write-button", "TCT.Write.Button", () => this.ritual.write());
     this.renderWriteButton();
   }
 
+  /** A sheet makes way for the table when its character starts a conflict or asks for their Moment. */
+  makeWayFor(state, { initial = false } = {}) {
+    const requests = [state.activeResolution, ...(state.instantRequests ?? [])].filter(Boolean);
+    for (const request of requests) {
+      if (this.seenRequests.has(request.id)) continue;
+      this.seenRequests.add(request.id);
+      const actor = game.actors.get(request.actorId);
+      if (actor && !initial) this.sheets.close(actor);
+    }
+  }
+
   renderWriteButton() {
+    this.sheetButton.hidden = !game.user.character;
     const state = this.ritual.state();
     this.writeButton.hidden = !this.ritual.step.writes || Boolean(state.passing) || !this.ritual.writers().includes(game.user);
   }

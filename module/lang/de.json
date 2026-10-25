@@ -107,6 +107,9 @@
       "Opening": "Diese Dinge sind wahr. Die Welt ist dunkel.",
       "Truth": "{n}. Wahrheit: {name}",
       "Alive": "{n}. Wahrheit: Und wir leben."
+    },
+    "Sheet": {
+      "Button": "Charakterbogen"
     }
   },
   "ETC.Chat.ProvisionalPlayerNarrates": "{name} sollte das Narrativ erhalten.",

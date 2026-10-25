@@ -45,7 +45,7 @@ export class Recorder {
     this.panel = document.createElement("div");
     this.panel.className = "tct-recorder-panel";
     this.panel.addEventListener("click", (event) => this.onClick(event));
-    document.body.append(this.panel);
+    this.table.ownControls.append(this.panel);
     this.lastPlayback = this.state().playback?.at ?? 0;
     this.gameId = this.state().gameId;
     game.socket.on(SOCKET, (message, senderId) => this.onSocket(message, senderId));

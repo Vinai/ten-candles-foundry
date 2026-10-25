@@ -270,13 +270,22 @@ body.tct-active .ets-floating-roll {
   bottom: 2.5rem;
 }
 
-/* Reopens your card while the table is writing; left of your own face. */
-.tct-write-button {
+/* Left of your own face, opposite the roll button: your sheet, the card you are writing, the recorder. */
+.tct-own-controls {
   position: fixed;
-  z-index: 80;
+  /* Above Foundry's windows: the sheet button closes the sheet that opens over it. */
+  z-index: 1000;
   right: calc(50% + 15vw);
   bottom: 2.5rem;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.tct-own-controls > button {
   width: auto;
+  padding: 0.55rem 1rem;
   padding: 0.55rem 1rem;
   font-family: "Special Elite", "Courier New", monospace;
   font-size: 1rem;
@@ -287,7 +296,7 @@ body.tct-active .ets-floating-roll {
   cursor: pointer;
 }
 
-.tct-write-button[hidden] {
+.tct-own-controls > [hidden] {
   display: none;
 }
 
@@ -700,10 +709,6 @@ body.tct-active #chat-notifications .chat-message.tct-ga-card {
 
 /* The holder's controls, where the write button sits during character creation. */
 .tct-recorder-panel {
-  position: fixed;
-  z-index: 80;
-  right: calc(50% + 15vw);
-  bottom: 2.5rem;
   max-width: 24rem;
   padding: 0.6rem 0.8rem;
   font-family: "Special Elite", "Courier New", monospace;
@@ -713,9 +718,6 @@ body.tct-active #chat-notifications .chat-message.tct-ga-card {
   border-radius: 4px;
 }
 
-.tct-recorder-panel[hidden] {
-  display: none;
-}
 
 .tct-recorder-panel.is-recording {
   border-color: rgba(255, 70, 50, 0.7);
@@ -814,7 +816,7 @@ body.tct-the-end .tct-stage::after {
   transition: opacity 8s ease-in;
 }
 
-body.tct-the-end :is(#interface, .ets-floating-roll, .tct-write-button, .tct-recorder-panel) {
+body.tct-the-end :is(#interface, .ets-floating-roll, .tct-own-controls) {
   opacity: 0;
   pointer-events: none;
   transition: opacity 8s ease-in;
@@ -951,4 +953,15 @@ body.tct-truths :is(.ets-floating-roll, .ets-sheet-roll) {
 #chat-notifications .tct-ga-card button {
   overflow-wrap: normal;
   word-break: normal;
+}
+
+/* In the Game Assistant's sheet only the top card of the stack is in play: it looks it, the ones below wait. */
+.etc-resource.tct-top {
+  opacity: 1;
+  filter: none;
+}
+
+.etc-resource.tct-below {
+  opacity: 0.45;
+  filter: grayscale(0.4) brightness(0.8);
 }
