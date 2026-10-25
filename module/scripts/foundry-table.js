@@ -60,8 +60,8 @@ export class FoundryTable {
     this.api = {
       setSeatOrder: (names) => this.setSeatOrder(names),
       setLightsOut: (value) => game.settings.set(MODULE_ID, SETTINGS.lightsOut, value),
-      // For trying the recordings out before the last candle is dark.
-      playRecordings: () => this.recorder.play(),
+      // For trying the recordings out before the last candle is dark: plays the next one.
+      playRecordings: () => this.recorder.playNext(),
       get stage() {
         return table.stage;
       }

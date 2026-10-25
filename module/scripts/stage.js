@@ -282,6 +282,16 @@ export class TableStage {
     this.rolling.clear();
   }
 
+  /** The recorder's button, as before each message is played. */
+  recorderClick() {
+    this.sounds.click(true);
+  }
+
+  /** Lets a media element play through the table's sound channel, so the same volume applies. */
+  route(media) {
+    this.sounds.route(media);
+  }
+
   flyingCard({ label, text, faceDown = false }) {
     const card = document.createElement("div");
     card.className = "tct-card tct-flying" + (faceDown ? " is-face-down" : "");

@@ -965,3 +965,39 @@ body.tct-truths :is(.ets-floating-roll, .ets-sheet-roll) {
   opacity: 0.45;
   filter: grayscale(0.4) brightness(0.8);
 }
+
+/* For whoever holds the recorder: mute in Discord while recording, unmute afterwards (that one is clicked away). */
+.tct-discord-note {
+  position: fixed;
+  z-index: 1000;
+  top: 18vh;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: min(40rem, calc(100vw - 32px));
+  padding: 1rem 1.6rem;
+  font-family: "Special Elite", "Courier New", monospace;
+  font-size: clamp(1.4rem, 2.6vw, 2.4rem);
+  text-align: center;
+  color: #1b130a;
+  background: #e9c46a;
+  border-radius: 6px;
+  box-shadow: 0 0 2rem rgba(240, 190, 90, 0.6);
+  pointer-events: none;
+}
+
+.tct-discord-note[hidden] {
+  display: none;
+}
+
+.tct-discord-note.is-dismissable {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.tct-discord-note small {
+  display: block;
+  margin-top: 0.4rem;
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
+

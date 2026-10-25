@@ -24,7 +24,7 @@ export class GMControls {
     this.aliveButton = this.button(() => this.table.sayAlive(), "TCT.GM.Alive");
     this.aliveButton.dataset.tooltip = game.i18n.localize("TCT.GM.AliveHint");
     this.recorderButton = this.button(() => this.recorderStep());
-    this.playButton = this.button(() => this.table.recorder.play(), "TCT.GM.PlayRecordings");
+    this.playButton = this.button(() => this.table.recorder.playNext());
     this.status = document.createElement("div");
     this.status.className = "tct-gm-status";
     this.recorderStatus = document.createElement("div");
@@ -137,6 +137,7 @@ export class GMControls {
     this.recorderButton.disabled = true;
     try {
       if (recorder.unused) await recorder.switchOn();
+      else if (recorder.finished) await recorder.restart();
       else await recorder.skip();
     } finally {
       this.recorderButton.disabled = false;
@@ -236,14 +237,28 @@ export class GMControls {
     this.renderRecorder(clock);
   }
 
-  /** The recorder goes round once the lights are out; its messages are played after the last candle. */
+  /**
+   * The recorder goes round once the lights are out, and again if the GM restarts it; its messages are played one
+   * by one after the last candle, each with its own click.
+   */
   renderRecorder(clock) {
     const recorder = this.table.recorder;
     const holder = recorder.holder;
-    this.recorderButton.hidden = !isStarted(clock) || recorder.finished;
-    this.recorderButton.textContent = game.i18n.localize(recorder.unused ? "TCT.GM.RecorderOn" : "TCT.GM.RecorderSkip");
-    this.recorderButton.dataset.tooltip = recorder.unused ? "" : game.i18n.localize("TCT.GM.RecorderSkipHint");
-    this.playButton.hidden = !recorder.finished || !recorder.recordings.length || this.table.gaState().litCandles > 0;
+    const step = recorder.unused ? "On" : recorder.finished ? "Restart" : "Skip";
+    this.recorderButton.hidden = !isStarted(clock);
+    this.recorderButton.textContent = game.i18n.localize(`TCT.GM.Recorder${step}`);
+    this.recorderButton.dataset.tooltip = step === "On" ? "" : game.i18n.localize(`TCT.GM.Recorder${step}Hint`);
+    const recordings = recorder.recordings;
+    const next = recorder.nextIndex;
+    this.playButton.hidden =
+      !recorder.finished || next >= recordings.length || this.table.gaState().litCandles > 0 || holder !== null;
+    this.playButton.disabled = recorder.playing;
+    const speaker = game.users.get(recordings[next]?.userId);
+    this.playButton.textContent = game.i18n.format("TCT.GM.PlayNext", {
+      name: speaker?.character?.name || speaker?.name || "?",
+      n: next + 1,
+      total: recordings.length
+    });
     this.recorderStatus.textContent = holder
       ? game.i18n.format("TCT.GM.RecorderWith", { name: holder.character?.name || holder.name })
       : recorder.finished
