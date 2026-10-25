@@ -32,7 +32,7 @@
       "Resume": "Resume",
       "Draught": "Draught",
       "DraughtHint": "A draught snuffs the next candle: the scene ends as after a failed conflict. Only you see this button.",
-      "DraughtWaits": "The candle goes out as soon as the conflict or the truths are over.",
+      "DraughtBlocked": "No candle can be put out during a conflict or the truths. Press “Draught” again afterwards.",
       "ClockWaiting": "The candles burn down from “Lights out”.",
       "NextCandle": "Next candle dies in {time}",
       "NextCandlePaused": "Paused – next candle in {time}",

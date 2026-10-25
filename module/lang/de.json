@@ -32,7 +32,7 @@
       "Resume": "Weiter",
       "Draught": "Luftzug",
       "DraughtHint": "Ein Luftzug löscht die nächste Kerze: Die Szene endet wie nach einem gescheiterten Konflikt. Nur du siehst diesen Knopf.",
-      "DraughtWaits": "Die Kerze erlischt, sobald der Konflikt bzw. die Wahrheiten vorbei sind.",
+      "DraughtBlocked": "Während eines Konflikts oder der Wahrheiten kann keine Kerze gelöscht werden. Drücke „Luftzug“ danach noch einmal.",
       "ClockWaiting": "Die Kerzen brennen ab „Licht aus“ herunter.",
       "NextCandle": "Nächste Kerze erlischt in {time}",
       "NextCandlePaused": "Pausiert – nächste Kerze in {time}",

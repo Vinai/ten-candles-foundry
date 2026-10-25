@@ -3,10 +3,12 @@ import { GA_STATE_SETTING, GA_SYSTEM_ID, MODULE_ID, TOTAL_CANDLES } from "./cons
 import { SETTINGS } from "./settings.js";
 
 const TICK_MS = 1000;
+// For this long after the module put a candle out, a Game Assistant write that brings it back is undone.
+const DARKEN_GUARD_MS = 10_000;
 
 /**
  * The GM's side of the table: room lights, the candle clock and the draught, plus burning candles out when their
- * time has come. Only the active GM's browser changes game state.
+ * time has come. Only the active GM's browser changes game state; any other GM sees no panel.
  */
 export class GMControls {
   constructor(table) {
@@ -55,11 +57,17 @@ export class GMControls {
     return button;
   }
 
+  /** Only one browser may change the game: the active GM's. */
+  get inCharge() {
+    return game.user === game.users.activeGM;
+  }
+
   get lightsOut() {
     return game.settings.get(MODULE_ID, SETTINGS.lightsOut);
   }
 
   async toggleLights() {
+    if (!this.inCharge) return;
     const lightsOut = !this.lightsOut;
     // The candles start burning down the first time the lights go out.
     if (lightsOut && !isStarted(this.table.clock())) await this.saveClock(start(this.table.clock() ?? this.newClock()));
@@ -67,6 +75,7 @@ export class GMControls {
   }
 
   async nextRitualStep() {
+    if (!this.inCharge) return;
     this.ritualButton.disabled = true;
     try {
       await this.table.ritual.next();
@@ -119,7 +128,7 @@ export class GMControls {
         });
       }
     });
-    if (order) await game.settings.set(MODULE_ID, SETTINGS.seatOrder, [game.user.id, ...order]);
+    if (order && this.inCharge) await game.settings.set(MODULE_ID, SETTINGS.seatOrder, [game.user.id, ...order]);
   }
 
   /** Switches the recorder on, or moves it past a player who cannot record. */
@@ -135,13 +144,16 @@ export class GMControls {
   }
 
   async togglePause() {
+    if (!this.inCharge) return;
     const clock = this.table.clock();
     if (!isStarted(clock)) return;
     await this.saveClock(isPaused(clock) ? resume(clock) : pause(clock));
   }
 
+  /** Only between conflicts and truths; during them the GM is told so and presses again afterwards. */
   async draught() {
-    if (!(await this.darkenCandle())) ui.notifications.info(game.i18n.localize("TCT.GM.DraughtWaits"));
+    if (!this.inCharge) return;
+    if (!(await this.darkenCandle())) ui.notifications.info(game.i18n.localize("TCT.GM.DraughtBlocked"));
   }
 
   newClock() {
@@ -154,7 +166,7 @@ export class GMControls {
 
   tick() {
     this.render();
-    if (game.user !== game.users.activeGM) return;
+    if (!this.inCharge) return;
     const clock = this.table.clock();
     if (!isStarted(clock) || isPaused(clock)) return;
     const next = nextDeath(clock, this.table.gaState().litCandles);
@@ -167,23 +179,45 @@ export class GMControls {
    */
   async darkenCandle() {
     const state = this.table.gaState();
-    if (this.darkening || state.stage !== "scene" || state.activeResolution || state.litCandles <= 0) return false;
+    if (!this.inCharge || this.darkening || state.stage !== "scene" || state.activeResolution || state.litCandles <= 0) {
+      return false;
+    }
     this.darkening = true;
     try {
       const litCandles = state.litCandles - 1;
-      await game.settings.set(GA_SYSTEM_ID, GA_STATE_SETTING, {
-        ...state,
-        litCandles,
-        bluePoolRemaining: litCandles,
-        updatedAt: Date.now()
-      });
+      this.darkened = { gameId: state.gameId, litCandles, until: Date.now() + DARKEN_GUARD_MS };
+      await this.writeCandles(state, litCandles);
       return true;
     } finally {
       this.darkening = false;
     }
   }
 
+  writeCandles(state, litCandles) {
+    return game.settings.set(GA_SYSTEM_ID, GA_STATE_SETTING, {
+      ...state,
+      litCandles,
+      bluePoolRemaining: litCandles,
+      updatedAt: Date.now()
+    });
+  }
+
+  /**
+   * The Game Assistant replaces its whole state with each change. One that started from the state before our candle
+   * went out brings the candle back; put it out again, keeping the rest of that change.
+   */
+  onGaState(state) {
+    const darkened = this.darkened;
+    if (!this.inCharge || !darkened || Date.now() > darkened.until) return;
+    if (state.gameId !== darkened.gameId || state.stage !== "scene" || state.activeResolution) {
+      this.darkened = null;
+      return;
+    }
+    if (state.litCandles > darkened.litCandles) this.writeCandles(state, darkened.litCandles);
+  }
+
   render() {
+    this.panel.hidden = !this.inCharge;
     const clock = this.table.clock();
     const ritual = this.table.ritual;
     this.ritualButton.hidden = !ritual.nextLabel || isStarted(clock);
