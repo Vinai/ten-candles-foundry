@@ -65,7 +65,10 @@
       "MomentHint": "Ein Moment, in dem deine Figur Hoffnung finden könnte. Die Karte bleibt bei dir.",
       "BrinkHint": "Für {name}: was du an ihr oder ihm gesehen hast. Die Karte geht verdeckt nach links.",
       "BrinkByThemHint": "Für {name}: was SIE an ihr oder ihm gesehen haben. Die Karte geht verdeckt nach links.",
-      "BrinkOfThemHint": "Was du von IHNEN gesehen hast. Die Karte geht verdeckt an die Spielleitung."
+      "BrinkOfThemHint": "Was du von IHNEN gesehen hast. Die Karte geht verdeckt an die Spielleitung.",
+      "NoGM": "Die Spielleitung ist nicht verbunden – deine Karte ist noch nicht abgegeben. Öffne sie später über „Karte schreiben“ und drücke noch einmal „Fertig“.",
+      "NotStored": "Deine Karte ist nicht bei der Spielleitung angekommen. Öffne sie über „Karte schreiben“ und drücke noch einmal „Fertig“.",
+      "TooLate": "Die Karten waren schon unterwegs – deine Änderung kam zu spät."
     },
     "XCard": {
       "Touched": "Jemand hat die X-Karte berührt. Wir lassen das weg und gehen weiter."

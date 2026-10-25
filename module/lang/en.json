@@ -65,7 +65,10 @@
       "MomentHint": "A moment in which your character could find hope. This card stays with you.",
       "BrinkHint": "For {name}: what you have seen of them. The card goes face down to your left.",
       "BrinkByThemHint": "For {name}: what THEY have seen of them. The card goes face down to your left.",
-      "BrinkOfThemHint": "What you have seen of THEM. The card goes face down to the GM."
+      "BrinkOfThemHint": "What you have seen of THEM. The card goes face down to the GM.",
+      "NoGM": "The GM is not connected – your card has not been handed in yet. Open it later with “Write card” and press “Done” again.",
+      "NotStored": "Your card did not reach the GM. Open it with “Write card” and press “Done” again.",
+      "TooLate": "The cards were already on their way – your change came too late."
     },
     "XCard": {
       "Touched": "Someone touched the X-card. We drop that and move on."

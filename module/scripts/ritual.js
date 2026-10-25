@@ -4,6 +4,10 @@ import { SETTINGS } from "./settings.js";
 
 // Long enough for the slide in stage.js (1.8 s) to land before the cards appear in the recipients' stacks.
 const PASS_MS = 2000;
+// A writer waits this long for the GM to confirm a card before telling the player it did not arrive.
+const ACK_TIMEOUT_MS = 8000;
+// More than any card holds; keeps a misbehaving client from filling the world setting.
+const MAX_CARD_CHARS = 500;
 
 /**
  * Character creation, led by the GM one step at a time. Candles are lit as the table gets through it; the last one
@@ -29,16 +33,31 @@ const LABELS = {
 /**
  * World setting `ritual`: {gameId, step, cards: {writerId: {virtue, vice, moment, brink}}, passing, theyCard}.
  * Players hand what they wrote to the active GM over the module socket; the GM's browser keeps the setting and writes
- * passed cards into the recipients' Game Assistant sheets.
+ * passed cards into the recipients' Game Assistant sheets. The GM handles one change at a time and confirms each card
+ * to its writer, who keeps the draft until then.
+ *
+ * Secrecy: Brinks are hidden from view, not from someone digging in the browser console. Foundry sends every actor
+ * and world setting to every player, so the text is in each browser once it is written; only the submissions go to
+ * the GM alone.
  */
 export class Ritual {
   constructor(table) {
     this.table = table;
+    this.queue = Promise.resolve();
+    // This browser's last submission, until the GM confirms it: {gameId, step, cards, id}.
+    this.draft = null;
   }
 
   start() {
-    game.socket.on(SOCKET, (message) => this.onSocket(message));
+    game.socket.on(SOCKET, (message, senderId) => this.onSocket(message, senderId));
     this.onChange();
+  }
+
+  /** Runs one change of the ritual setting after the other, so no change works from an outdated state. */
+  enqueue(change) {
+    const run = this.queue.then(change);
+    this.queue = run.catch((error) => console.error(`${MODULE_ID} | Ritual`, error));
+    return run;
   }
 
   state() {
@@ -124,9 +143,10 @@ export class Ritual {
       this.lastPassAt = state.passing.at;
       this.animatePass(state);
     }
-    // Everyone asked to write gets the card in front of them once per step.
-    if (this.step.writes && this.promptedStep !== state.step && this.writers().includes(game.user)) {
-      this.promptedStep = state.step;
+    // Everyone asked to write gets the card in front of them once per step of each game.
+    const prompt = `${state.gameId}:${state.step}`;
+    if (this.step.writes && this.promptedStep !== prompt && this.writers().includes(game.user)) {
+      this.promptedStep = prompt;
       if (!this.step.writes.every((kind) => state.cards[game.user.id]?.[kind])) this.write();
     }
     this.table.refreshCards();
@@ -155,7 +175,9 @@ export class Ritual {
   async write() {
     const step = this.step;
     if (!step.writes || !this.writers().includes(game.user)) return;
-    const own = this.state().cards[game.user.id] ?? {};
+    const state = this.state();
+    const draft = this.draft?.gameId === state.gameId && this.draft.step === state.step ? this.draft.cards : null;
+    const own = draft ?? state.cards[game.user.id] ?? {};
     const { title, hint, fields } = this.prompt(step.writes, own);
     const values = await foundry.applications.api.DialogV2.input({
       window: { title },
@@ -166,8 +188,34 @@ export class Ritual {
     });
     if (!values) return;
     const cards = Object.fromEntries(step.writes.map((kind) => [kind, String(values[kind] ?? "").trim()]));
-    if (game.user === game.users.activeGM) await this.store(game.user.id, cards);
-    else game.socket.emit(SOCKET, { type: "write", writer: game.user.id, cards });
+    this.submit({ gameId: state.gameId, step: state.step, cards, id: foundry.utils.randomID() });
+  }
+
+  /** Hands the cards to the GM. The draft stays until the GM confirms that they are stored. */
+  async submit(draft) {
+    this.draft = draft;
+    const gm = game.users.activeGM;
+    if (!gm) {
+      ui.notifications.warn(game.i18n.localize("TCT.Write.NoGM"));
+      return;
+    }
+    if (gm === game.user) {
+      this.settle(draft.id, await this.store(game.user.id, draft));
+      return;
+    }
+    game.socket.emit(SOCKET, { type: "write", ...draft }, { recipients: [gm.id] });
+    window.clearTimeout(this.ackTimer);
+    this.ackTimer = window.setTimeout(() => {
+      if (this.draft?.id === draft.id) ui.notifications.warn(game.i18n.localize("TCT.Write.NotStored"));
+    }, ACK_TIMEOUT_MS);
+  }
+
+  /** The GM's answer to a submission: stored, or too late because the cards are already on their way. */
+  settle(id, stored) {
+    if (this.draft?.id !== id) return;
+    window.clearTimeout(this.ackTimer);
+    if (!stored) ui.notifications.warn(game.i18n.localize("TCT.Write.TooLate"));
+    this.draft = null;
   }
 
   prompt(kinds, own) {
@@ -208,32 +256,55 @@ export class Ritual {
     };
   }
 
-  onSocket(message) {
+  onSocket(message, senderId) {
+    if (message?.type === "write-ack") {
+      this.settle(message.id, message.stored);
+      return;
+    }
     if (message?.type !== "write" || game.user !== game.users.activeGM) return;
-    if (!game.users.get(message.writer)) return;
-    this.store(message.writer, message.cards);
+    // The server names the sender, so nobody can write in someone else's name.
+    this.store(senderId, message).then((stored) =>
+      game.socket.emit(SOCKET, { type: "write-ack", id: message.id, stored }, { recipients: [senderId] })
+    );
   }
 
-  async store(writerId, cards) {
-    const state = this.state();
-    const writes = this.step.writes ?? [];
-    const accepted = Object.fromEntries(Object.entries(cards).filter(([kind]) => writes.includes(kind)));
-    await this.save({ ...state, cards: { ...state.cards, [writerId]: { ...state.cards[writerId], ...accepted } } });
+  /**
+   * Keeps a writer's cards, if they belong to this game and step and the cards are not already being passed.
+   * @returns {Promise<boolean>} whether they were stored
+   */
+  store(writerId, { gameId, step, cards }) {
+    return this.enqueue(async () => {
+      const state = this.state();
+      const writes = STEPS[state.step]?.writes ?? [];
+      const writer = game.users.get(writerId);
+      if (gameId !== state.gameId || step !== state.step || state.passing || !this.writers().includes(writer)) return false;
+      const accepted = Object.fromEntries(
+        Object.entries(cards ?? {})
+          .filter(([kind, text]) => writes.includes(kind) && typeof text === "string")
+          .map(([kind, text]) => [kind, text.slice(0, MAX_CARD_CHARS)])
+      );
+      await this.save({ ...state, cards: { ...state.cards, [writerId]: { ...state.cards[writerId], ...accepted } } });
+      return true;
+    });
   }
 
   // GM side --------------------------------------------------------------------------------------------------------
 
-  async next() {
-    const state = this.state();
-    const step = STEPS[state.step];
-    if (!step?.next) return;
-    if (state.step === "idle") await this.ensureCharacters();
-    if (step.pass) {
-      await this.save({ ...state, passing: { at: Date.now() } });
-      await new Promise((resolve) => window.setTimeout(resolve, PASS_MS));
-    }
-    const theyCard = step.writes ? await this.deliver(state, step.writes) : state.theyCard;
-    await this.save({ ...this.state(), step: step.next, passing: null, theyCard });
+  /** The GM's next step. Cards are frozen while they travel; what arrives is exactly what was stored. */
+  next() {
+    return this.enqueue(async () => {
+      const state = this.state();
+      const step = STEPS[state.step];
+      if (!step?.next) return;
+      if (state.step === "idle") await this.prepareCharacters();
+      if (step.pass) {
+        await this.save({ ...state, passing: { at: Date.now() } });
+        await new Promise((resolve) => window.setTimeout(resolve, PASS_MS));
+      }
+      const current = this.state();
+      const theyCard = step.writes ? await this.deliver(current, step.writes) : current.theyCard;
+      await this.save({ ...current, step: step.next, passing: null, theyCard });
+    });
   }
 
   /** Writes the step's cards into the recipients' sheets. @returns the card about Them, if the GM received it */
@@ -259,9 +330,16 @@ export class Ritual {
     return theyCard;
   }
 
-  /** Every player needs a sheet to receive cards; create the missing ones, visible to their owner only. */
-  async ensureCharacters() {
-    for (const user of this.table.users.filter((u) => !u.isGM && !u.character)) {
+  /**
+   * Every player needs a sheet to receive cards; create the missing ones, visible to their owner only. A new ritual
+   * makes new characters, so existing sheets start blank again: nothing burned, no Moment lived, the default order.
+   */
+  async prepareCharacters() {
+    for (const user of this.table.users.filter((u) => !u.isGM)) {
+      if (user.character) {
+        await user.character.update({ system: user.character.system.schema.getInitialValue() });
+        continue;
+      }
       const actor = await Actor.implementation.create({
         name: user.name,
         type: "character",
