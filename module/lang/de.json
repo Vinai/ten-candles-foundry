@@ -53,7 +53,7 @@
     "Settings": {
       "PlainTable": {
         "Name": "Schlichter Tisch",
-        "Hint": "Zeigt Foundrys normale Szene und Kameraleiste statt des Kerzentischs. Für schwache Rechner oder wenn etwas nicht funktioniert."
+        "Hint": "Zeigt Foundrys normale Szene und Kameraleiste statt des Kerzentischs. Karten schreiben, Rekorder und X-Karte funktionieren weiter. Für schwache Rechner oder wenn etwas nicht funktioniert."
       }
     },
     "Write": {

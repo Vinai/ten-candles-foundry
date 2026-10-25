@@ -3,6 +3,7 @@ import { GA_PAINTING, GA_STATE_HOOK, GA_STATE_SETTING, GA_SYSTEM_ID, MODULE_ID, 
 import { CameraFaces } from "./faces.js";
 import { GMControls } from "./gm-controls.js";
 import { ConflictMirror } from "./mirror.js";
+import { PlainStage } from "./plain-stage.js";
 import { Recorder } from "./recorder.js";
 import { Ritual } from "./ritual.js";
 import { SETTING_CHANGED_HOOK, SETTINGS } from "./settings.js";
@@ -43,28 +44,39 @@ export class FoundryTable {
     };
   }
 
-  async mount() {
-    const image = await loadImage(GA_PAINTING);
-    await this.adoptPersonalPresentation();
+  /**
+   * @param plain {boolean} the player's plain table: Foundry's own scene and camera dock instead of the drawn table.
+   *   Writing, the recorder, the X-card and the GM's controls work all the same.
+   */
+  async mount({ plain = false } = {}) {
+    this.plain = plain;
+    this.gameId = this.gaState().gameId;
     await this.allowPlayerVideo();
-    this.pauseCanvas();
-    document.body.classList.add("tct-active");
-
     this.users = this.seatedUsers();
-    this.stage = new TableStage(document.body, image, {
-      seats: this.users.map((user) => this.seatData(user)),
-      viewer: this.viewerIndex(),
-      // Foundry's interface channel, so each player's interface volume applies. Silent until their first click.
-      audio: () => (game.audio.locked ? null : game.audio.interface?.gainNode ?? null)
-    });
+    if (plain) {
+      this.stage = new PlainStage();
+    } else {
+      const image = await loadImage(GA_PAINTING);
+      await this.adoptPersonalPresentation();
+      this.pauseCanvas();
+      document.body.classList.add("tct-active");
+      this.stage = new TableStage(document.body, image, {
+        seats: this.users.map((user) => this.seatData(user)),
+        viewer: this.viewerIndex(),
+        // Foundry's interface channel, so each player's interface volume applies. Silent until their first click.
+        audio: () => (game.audio.locked ? null : game.audio.interface?.gainNode ?? null)
+      });
+    }
     this.applyState(this.gaState(), { instant: true });
     this.applyLights({ instant: true });
-    this.faces.start();
+    if (!plain) this.faces.start();
     this.stage.start();
     this.mountWriteButton();
     this.stage.addXCard(() => this.touchXCard());
-    this.mirror = new ConflictMirror(this, this.stage.addMirror());
-    this.mirror.start();
+    if (!plain) {
+      this.mirror = new ConflictMirror(this, this.stage.addMirror());
+      this.mirror.start();
+    }
     game.socket.on(SOCKET, (message) => {
       if (message?.type === "xcard") this.showXCard();
       if (message?.type === "alive") this.showAlive();
@@ -78,8 +90,10 @@ export class FoundryTable {
     window.setInterval(() => this.applyGutter(), GUTTER_TICK_MS);
 
     Hooks.on(GA_STATE_HOOK, (state) => {
+      if (state.gameId !== this.gameId) this.newGame(state);
       this.applyState(state);
-      this.mirror.render();
+      this.mirror?.render();
+      this.gm?.onGaState(state);
       this.gm?.render();
     });
     Hooks.on(SETTING_CHANGED_HOOK, (key) => {
@@ -94,7 +108,23 @@ export class FoundryTable {
     Hooks.on("updateActor", (actor) => this.refreshActor(actor));
     Hooks.on("updateUser", () => this.refreshSeats());
     Hooks.on("userConnected", () => this.refreshSeats());
-    Hooks.on("canvasReady", () => this.pauseCanvas());
+    if (!plain) Hooks.on("canvasReady", () => this.pauseCanvas());
+  }
+
+  /**
+   * The Game Assistant started a new game: the ritual, recorder and clock of the old one are left behind (they are
+   * tied to its id), the last words go and the room lights come back on for character creation.
+   */
+  newGame(state) {
+    this.gameId = state.gameId;
+    this.stage.clearPhrase();
+    this.finalWords = false;
+    this.ritual.onChange();
+    this.recorder.onChange();
+    this.renderWriteButton();
+    if (game.user === game.users.activeGM && game.settings.get(MODULE_ID, SETTINGS.lightsOut)) {
+      game.settings.set(MODULE_ID, SETTINGS.lightsOut, false);
+    }
   }
 
   /** Our overlay replaces the Game Assistant's official canvas, so it switches to its personal presentation. */
@@ -163,7 +193,7 @@ export class FoundryTable {
   seatData(user) {
     return {
       name: user.character?.name || user.name,
-      face: this.faces.get(user),
+      face: this.plain ? null : this.faces.get(user),
       ...this.cardsOf(user)
     };
   }
@@ -276,7 +306,8 @@ export class FoundryTable {
    */
   applyEnd() {
     const end = isStarted(this.clock()) && this.litCount === 0 && game.settings.get(MODULE_ID, SETTINGS.lightsOut);
-    document.body.classList.toggle("tct-the-end", end);
+    // A plain table has no black to fade into; the last words still come.
+    document.body.classList.toggle("tct-the-end", end && !this.plain);
     // Joined or reloaded in the dark: the words are already there.
     if (end && !this.finalWords) this.showTruths(0);
   }

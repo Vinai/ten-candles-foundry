@@ -334,6 +334,21 @@ body.tct-active .ets-floating-roll {
   filter: brightness(calc(0.25 + 0.8 * var(--tct-light))) sepia(0.3);
   pointer-events: auto;
   cursor: pointer;
+  /* Above the card over the bowl, so it can always be touched; below the black of the end. */
+  z-index: 5;
+}
+
+/* On a plain table: a small card at the top of the screen. */
+.tct-xcard.is-plain {
+  position: fixed;
+  z-index: 80;
+  top: 1rem;
+  left: 50%;
+  width: 2.6rem;
+  height: 1.8rem;
+  font-size: 1.2rem;
+  line-height: 1.8rem;
+  filter: none;
 }
 
 .tct-xcard:hover {

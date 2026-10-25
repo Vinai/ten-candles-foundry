@@ -11,9 +11,7 @@ Hooks.once("ready", async () => {
     ui.notifications.warn(game.i18n.localize("TCT.Warn.WrongSystem"));
     return;
   }
-  if (game.settings.get(MODULE_ID, SETTINGS.plainTable)) return;
-
   const table = new FoundryTable();
   game.modules.get(MODULE_ID).api = table.api;
-  await table.mount();
+  await table.mount({ plain: game.settings.get(MODULE_ID, SETTINGS.plainTable) });
 });

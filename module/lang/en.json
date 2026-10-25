@@ -53,7 +53,7 @@
     "Settings": {
       "PlainTable": {
         "Name": "Plain table",
-        "Hint": "Shows Foundry's normal scene and camera dock instead of the candle table. For weak computers or when something doesn't work."
+        "Hint": "Shows Foundry's normal scene and camera dock instead of the candle table. Writing cards, the recorder and the X-card keep working. For weak computers or when something doesn't work."
       }
     },
     "Write": {

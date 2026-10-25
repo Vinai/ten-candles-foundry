@@ -57,10 +57,12 @@ export class CameraFaces {
     if (live && video.paused && video.isConnected) video.play().catch(() => {});
   }
 
+  /** The stream Foundry's own camera view would show: not for hidden or blocked users, nor with incoming video off. */
   streamFor(userId) {
     const webrtc = game.webrtc;
-    if (!webrtc?.client || !game.users.get(userId)?.active) return null;
-    if (webrtc.settings.getUser(userId)?.hidden) return null;
+    const user = game.users.get(userId);
+    if (!webrtc?.client || !user?.active || !webrtc.canUserShareVideo(userId)) return null;
+    if (!user.isSelf && webrtc.settings.client.disableVideo) return null;
     try {
       return webrtc.client.getMediaStreamForUser(userId) ?? null;
     } catch {
