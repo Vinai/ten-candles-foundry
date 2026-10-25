@@ -228,10 +228,7 @@ export class Ritual {
     if (kinds.includes("virtue")) {
       return {
         title: game.i18n.localize("TCT.Write.TraitsTitle"),
-        hint: game.i18n.format("TCT.Write.TraitsHint", {
-          right: name(this.recipient(game.user, "virtue")),
-          left: name(this.recipient(game.user, "vice"))
-        }),
+        hint: game.i18n.localize("TCT.Write.TraitsHint"),
         fields: field("virtue", LABELS.virtue) + field("vice", LABELS.vice)
       };
     }

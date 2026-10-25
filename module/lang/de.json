@@ -60,7 +60,7 @@
       "Button": "Karte schreiben",
       "Done": "Fertig",
       "TraitsTitle": "Tugend und Laster",
-      "TraitsHint": "Je ein Wort oder eine kurze Wendung. Die Tugend geht an {right}, das Laster an {left}.",
+      "TraitsHint": "Je ein Wort oder eine kurze Wendung.",
       "MomentTitle": "Ich werde Hoffnung finden …",
       "MomentHint": "Ein Moment, in dem deine Figur Hoffnung finden könnte. Die Karte bleibt bei dir.",
       "BrinkHint": "Für {name}: was du an ihr oder ihm gesehen hast. Die Karte geht verdeckt nach links.",
@@ -98,5 +98,21 @@
       "Down": "Nach unten",
       "Save": "Übernehmen"
     }
-  }
+  },
+  "ETC.Chat.ProvisionalPlayerNarrates": "{name} sollte das Narrativ erhalten.",
+  "ETC.Chat.ProvisionalGMNarrates": "Die Spielleitung sollte das Narrativ erhalten.",
+  "ETC.Chat.FinalPlayerNarrates": "{name} erhält das Narrativ.",
+  "ETC.Chat.FinalGMNarrates": "Die Spielleitung erhält das Narrativ.",
+  "ETC.Chat.NarrationSeizeCompact": "{name} kann das Narrativ übernehmen",
+  "ETC.Chat.NarrationSeizeHelp": "Bestätige den Erfolg, lösche freiwillig eine Kerze und gib dem Spieler das Narrativ.",
+  "ETC.Chat.BallNarrationSeized": "{name} übernimmt das Narrativ und löscht freiwillig eine Kerze.",
+  "ETC.Notifications.NarrationSeizeUnavailable": "Das Narrativ kann in diesem Konflikt nicht mehr übernommen werden.",
+  "ETC.Notifications.NarrationSeizeBallCardFailed": "Kerze gelöscht und Narrativ übergeben, aber die Ritualkarte konnte nicht erstellt werden.",
+  "ETC.Notifications.NarrationSeized": "{name} übernimmt das Narrativ: Eine Kerze erlischt; {candles} Kerze(n) und {dice} Spielerwürfel bleiben.",
+  "ETC.NarrationSeize.Title": "Narrativ übernehmen",
+  "ETC.NarrationSeize.Description": "{name} gelingt der Wurf, doch die SL würde erzählen. {name} kann eine Kerze löschen und das Narrativ übernehmen.",
+  "ETC.NarrationSeize.RegieButton": "Bestätigen, Kerze löschen und Narrativ übergeben",
+  "ETC.Chat.BallInstructions": "Sprecht reihum eine Wahrheit aus. Danach beginnt die nächste Szene.",
+  "ETC.Chat.NarrationSeizedBallInstructions": "Sprecht reihum eine Wahrheit aus. Danach beginnt die nächste Szene.",
+  "ETC.Chat.StartNextScene": "Wahrheitsritual beginnen"
 }
