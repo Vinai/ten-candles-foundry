@@ -345,25 +345,34 @@ export class Ritual {
   }
 
   /**
-   * Every player needs a sheet to receive cards; create the missing ones, visible to their owner only. A new ritual
-   * makes new characters, so existing sheets start blank again: nothing burned, no Moment lived, the default order.
+   * Every player at the table needs a sheet to receive cards; create the missing ones, visible to their owner only. A
+   * new ritual makes new characters, so existing sheets start blank again: nothing burned, no Moment lived, the default
+   * order.
    */
   async prepareCharacters() {
-    for (const user of this.table.users.filter((u) => !u.isGM)) {
-      if (user.character) await user.character.update({ system: user.character.system.schema.getInitialValue() });
-      else await this.ensureCharacter(user);
-    }
+    for (const user of this.table.users.filter((u) => !u.isGM && u.active)) await this.ensureCharacter(user, true);
   }
 
-  /** A player's character, made now if they have none (e.g. they joined after the ritual began). */
-  async ensureCharacter(user) {
-    if (user.character) return user.character;
-    const actor = await Actor.implementation.create({
+  /**
+   * A player's character in this game, made now if they have none (e.g. they joined after the ritual began). One left
+   * over from an earlier game starts blank, like at the start of the ritual. Marked with the game, so the player keeps
+   * their seat while their connection is gone.
+   */
+  async ensureCharacter(user, blank = false) {
+    const gameId = this.state().gameId;
+    const actor = user.character;
+    if (actor && !blank && actor.getFlag(MODULE_ID, "gameId") === gameId) return actor;
+    if (actor) {
+      await actor.update({ system: actor.system.schema.getInitialValue(), [`flags.${MODULE_ID}.gameId`]: gameId });
+      return actor;
+    }
+    const created = await Actor.implementation.create({
       name: user.name,
       type: "character",
-      ownership: { default: CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE, [user.id]: CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER }
+      ownership: { default: CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE, [user.id]: CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER },
+      flags: { [MODULE_ID]: { gameId } }
     });
-    await user.update({ character: actor.id });
-    return actor;
+    await user.update({ character: created.id });
+    return created;
   }
 }

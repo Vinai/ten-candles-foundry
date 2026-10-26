@@ -235,15 +235,19 @@ export class FoundryTable {
     return clock?.gameId && clock.gameId === this.gaState().gameId ? clock : null;
   }
 
-  /** Connected users plus players with a character (so a dropped connection keeps its seat), clockwise. */
+  /**
+   * Connected users plus players with a character in this game (so a dropped connection keeps its seat), clockwise.
+   * A character left over from an earlier game seats nobody who is not there.
+   */
   seatedUsers() {
     const order = game.settings.get(MODULE_ID, SETTINGS.seatOrder);
     const rank = (user) => {
       const index = order.indexOf(user.id);
       return index >= 0 ? index : order.length + (user.isGM ? 0 : 1);
     };
+    const gameId = this.gaState().gameId;
     return game.users
-      .filter((user) => user.active || (!user.isGM && user.character))
+      .filter((user) => user.active || (!user.isGM && user.character?.getFlag(MODULE_ID, "gameId") === gameId))
       .sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name, game.i18n.lang));
   }
 
