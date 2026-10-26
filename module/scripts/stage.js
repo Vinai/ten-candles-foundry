@@ -7,8 +7,9 @@ const SEAT_SPREAD_X = 1.75;
 const SEAT_SPREAD_Y = 2.3;
 const STACK_SPREAD_X = 1.28;
 const STACK_SPREAD_Y = 1.45;
-// The match is struck, then the candles catch.
+// The match is struck, then the candles catch, one after the other.
 const STRIKE_TO_FLAME_MS = 1000;
+const CANDLE_TO_CANDLE_MS = 500;
 // The X-card keeps this much room (in vw) to the tray, the faces and the stacks, where it can.
 const X_CARD_ROOM_VW = 2.5;
 const TOTAL_DICE = 10;
@@ -324,7 +325,7 @@ export class TableStage {
 
   /**
    * Lights and puts out candles to match `lit` (a set of candle indices). One match is struck for all candles lit
-   * together, and they catch a moment later; a candle going out is heard. `instant` does it silently, e.g. when a page
+   * together, and they catch a moment later, one after the other; a candle going out is heard. `instant` does it silently, e.g. when a page
    * loads mid-game.
    */
   setCandles(lit, { instant = false } = {}) {
@@ -341,11 +342,14 @@ export class TableStage {
     if (snuffed) this.sounds.snuff();
     if (unlit && !this.striking) {
       this.sounds.strike();
-      this.striking = window.setTimeout(() => {
-        this.striking = null;
-        this.candlesWanted.forEach((index) => this.table.light(index));
-      }, STRIKE_TO_FLAME_MS);
+      this.striking = window.setTimeout(() => this.lightNextCandle(), STRIKE_TO_FLAME_MS);
     }
+  }
+
+  /** The match moves on to the next candle that should burn, until all of them do. */
+  lightNextCandle() {
+    const next = [...this.candlesWanted].find((index) => this.table.light(index));
+    this.striking = next === undefined ? null : window.setTimeout(() => this.lightNextCandle(), CANDLE_TO_CANDLE_MS);
   }
 
   /** A card lying by the bowl that anyone can touch. */
