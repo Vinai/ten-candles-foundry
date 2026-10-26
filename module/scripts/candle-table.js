@@ -36,6 +36,8 @@ const FIRE_TONGUES = 9;
 // Room light before "Licht aus" and the residual darkness after it.
 const ROOM_LIT = { r: 0.75, g: 0.62, b: 0.5 };
 const ROOM_DARK = { r: 0.035, g: 0.04, b: 0.05 };
+// Safari draws canvas filters as if there were none.
+const CANVAS_FILTER = "filter" in CanvasRenderingContext2D.prototype;
 
 export class CandleTable {
   constructor(canvas, image, { zoom = 0.8, maxPixelRatio = 1.5 } = {}) {
@@ -166,6 +168,31 @@ export class CandleTable {
     this.renderBase(width, height);
   }
 
+  /**
+   * The painting brightened and nearly greyed as the canvas filter in renderBase does, for browsers without canvas
+   * filters (Safari), made once. Only compositing, no reading of pixels, so a painting from another server works too.
+   */
+  treatedPainting() {
+    if (this.treated) return this.treated;
+    const canvas = document.createElement("canvas");
+    canvas.width = this.image.naturalWidth;
+    canvas.height = this.image.naturalHeight;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(this.image, 0, 0);
+    // brightness(2.6): the painting added onto itself, 1 + 1 + 0.6 times.
+    ctx.globalCompositeOperation = "lighter";
+    ctx.drawImage(this.image, 0, 0);
+    ctx.globalAlpha = 0.6;
+    ctx.drawImage(this.image, 0, 0);
+    // saturate(0.15): 85 % of the way to grey, keeping the brightness.
+    ctx.globalCompositeOperation = "saturation";
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = "#808080";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    this.treated = canvas;
+    return canvas;
+  }
+
   toScreen({ x, y }) {
     return { x: this.offsetX + x * this.scale, y: this.offsetY + y * this.scale };
   }
@@ -178,15 +205,12 @@ export class CandleTable {
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, width, height);
     // Mostly grey: the painting's teal would otherwise turn warm candlelight green.
-    ctx.filter = "brightness(2.6) saturate(0.15)";
-    ctx.drawImage(
-      this.image,
-      this.offsetX,
-      this.offsetY,
-      PAINTING.width * this.scale,
-      PAINTING.height * this.scale
-    );
-    ctx.filter = "none";
+    const place = [this.offsetX, this.offsetY, PAINTING.width * this.scale, PAINTING.height * this.scale];
+    if (CANVAS_FILTER) {
+      ctx.filter = "brightness(2.6) saturate(0.15)";
+      ctx.drawImage(this.image, ...place);
+      ctx.filter = "none";
+    } else ctx.drawImage(this.treatedPainting(), ...place);
     this.drawBowl(ctx);
 
     // Fade the painting's hard edges into the surrounding black.
