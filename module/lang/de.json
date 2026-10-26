@@ -161,6 +161,8 @@
   "ETC.Chat.NarrationSeizedBallInstructions": "Sprecht reihum eine Wahrheit aus. Danach beginnt die nächste Szene.",
   "ETC.Chat.StartNextScene": "Wahrheitsritual beginnen",
   "ETC.Chat.GMName": "GM",
+  "ETC.Chat.ValidateResolution": "Bestätigen",
+  "ETC.Chat.CancelResolution": "Abbrechen",
   "ETC.Chat.WaitingGM": "Warten auf den GM",
   "ETC.Chat.GMRollPending": "Der GM hat noch nicht gewürfelt.",
   "ETC.Chat.GMRollSkipped": "Der GM verzichtet auf seinen Wurf.",
