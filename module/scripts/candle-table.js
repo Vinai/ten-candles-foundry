@@ -116,11 +116,14 @@ export class CandleTable {
     if (instant) this.roomLight = value;
   }
 
-  /** 0–1 brightness for things around the table (faces, cards): room light or what the candles give. */
+  /**
+   * 0–1 brightness for things around the table (faces, cards): room light or what the candles give, which is never
+   * more than about half of it and less with every candle gone.
+   */
   get lightLevel() {
     const fire = this.fires.reduce((sum, f) => sum + f.level, 0);
     const candles = (this.candles.reduce((sum, c) => sum + Math.max(c.level, 0), 0) + 1.5 * fire) / this.candles.length;
-    return Math.max(this.roomLight, candles > 0.005 ? 0.15 + 0.85 * candles : 0);
+    return Math.max(this.roomLight, candles > 0.005 ? 0.12 + 0.43 * candles : 0);
   }
 
   /** The tray's centre and radii in CSS pixels, for placing seats around it. */
@@ -386,8 +389,9 @@ export class CandleTable {
       const x = (this.offsetX + candle.wick.x * this.scale) * LIGHT_MAP_SCALE;
       const y = (this.offsetY + (candle.wick.y + candle.wick.sink - 45) * this.scale) * LIGHT_MAP_SCALE;
       const level = Math.max(candle.level, 0);
-      this.glow(ctx, x, y, GLOW_RADIUS * s, `rgba(255,150,70,${0.42 * level})`);
-      this.glow(ctx, x, y, NEAR_GLOW_RADIUS * s, `rgba(255,205,140,${0.55 * level})`);
+      // Ten together still light the tray less than the room did, and stay warm instead of adding up to white.
+      this.glow(ctx, x, y, GLOW_RADIUS * s, `rgba(255,150,70,${0.19 * level})`);
+      this.glow(ctx, x, y, NEAR_GLOW_RADIUS * s, `rgba(255,205,140,${0.25 * level})`);
     }
     for (const fire of this.fires) {
       const x = (this.offsetX + PAINTING.bowl.x * this.scale) * LIGHT_MAP_SCALE;
