@@ -3,8 +3,10 @@ import { topCard, unburned } from "./ga-cards.js";
 
 /**
  * The Game Assistant's character sheets at our table. Only the top card of a stack is in play, so only it can be
- * burned or lived; the order is fixed once the lights are out. A sheet makes way for the table when its player
- * rolls, burns a card or lives their Moment, so they see what happens.
+ * burned or lived, and only once the game has begun with "Licht aus"; from then on the order is fixed. The cards are
+ * written in the ritual and passed on, so players cannot change their text in the sheet (the GM still can, to correct
+ * one). A sheet makes way for the table when its player rolls, burns a card or lives their Moment, so they see what
+ * happens.
  */
 export class CharacterSheets {
   constructor(table) {
@@ -24,13 +26,14 @@ export class CharacterSheets {
     for (const card of element.querySelectorAll(".etc-resource[data-resource-key]")) {
       const key = card.dataset.resourceKey;
       card.classList.toggle("tct-top", key === top);
-      if (unburned(system, key) && key !== top) {
-        card.classList.add("tct-below");
+      if (unburned(system, key) && key !== top) card.classList.add("tct-below");
+      if ((unburned(system, key) && key !== top) || !locked) {
         card.querySelector(".etc-resource-state-action")?.setAttribute("disabled", "");
       }
       // "Once stacks are built, they are locked and cannot be changed."
       if (locked) card.querySelector(".etc-resource-drag-handle")?.remove();
     }
+    if (!game.user.isGM) for (const text of element.querySelectorAll(".etc-resource-text")) text.readOnly = true;
   }
 
   /** The open sheets of an actor in this browser. */
