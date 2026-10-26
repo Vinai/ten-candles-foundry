@@ -337,7 +337,9 @@ export class GMControls {
     const recorder = this.table.recorder;
     const holder = recorder.holder;
     const step = recorder.unused ? "On" : recorder.finished ? "Restart" : "Skip";
-    this.recorderButton.hidden = !isStarted(clock);
+    // Once the last candle is out, only a round still under way can be moved on; nothing new is recorded.
+    const over = this.table.gaState().litCandles <= 0;
+    this.recorderButton.hidden = !isStarted(clock) || (over && step !== "Skip");
     this.recorderButton.textContent = game.i18n.localize(`TCT.GM.Recorder${step}`);
     this.recorderButton.dataset.tooltip = step === "On" ? "" : game.i18n.localize(`TCT.GM.Recorder${step}Hint`);
     const recordings = recorder.recordings;
