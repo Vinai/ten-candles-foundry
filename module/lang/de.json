@@ -25,7 +25,7 @@
       "Arrange": {
         "Title": "Stapel ordnen",
         "Ask": "Bitte die Spielerinnen und Spieler, im Charakterbogen ihren Stapel zu ordnen (eine Karte ziehen):",
-        "Order": "Tugend, Laster und Moment in beliebiger Reihenfolge. Nur die oberste Karte ist im Spiel.",
+        "Order": "Tugend, Laster und Moment in beliebiger Reihenfolge. Nur die oberste Karte ist aktiv.",
         "Brink": "Der Abgrund liegt immer ganz unten.",
         "Moments": "In der Runde möglichst nicht mehr als ein Moment obenauf.",
         "Then": "Danach: „{button}“. Ab dann ist die Reihenfolge fest."
@@ -141,7 +141,7 @@
       "Button": "Charakterbogen",
       "Top": "{n} · oben",
       "Bottom": "{n} · unten",
-      "PositionHint": "Platz im Stapel: Nur die oberste Karte ist im Spiel. Ziehe eine Karte, um die Reihenfolge zu ändern."
+      "PositionHint": "Platz im Stapel: Nur die oberste Karte ist aktiv. Ziehe eine Karte, um die Reihenfolge zu ändern."
     }
   },
   "ETC.Chat.ProvisionalPlayerNarrates": "{name} sollte das Narrativ erhalten.",

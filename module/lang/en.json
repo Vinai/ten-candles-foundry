@@ -25,7 +25,7 @@
       "Arrange": {
         "Title": "Arrange stacks",
         "Ask": "Ask the players to arrange their stack in the character sheet (drag a card):",
-        "Order": "Virtue, Vice and Moment in any order. Only the top card is in play.",
+        "Order": "Virtue, Vice and Moment in any order. Only the top card is active.",
         "Brink": "The Brink always lies at the bottom.",
         "Moments": "Ideally no more than one Moment on top within the group.",
         "Then": "Then: “{button}”. From then on the order is fixed."
@@ -141,7 +141,7 @@
       "Button": "Character sheet",
       "Top": "{n} · top",
       "Bottom": "{n} · bottom",
-      "PositionHint": "Place in the stack: only the top card is in play. Drag a card to change the order."
+      "PositionHint": "Place in the stack: only the top card is active. Drag a card to change the order."
     }
   }
 }
