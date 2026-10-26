@@ -146,20 +146,36 @@ export class TableStage {
    */
   slideCard(from, to, { label, text, faceDown = false }, direction = 1) {
     const card = this.flyingCard({ label, text, faceDown });
-    return this.travel(card, from, to, direction)
+    const stackAt = (seat) => {
+      const { stack } = this.seatElements[seat];
+      return { x: parseFloat(stack.style.left), y: parseFloat(stack.style.top) };
+    };
+    return this.travel(card, from, to, direction, 0, { start: stackAt(from), end: stackAt(to) })
       .finished.then(() => card.animate([{ opacity: 1 }, { opacity: 0 }], { duration: ARRIVE_FADE_MS, fill: "forwards" }).finished)
       .then(() => card.remove());
   }
 
-  /** Moves an element along the ring of stacks from one seat to another. @returns {Animation} */
-  travel(element, from, to, direction = 1, offset = 0) {
+  /**
+   * Moves an element along the ring of stacks from one seat to another. With `ends`, it leaves and arrives exactly
+   * there, e.g. at your own stack, which lies below the dice row rather than on the ring. @returns {Animation}
+   */
+  travel(element, from, to, direction = 1, offset = 0, ends = null) {
     const count = this.seats.length;
     const seatsAway = direction > 0 ? (((to - from) % count) + count) % count : -((((from - to) % count) + count) % count);
     const startAngle = this.seatElements[from].angle + offset;
     const sweep = (seatsAway * 2 * Math.PI) / count;
+    const first = this.ringPoint(startAngle);
+    const last = this.ringPoint(startAngle + sweep);
+    // How far the ends lie off the ring; the path bends over from the one to the other.
+    const startOff = ends ? { x: ends.start.x - first.x, y: ends.start.y - first.y } : { x: 0, y: 0 };
+    const endOff = ends ? { x: ends.end.x - last.x, y: ends.end.y - last.y } : { x: 0, y: 0 };
     const keyframes = Array.from({ length: 25 }, (_, i) => {
-      const { x, y } = this.ringPoint(startAngle + (sweep * i) / 24);
-      return { left: `${x}px`, top: `${y}px` };
+      const t = i / 24;
+      const { x, y } = this.ringPoint(startAngle + sweep * t);
+      return {
+        left: `${x + startOff.x * (1 - t) + endOff.x * t}px`,
+        top: `${y + startOff.y * (1 - t) + endOff.y * t}px`
+      };
     });
     return element.animate(keyframes, { duration: SLIDE_MS, easing: "ease-in-out", fill: "forwards" });
   }
