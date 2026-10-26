@@ -5,8 +5,8 @@ import { topCard, unburned } from "./ga-cards.js";
  * The Game Assistant's character sheets at our table. Only the top card of a stack is in play, so only it can be
  * burned or lived, and only once the game has begun with "Licht aus"; from then on the order is fixed. The cards are
  * written in the ritual and passed on, so players cannot change their text in the sheet (the GM still can, to correct
- * one). A sheet makes way for the table when its player rolls, burns a card or lives their Moment, so they see what
- * happens.
+ * one). Rolling is left to the table's button. A sheet makes way for the table when its player rolls, burns a card
+ * or lives their Moment, so they see what happens.
  */
 export class CharacterSheets {
   constructor(table) {
@@ -42,6 +42,8 @@ export class CharacterSheets {
       }
     }
     if (!game.user.isGM) for (const text of element.querySelectorAll(".etc-resource-text")) text.readOnly = true;
+    // Dice are thrown with the table's own button; a second one in the sheet only invites a roll at the wrong moment.
+    element.querySelector(".ets-sheet-roll")?.remove();
     this.numberStack(actor, element);
   }
 
