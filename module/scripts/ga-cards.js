@@ -67,6 +67,12 @@ function decorateConflict(message, html) {
   // "… muss den Konflikt noch bestätigen." and "Das Ergebnis bleibt vorläufig …" say what everyone knows and make the
   // card too tall.
   html.querySelector(":is(.is-provisional-failure, .is-provisional-success) .ets-conflict-result__note")?.remove();
+  // Until the GM rolls, players see the GM's dice still to come as question marks, where the GM sees the roll button.
+  const waiting = game.user.isGM ? null : html.querySelector(".ets-conflict-gm-reserved-space .is-sizer");
+  if (waiting) {
+    waiting.classList.add("tct-gm-dice-waiting");
+    for (const die of waiting.children) die.textContent = "?";
+  }
   // Only the card on top of the stack can be burned for a reroll.
   const actor = game.actors.get(message.speaker?.actor);
   if (!actor) return;

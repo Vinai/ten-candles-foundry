@@ -647,6 +647,12 @@ body.tct-active .ets-floating-roll {
   font-size: 0.85rem;
 }
 
+/* The GM's dice still to come, on the players' conflict card. */
+.ets-conflict-gm-reserved-space .is-sizer.tct-gm-dice-waiting {
+  visibility: visible;
+  opacity: 0.55;
+}
+
 .tct-mirror.is-visible {
   opacity: 1;
   visibility: visible;
