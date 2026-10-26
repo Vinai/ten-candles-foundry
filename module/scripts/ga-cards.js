@@ -1,3 +1,4 @@
+import { isStarted } from "./candle-clock.js";
 import { GA_STATE_SETTING, GA_SYSTEM_ID, MODULE_ID } from "./constants.js";
 import { skull } from "./rolling-dice.js";
 import { SETTINGS } from "./settings.js";
@@ -11,6 +12,17 @@ const TRAITS = ["virtue", "vice", "moment"];
 
 export function gaType(message) {
   return message.flags?.[GA_SYSTEM_ID]?.type ?? null;
+}
+
+/**
+ * A roll before "Licht aus" only tries the dice, e.g. whether everyone hears them: the GM calls the conflict off and
+ * nobody sees its card. Marked by the GM; until then, every conflict card before "Licht aus" counts as one.
+ */
+export function isPractice(message, state) {
+  if (gaType(message) !== "resolution") return false;
+  if (message.getFlag(MODULE_ID, "practice")) return true;
+  const clock = game.settings.get(MODULE_ID, SETTINGS.candleClock);
+  return !(clock?.gameId === state.gameId && isStarted(clock));
 }
 
 /** Whether a trait card is still in the stack: not burned, or for the Moment, not yet lived. */
@@ -33,6 +45,10 @@ export function topCard(system) {
  * @param state {object} the Game Assistant's collective state
  */
 export function decorateCard(message, html, state) {
+  if (isPractice(message, state)) {
+    html.classList.add("tct-hidden");
+    return;
+  }
   switch (gaType(message)) {
     case "resolution":
       return decorateConflict(message, html);

@@ -1,4 +1,4 @@
-import { decorateCard, gaType } from "./ga-cards.js";
+import { gaType, isPractice } from "./ga-cards.js";
 
 // How long a card stays above the bowl after its last change once nothing in the game still needs it.
 const LINGER_MS = 20000;
@@ -111,6 +111,7 @@ export class ConflictMirror {
         this.messageId = waiting.id;
       }
     }
+    if (message && isPractice(message, state)) message = null;
     const pinned = message && this.pinned(message, state);
     // The GM presses the Game Assistant's button before the truths; everyone else sees the table's truths card.
     if (this.table.truths.active && !(game.user.isGM && pinned && gaType(message) === "ball-of-truths")) {

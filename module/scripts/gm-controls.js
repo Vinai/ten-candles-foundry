@@ -1,5 +1,6 @@
 import { createClock, isPaused, isStarted, nextDeath, pause, resume, start } from "./candle-clock.js";
 import { GA_STATE_SETTING, GA_SYSTEM_ID, MODULE_ID, SOCKET, TOTAL_CANDLES } from "./constants.js";
+import { gaType } from "./ga-cards.js";
 import { SETTINGS } from "./settings.js";
 
 const TICK_MS = 1000;
@@ -34,6 +35,8 @@ export class GMControls {
     this.playButton = this.button(() => this.table.recorder.playNext());
     this.status = document.createElement("div");
     this.status.className = "tct-gm-status";
+    // Conflicts called off before "Licht aus"; their cards stay out of sight.
+    this.practice = new Set();
     this.recorderStatus = document.createElement("div");
     this.recorderStatus.className = "tct-gm-status";
     this.panel.append(
@@ -57,6 +60,7 @@ export class GMControls {
     game.socket.on(`system.${GA_SYSTEM_ID}`, (data) => data?.type === "request" && this.gaBusy());
     document.addEventListener("click", (event) => event.target.closest?.(GA_ACTIONS) && this.gaBusy(), true);
     Hooks.on("pauseGame", (paused) => this.followFoundryPause(paused));
+    Hooks.on("createChatMessage", (message) => this.markPractice(message));
     this.syncPause();
     this.render();
     this.timer = window.setInterval(() => this.tick(), TICK_MS);
@@ -245,6 +249,7 @@ export class GMControls {
   onGaState(state) {
     if (!this.inCharge) return;
     this.refuseRollDuringTruths(state);
+    this.callOffPracticeRoll(state);
     const darkened = this.darkened;
     if (!darkened || Date.now() > darkened.until) return;
     if (state.gameId !== darkened.gameId || state.stage !== "scene") {
@@ -280,6 +285,23 @@ export class GMControls {
     const message = { type: "no-roll", gameId: state.gameId };
     game.socket.emit(SOCKET, message, { recipients: [resolution.playerId] });
     if (resolution.playerId === game.user.id) this.table.noRoll(message, game.user.id);
+  }
+
+  /**
+   * Before "Licht aus" players roll only to try the dice, e.g. whether they hear them. The dice roll across the table,
+   * then the conflict is called off before it has any consequence. The Game Assistant may write its card only after.
+   */
+  callOffPracticeRoll(state) {
+    const resolution = state.activeResolution;
+    if (!resolution || isStarted(this.table.clock()) || this.practice.has(resolution.id)) return;
+    this.practice.add(resolution.id);
+    game.evilTenCandles?.cancelActiveResolution();
+    game.messages.forEach((message) => this.markPractice(message));
+  }
+
+  markPractice(message) {
+    if (!this.inCharge || gaType(message) !== "resolution" || message.getFlag(MODULE_ID, "practice")) return;
+    if (this.practice.has(message.flags[GA_SYSTEM_ID].resolutionId)) message.setFlag(MODULE_ID, "practice", true);
   }
 
   render() {
