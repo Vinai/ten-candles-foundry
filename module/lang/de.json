@@ -148,7 +148,7 @@
     }
   },
   "ETC.Chat.ProvisionalSuccess": "Erfolg",
-  "ETC.Chat.ProvisionalPlayerNarrates": "Narrativ: {name} (vorläufig)",
+  "ETC.Chat.ProvisionalPlayerNarrates": "Narrativ: {name}",
   "ETC.Chat.ProvisionalGMNarrates": "Narrativ: GM (vorläufig)",
   "ETC.Chat.FinalPlayerNarrates": "{name} erhält das Narrativ.",
   "ETC.Chat.FinalGMNarrates": "Der GM erhält das Narrativ.",
