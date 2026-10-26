@@ -23,7 +23,7 @@ const BURN_FADE_MS = 1500;
 const BEFORE_BURN_MS = 2400;
 const AFTER_BURN_MS = 5000;
 // The conflict card comes back this long after the dice came to rest.
-const AFTER_DICE_MS = 2000;
+const AFTER_DICE_MS = 4000;
 // A trait spent during its owner's conflict waits this long for the Game Assistant to say it was for a reroll.
 const REROLL_WAIT_MS = 2500;
 // A failure or seized narration this recent put the candle out; otherwise it burned down or was blown out.
