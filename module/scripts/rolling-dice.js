@@ -31,6 +31,16 @@ const PIPS = {
   6: [0, 2, 3, 5, 6, 8]
 };
 
+// Where the pips sit across and down a side, in per cent: the nine spots of PIPS.
+const SPOT = [24, 50, 76];
+
+// Pips and skulls on each kind of die.
+const INK = {
+  player: { pip: "#f1ece2", skull: "#f1ece2" },
+  gm: { pip: "#f1ece2", skull: "#f1ece2" },
+  hope: { pip: "#2a2112", skull: "#0b0b0d" }
+};
+
 // How the cube turns to show a face on top (towards the viewer); opposite faces add up to 7.
 const SHOW = {
   1: { x: 0, y: 0 },
@@ -46,10 +56,10 @@ const SHOW = {
  * on exactly the faces the game rolled. They stay where they fell until cleared.
  */
 export class RollingDice {
-  /** @param onLanding {() => void} called as a throw first hits the table */
-  constructor(root, onLanding = () => {}) {
+  /** @param onThrow {() => void} called as the dice leave the hand, for their sound */
+  constructor(root, onThrow = () => {}) {
     this.root = root;
-    this.onLanding = onLanding;
+    this.onThrow = onThrow;
     this.dice = [];
   }
 
@@ -66,17 +76,18 @@ export class RollingDice {
     const elements = dice.map((die) => {
       const el = document.createElement("div");
       el.className = `tct-roll-die is-${die.kind}`;
-      el.innerHTML = `<div class="tct-die-cube">${[1, 2, 3, 4, 5, 6].map(face).join("")}</div>`;
+      const cube = document.createElement("div");
+      cube.className = "tct-die-cube";
+      cube.append(...[1, 2, 3, 4, 5, 6].map((value) => face(value, INK[die.kind] ?? INK.player)));
+      el.append(cube);
       this.root.append(el);
       this.dice.push(el);
       return el;
     });
     const size = elements[0]?.offsetWidth ?? 0;
     const spots = scatter(area, dice.length, size * SPACING, random);
-    const landing = window.setTimeout(() => this.onLanding(), ROLL_MS * LANDING);
-    return Promise.all(dice.map((die, i) => this.throw(elements[i], die.value, from, spots[i], random)))
-      .then(() => {})
-      .finally(() => window.clearTimeout(landing));
+    if (dice.length) this.onThrow();
+    return Promise.all(dice.map((die, i) => this.throw(elements[i], die.value, from, spots[i], random))).then(() => {});
   }
 
   throw(el, value, from, to, random) {
@@ -132,13 +143,20 @@ export class RollingDice {
   }
 }
 
-/** One side of a die: pips, or the skull for a 1. */
-function face(value) {
-  const content =
+/**
+ * One side of a die: pips, or the skull for a 1. Painted as the side's own background: Firefox leaves out what lies
+ * inside a side turned in 3D.
+ */
+function face(value, ink) {
+  const el = document.createElement("div");
+  el.className = `tct-die-face is-${value}`;
+  el.style.backgroundImage =
     value === 1
-      ? SKULL
-      : Array.from({ length: 9 }, (_, i) => `<span class="${PIPS[value].includes(i) ? "is-pip" : ""}"></span>`).join("");
-  return `<div class="tct-die-face is-${value}">${content}</div>`;
+      ? `url("data:image/svg+xml,${encodeURIComponent(SKULL.replace("<svg ", `<svg xmlns="http://www.w3.org/2000/svg" `).replace("currentColor", ink.skull))}")`
+      : PIPS[value]
+          .map((spot) => `radial-gradient(circle at ${SPOT[spot % 3]}% ${SPOT[Math.floor(spot / 3)]}%, ${ink.pip} 0.17vw, transparent 0.2vw)`)
+          .join(", ");
+  return el;
 }
 
 /**
