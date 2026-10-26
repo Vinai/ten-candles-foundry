@@ -28,6 +28,9 @@ export class GMControls {
     this.backButton = this.button(() => this.table.ritual.stepBack(), "TCT.GM.StepBack");
     this.backButton.dataset.tooltip = game.i18n.localize("TCT.GM.StepBackHint");
     this.lightsButton = this.button(() => this.toggleLights());
+    // TEMPORARY, for testing "Licht aus" again and again; revert this commit before the game.
+    this.undoLightsButton = this.button(() => this.undoLightsOut());
+    this.undoLightsButton.textContent = "Test: zurück vor „Licht aus“";
     this.pauseButton = this.button(() => this.togglePause());
     this.draughtButton = this.button(() => this.draught(), "TCT.GM.Draught");
     this.draughtButton.dataset.tooltip = game.i18n.localize("TCT.GM.DraughtHint");
@@ -46,6 +49,7 @@ export class GMControls {
       this.ritualButton,
       this.backButton,
       this.lightsButton,
+      this.undoLightsButton,
       this.pauseButton,
       this.draughtButton,
       this.aliveButton,
@@ -92,6 +96,13 @@ export class GMControls {
     // The candles start burning down the first time the lights go out.
     if (lightsOut && !isStarted(this.table.clock())) await this.saveClock(start(this.table.clock() ?? this.newClock()));
     await game.settings.set(MODULE_ID, SETTINGS.lightsOut, lightsOut);
+  }
+
+  /** TEMPORARY, for testing: back to before "Licht aus", the clock not yet started and the room lit. */
+  async undoLightsOut() {
+    if (!this.inCharge) return;
+    await this.saveClock({ ...this.table.clock(), startedAt: null, pausedAt: null });
+    await game.settings.set(MODULE_ID, SETTINGS.lightsOut, false);
   }
 
   async nextRitualStep() {
@@ -317,6 +328,7 @@ export class GMControls {
     this.ritualButton.textContent = ritual.nextLabel ?? "";
     this.backButton.hidden = isStarted(clock) || ritual.state().step === "idle";
     this.lightsButton.textContent = game.i18n.localize(this.lightsOut ? "TCT.GM.LightsOn" : "TCT.GM.LightsOut");
+    this.undoLightsButton.hidden = !isStarted(clock);
     this.pauseButton.textContent = game.i18n.localize(isPaused(clock) ? "TCT.GM.Resume" : "TCT.GM.Pause");
     this.pauseButton.disabled = !isStarted(clock);
     this.draughtButton.disabled = !isStarted(clock) || this.table.gaState().litCandles <= 0;
