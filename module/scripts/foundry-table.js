@@ -6,6 +6,7 @@ import { ConflictMirror } from "./mirror.js";
 import { PlainStage } from "./plain-stage.js";
 import { seeded } from "./random.js";
 import { Recorder } from "./recorder.js";
+import { FADE_MS as DICE_FADE_MS, ROLL_MS } from "./rolling-dice.js";
 import { Ritual } from "./ritual.js";
 import { SETTING_CHANGED_HOOK, SETTINGS } from "./settings.js";
 import { CharacterSheets } from "./sheets.js";
@@ -22,8 +23,8 @@ const SMOKE_MS = 3000;
 const BURN_FADE_MS = 1500;
 const BEFORE_BURN_MS = 2400;
 const AFTER_BURN_MS = 5000;
-// The conflict card comes back this long after the dice came to rest. Before "Licht aus" there is no card, only dice
-// rolled to hear them, and they lie a little longer.
+// Thrown dice are gone again this long after the first of them came to rest, and the conflict card comes back.
+// Before "Licht aus" there is no card, only dice rolled to hear them, and they lie a little longer.
 const AFTER_DICE_MS = 3000;
 const AFTER_PRACTICE_DICE_MS = 4000;
 // At "Licht aus" the dice row appears this long after the click: the match, the last candle catching, a breath.
@@ -568,8 +569,13 @@ export class FoundryTable {
     return run;
   }
 
-  afterDice() {
-    return isStarted(this.clock()) ? AFTER_DICE_MS : AFTER_PRACTICE_DICE_MS;
+  /** Throws the dice and lets them lie, so they have faded out the set time after the first of them came to rest. */
+  async rollAndRest(seat, dice, seed, current) {
+    const thrown = performance.now();
+    await this.stage.rollDice(seat, dice, seed);
+    const rest = isStarted(this.clock()) ? AFTER_DICE_MS : AFTER_PRACTICE_DICE_MS;
+    const fadeFrom = thrown + ROLL_MS + rest - DICE_FADE_MS;
+    if (current()) await wait(Math.max(fadeFrom - performance.now(), 0));
   }
 
   throwDice(seat, dice, seed) {
@@ -577,8 +583,7 @@ export class FoundryTable {
     return this.diceThrown(this.beat(
       async (current) => {
         try {
-          await this.stage.rollDice(seat, dice, seed);
-          if (current()) await wait(this.afterDice());
+          await this.rollAndRest(seat, dice, seed, current);
         } finally {
           this.stage.clearDice();
         }
@@ -599,8 +604,7 @@ export class FoundryTable {
           await this.stage.burnCard(this.seatOf(actor), card);
           await wait(AFTER_BURN_MS);
           if (!current()) return;
-          await this.stage.rollDice(this.seatOf(actor), dice, seed);
-          if (current()) await wait(this.afterDice());
+          await this.rollAndRest(this.seatOf(actor), dice, seed, current);
         } finally {
           this.stage.clearDice();
         }

@@ -1,11 +1,11 @@
 import { seeded } from "./random.js";
 
 // How long a die takes from the roller's hand to rest; each die a little different.
-const ROLL_MS = 1900;
+export const ROLL_MS = 1900;
 const ROLL_SPREAD_MS = 500;
 // Share of its flight after which a die first hits the table.
 const LANDING = 0.5;
-const FADE_MS = 600;
+export const FADE_MS = 600;
 // Dice lie at least this many die widths apart (centre to centre), so none covers another.
 const SPACING = 1.5;
 // Spots tried for each die; always this many, so every browser draws the same random numbers.
