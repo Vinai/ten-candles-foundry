@@ -47,7 +47,7 @@ export function decorateCard(message, html, state) {
 
 function decorateConflict(message, html) {
   // A rolled 1 costs a die: a skull instead of the number.
-  for (const die of html.querySelectorAll(".ets-die.is-danger")) die.innerHTML = skull(die.textContent.trim() || "1");
+  for (const die of html.querySelectorAll(".ets-die.is-danger")) die.innerHTML = skull();
   // Only the card on top of the stack can be burned for a reroll.
   const actor = game.actors.get(message.speaker?.actor);
   if (!actor) return;

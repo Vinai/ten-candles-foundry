@@ -1,10 +1,17 @@
 import { createClock, isPaused, isStarted, nextDeath, pause, resume, start } from "./candle-clock.js";
-import { GA_STATE_SETTING, GA_SYSTEM_ID, MODULE_ID, TOTAL_CANDLES } from "./constants.js";
+import { GA_STATE_SETTING, GA_SYSTEM_ID, MODULE_ID, SOCKET, TOTAL_CANDLES } from "./constants.js";
 import { SETTINGS } from "./settings.js";
 
 const TICK_MS = 1000;
 // For this long after the module put a candle out, a Game Assistant write that brings it back is undone.
 const DARKEN_GUARD_MS = 10_000;
+// After a Game Assistant action starts (a roll, a decision on a card), no candle is put out for this long: its own
+// write of the whole state, begun before ours, would bring the candle back or ours would drop its new conflict.
+const GA_BUSY_MS = 5000;
+// Anything of the Game Assistant's that starts such an action in this browser.
+const GA_ACTIONS =
+  "[data-resolution-action], [data-instant-action], [data-resource-action], .ets-floating-roll, .ets-sheet-roll, " +
+  '[data-tool="tencandles-ga-player-roll"]';
 
 /**
  * The GM's side of the table: room lights, the candle clock and the draught, plus burning candles out when their
@@ -45,6 +52,10 @@ export class GMControls {
 
   mount() {
     document.body.append(this.panel);
+    // The Game Assistant's actions all run in this browser: players' requests arrive over its socket, the GM's own
+    // start with a click.
+    game.socket.on(`system.${GA_SYSTEM_ID}`, (data) => data?.type === "request" && this.gaBusy());
+    document.addEventListener("click", (event) => event.target.closest?.(GA_ACTIONS) && this.gaBusy(), true);
     Hooks.on("pauseGame", (paused) => this.followFoundryPause(paused));
     this.syncPause();
     this.render();
@@ -204,7 +215,8 @@ export class GMControls {
    */
   async darkenCandle() {
     const state = this.table.gaState();
-    const busy = state.stage !== "scene" || state.activeResolution || this.table.truths.active;
+    const busy =
+      state.stage !== "scene" || state.activeResolution || this.table.truths.active || Date.now() < this.gaBusyUntil;
     if (!this.inCharge || this.darkening || busy || state.litCandles <= 0) return false;
     this.darkening = true;
     try {
@@ -231,13 +243,43 @@ export class GMControls {
    * went out brings the candle back; put it out again, keeping the rest of that change.
    */
   onGaState(state) {
+    if (!this.inCharge) return;
+    this.refuseRollDuringTruths(state);
     const darkened = this.darkened;
-    if (!this.inCharge || !darkened || Date.now() > darkened.until) return;
-    if (state.gameId !== darkened.gameId || state.stage !== "scene" || state.activeResolution) {
+    if (!darkened || Date.now() > darkened.until) return;
+    if (state.gameId !== darkened.gameId || state.stage !== "scene") {
       this.darkened = null;
       return;
     }
-    if (state.litCandles > darkened.litCandles) this.writeCandles(state, darkened.litCandles);
+    if (state.litCandles <= darkened.litCandles) return;
+    // A conflict that began from the old state brought the candle back with it: it keeps its dice, the candle stays out.
+    if (state.activeResolution) {
+      game.settings.set(GA_SYSTEM_ID, GA_STATE_SETTING, {
+        ...state,
+        litCandles: darkened.litCandles,
+        bluePoolRemaining: Math.min(state.bluePoolRemaining, darkened.litCandles),
+        updatedAt: Date.now()
+      });
+    } else this.writeCandles(state, darkened.litCandles);
+  }
+
+  /** The Game Assistant is about to change its state; keep the candles still meanwhile. */
+  gaBusy() {
+    this.gaBusyUntil = Date.now() + GA_BUSY_MS;
+  }
+
+  /**
+   * Nobody rolls while the truths are spoken. The roll buttons are hidden, but a conflict can still be asked for
+   * (e.g. from the scene controls on a plain table); the GM's browser calls it off and tells the player.
+   */
+  refuseRollDuringTruths(state) {
+    const resolution = state.activeResolution;
+    if (!resolution || !this.table.truths.active || this.refused === resolution.id) return;
+    this.refused = resolution.id;
+    game.evilTenCandles?.cancelActiveResolution();
+    const message = { type: "no-roll", gameId: state.gameId };
+    game.socket.emit(SOCKET, message, { recipients: [resolution.playerId] });
+    if (resolution.playerId === game.user.id) this.table.noRoll(message, game.user.id);
   }
 
   render() {

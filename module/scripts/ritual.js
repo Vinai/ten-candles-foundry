@@ -212,11 +212,18 @@ export class Ritual {
     }, ACK_TIMEOUT_MS);
   }
 
-  /** The GM's answer to a submission: stored, or too late because the cards are already on their way. */
-  settle(id, stored) {
+  /**
+   * The GM's answer to a submission: stored, too late because the cards are already on their way, or too long. Only
+   * a stored card lets go of the draft.
+   */
+  settle(id, result) {
     if (this.draft?.id !== id) return;
     window.clearTimeout(this.ackTimer);
-    if (!stored) ui.notifications.warn(game.i18n.localize("TCT.Write.TooLate"));
+    if (result === "long") {
+      ui.notifications.warn(game.i18n.format("TCT.Write.TooLong", { max: MAX_CARD_CHARS }));
+      return;
+    }
+    if (result !== "stored") ui.notifications.warn(game.i18n.localize("TCT.Write.TooLate"));
     this.draft = null;
   }
 
@@ -225,7 +232,8 @@ export class Ritual {
     const name = (user) => escape(user.character?.name || user.name);
     const field = (kind, label) =>
       `<label class="tct-write-field"><span>${escape(game.i18n.localize(label))}</span>` +
-      `<input type="text" name="${kind}" value="${escape(own[kind] ?? "")}" autocomplete="off" autofocus></label>`;
+      `<input type="text" name="${kind}" value="${escape(own[kind] ?? "")}" maxlength="${MAX_CARD_CHARS}" ` +
+      `autocomplete="off" autofocus></label>`;
 
     if (kinds.includes("virtue")) {
       return {
@@ -257,52 +265,63 @@ export class Ritual {
 
   onSocket(message, senderId) {
     if (message?.type === "write-ack") {
-      this.settle(message.id, message.stored);
+      this.settle(message.id, message.result);
       return;
     }
     if (message?.type !== "write" || game.user !== game.users.activeGM) return;
     // The server names the sender, so nobody can write in someone else's name.
-    this.store(senderId, message).then((stored) =>
-      game.socket.emit(SOCKET, { type: "write-ack", id: message.id, stored }, { recipients: [senderId] })
+    this.store(senderId, message).then((result) =>
+      game.socket.emit(SOCKET, { type: "write-ack", id: message.id, result }, { recipients: [senderId] })
     );
   }
 
   /**
-   * Keeps a writer's cards, if they belong to this game and step and the cards are not already being passed.
-   * @returns {Promise<boolean>} whether they were stored
+   * Keeps a writer's cards, if they belong to this game and step and the cards are not already being passed. A
+   * player who joined after the characters were made gets one now, so their cards can reach them.
+   * @returns {Promise<"stored"|"late"|"long">}
    */
   store(writerId, { gameId, step, cards }) {
     return this.enqueue(async () => {
       const state = this.state();
       const writes = STEPS[state.step]?.writes ?? [];
       const writer = game.users.get(writerId);
-      if (gameId !== state.gameId || step !== state.step || state.passing || !this.writers().includes(writer)) return false;
+      if (gameId !== state.gameId || step !== state.step || state.passing || !this.writers().includes(writer)) {
+        return "late";
+      }
       const accepted = Object.fromEntries(
-        Object.entries(cards ?? {})
-          .filter(([kind, text]) => writes.includes(kind) && typeof text === "string")
-          .map(([kind, text]) => [kind, text.slice(0, MAX_CARD_CHARS)])
+        Object.entries(cards ?? {}).filter(([kind, text]) => writes.includes(kind) && typeof text === "string")
       );
+      if (Object.values(accepted).some((text) => text.length > MAX_CARD_CHARS)) return "long";
+      if (!writer.isGM) await this.ensureCharacter(writer);
       await this.save({ ...state, cards: { ...state.cards, [writerId]: { ...state.cards[writerId], ...accepted } } });
-      return true;
+      return "stored";
     });
   }
 
   // GM side --------------------------------------------------------------------------------------------------------
 
-  /** The GM's next step. Cards are frozen while they travel; what arrives is exactly what was stored. */
+  /**
+   * The GM's next step. Cards are frozen while they travel; what arrives is exactly what was stored. A new game
+   * started meanwhile ends it: the old step must not carry over into the new game's ritual.
+   */
   next() {
     return this.enqueue(async () => {
       const state = this.state();
       const step = STEPS[state.step];
       if (!step?.next) return;
+      const unchanged = () => {
+        const now = this.state();
+        return now.gameId === state.gameId && now.step === state.step;
+      };
       if (state.step === "idle") await this.prepareCharacters();
       if (step.pass) {
         await this.save({ ...state, passing: { at: Date.now() } });
         await new Promise((resolve) => window.setTimeout(resolve, PASS_MS));
+        if (!unchanged()) return;
       }
-      const current = this.state();
-      const theyCard = step.writes ? await this.deliver(current, step.writes) : current.theyCard;
-      await this.save({ ...current, step: step.next, passing: null, theyCard });
+      const theyCard = step.writes ? await this.deliver(this.state(), step.writes) : state.theyCard;
+      if (!unchanged()) return;
+      await this.save({ ...this.state(), step: step.next, passing: null, theyCard });
     });
   }
 
@@ -318,11 +337,7 @@ export class Ritual {
           theyCard = cards[kind];
           continue;
         }
-        const actor = recipient.character;
-        if (!actor) {
-          ui.notifications.warn(game.i18n.format("TCT.Warn.NoCharacter", { name: recipient.name }));
-          continue;
-        }
+        const actor = await this.ensureCharacter(recipient);
         await actor.update({ [`system.${kind}.text`]: cards[kind] });
       }
     }
@@ -335,16 +350,20 @@ export class Ritual {
    */
   async prepareCharacters() {
     for (const user of this.table.users.filter((u) => !u.isGM)) {
-      if (user.character) {
-        await user.character.update({ system: user.character.system.schema.getInitialValue() });
-        continue;
-      }
-      const actor = await Actor.implementation.create({
-        name: user.name,
-        type: "character",
-        ownership: { default: CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE, [user.id]: CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER }
-      });
-      await user.update({ character: actor.id });
+      if (user.character) await user.character.update({ system: user.character.system.schema.getInitialValue() });
+      else await this.ensureCharacter(user);
     }
+  }
+
+  /** A player's character, made now if they have none (e.g. they joined after the ritual began). */
+  async ensureCharacter(user) {
+    if (user.character) return user.character;
+    const actor = await Actor.implementation.create({
+      name: user.name,
+      type: "character",
+      ownership: { default: CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE, [user.id]: CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER }
+    });
+    await user.update({ character: actor.id });
+    return actor;
   }
 }

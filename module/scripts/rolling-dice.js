@@ -13,9 +13,9 @@ const SKULL =
   "c1.8-1.2 3-3.1 3-5.8C20.5 5.6 17 2 12 2Zm-3.6 7.2a2 2 0 1 1 0 4 2 2 0 0 1 0-4Zm7.2 0a2 2 0 1 1 0 4 2 2 0 0 1 0-4Z" +
   'M12 13.6l1.3 2.2h-2.6l1.3-2.2Z"/></svg>';
 
-/** A small black skull in place of a 1, the face that costs the players a die. */
-export function skull(label = "1") {
-  return `<span class="tct-skull-face" role="img" aria-label="${label}" title="${label}">${SKULL}</span>`;
+/** A small black skull in place of a 1, the face that costs the players a die. Always a 1, never other text. */
+export function skull() {
+  return `<span class="tct-skull-face" role="img" aria-label="1" title="1">${SKULL}</span>`;
 }
 
 // Which of the nine pip spots are filled for each face, row by row.

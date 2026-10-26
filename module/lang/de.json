@@ -1,8 +1,7 @@
 {
   "TCT": {
     "Warn": {
-      "WrongSystem": "Ten Candles – Tisch benötigt das System „Ten Candles – Game Assistant“.",
-      "NoCharacter": "{name} hat keine Figur – die Karte konnte nicht abgelegt werden."
+      "WrongSystem": "Ten Candles – Tisch benötigt das System „Ten Candles – Game Assistant“."
     },
     "Ritual": {
       "WorldIsDark": "Diese Dinge sind wahr. Die Welt ist dunkel.",
@@ -70,7 +69,8 @@
       "BrinkOfThemHint": "Was du von IHNEN gesehen hast. Die Karte geht verdeckt an die Spielleitung.",
       "NoGM": "Die Spielleitung ist nicht verbunden – deine Karte ist noch nicht abgegeben. Öffne sie später über „Karte schreiben“ und drücke noch einmal „Fertig“.",
       "NotStored": "Deine Karte ist nicht bei der Spielleitung angekommen. Öffne sie über „Karte schreiben“ und drücke noch einmal „Fertig“.",
-      "TooLate": "Die Karten waren schon unterwegs – deine Änderung kam zu spät."
+      "TooLate": "Die Karten waren schon unterwegs – deine Änderung kam zu spät.",
+      "TooLong": "Diese Karte ist zu lang (höchstens {max} Zeichen). Öffne sie über „Karte schreiben“ und kürze sie."
     },
     "XCard": {
       "Touched": "Jemand hat die X-Karte berührt. Wir lassen das weg und gehen weiter."
@@ -114,7 +114,8 @@
       "CandlesLeft": "{count} Kerzen bleiben.",
       "Opening": "Diese Dinge sind wahr. Die Welt ist dunkel.",
       "Truth": "{n}. Wahrheit: {name}",
-      "Alive": "{n}. Wahrheit: Und wir leben."
+      "Alive": "{n}. Wahrheit: Und wir leben.",
+      "NoRoll": "Während die Wahrheiten gesprochen werden, wird nicht gewürfelt. Der Wurf wurde abgebrochen."
     },
     "Sheet": {
       "Button": "Charakterbogen"

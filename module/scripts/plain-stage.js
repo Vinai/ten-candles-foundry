@@ -26,8 +26,6 @@ export class PlainStage {
   }
 
   clearDice() {}
-  recorderClick() {}
-  route() {}
 
   showPhrase(lines) {
     ui.notifications.info(lines.join(" "));

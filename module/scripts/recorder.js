@@ -24,9 +24,9 @@ const EXTENSIONS = { "audio/webm": "webm", "audio/mp4": "m4a", "audio/ogg": "ogg
  * it round again; whoever has a message may keep it. At the very end the GM plays the messages one by one, in the
  * order they were recorded, in every browser.
  *
- * World setting `recorder`: {gameId, started, holder, recordings: [{userId, path}], playback: {index, at}}. Players
- * cannot upload files, so a recording travels to the active GM over the module socket and the GM's browser stores
- * it. The holder keeps the recording until the GM has stored it and passed the recorder on.
+ * World setting `recorder`: {gameId, round, started, holder, recordings: [{userId, path}], playback: {index, at}}.
+ * Players cannot upload files, so a recording travels to the active GM over the module socket and the GM's browser
+ * stores it. The holder keeps the recording until the GM has stored it and passed the recorder on.
  */
 export class Recorder {
   constructor(table) {
@@ -38,6 +38,8 @@ export class Recorder {
     // GM side: the transfer of the current holder, {id, mime, total, chunks}, by sender.
     this.incoming = new Map();
     this.storing = null;
+    // GM side: each holder's latest pass; an older one finishing late must not win over it.
+    this.latestPass = new Map();
     // Another holder's red light, as last signalled by them.
     this.light = { holder: null, on: false };
     this.playback = 0;
@@ -50,6 +52,8 @@ export class Recorder {
     this.panel.addEventListener("click", (event) => this.onClick(event));
     this.table.ownControls.append(this.panel);
     this.lastPlayback = this.state().playback?.at ?? 0;
+    // A message playing follows the interface volume slider.
+    Hooks.on("globalInterfaceVolumeChanged", (volume) => this.audio && (this.audio.volume = Math.clamp(volume, 0, 1)));
     this.gameId = this.state().gameId;
     this.note = document.createElement("div");
     this.note.className = "tct-discord-note";
@@ -359,14 +363,18 @@ export class Recorder {
   async switchOn() {
     if (game.user !== game.users.activeGM || !(await this.canStore())) return;
     const gm = this.table.users.find((user) => user.isGM);
-    await this.save({ ...this.state(), started: true, holder: this.nextHolder(gm)?.id ?? null, recordings: [] });
+    const state = this.state();
+    const holder = this.nextHolder(gm)?.id ?? null;
+    await this.save({ ...state, round: (state.round ?? 0) + 1, started: true, holder, recordings: [] });
   }
 
   /** Round the table once more, e.g. after a message was skipped by mistake. Messages so far are kept. */
   async restart() {
     if (game.user !== game.users.activeGM || !(await this.canStore())) return;
     const gm = this.table.users.find((user) => user.isGM);
-    await this.save({ ...this.state(), started: true, holder: this.nextHolder(gm)?.id ?? null, playback: null });
+    const state = this.state();
+    const holder = this.nextHolder(gm)?.id ?? null;
+    await this.save({ ...state, round: (state.round ?? 0) + 1, started: true, holder, playback: null });
   }
 
   /**
@@ -427,8 +435,11 @@ export class Recorder {
   async receivePass(senderId, { id }) {
     const state = this.state();
     if (state.holder !== senderId) return;
+    // This pass, as it was sent: the game, the round and the holder's latest attempt.
+    const pass = { gameId: state.gameId, round: state.round ?? 0, token: id ?? foundry.utils.randomID() };
+    this.latestPass.set(senderId, pass.token);
     if (id === null || id === undefined) {
-      await this.passOn(state.gameId, senderId, null);
+      await this.passOn(pass, senderId, null);
       return;
     }
     const entry = this.incoming.get(senderId);
@@ -442,8 +453,8 @@ export class Recorder {
     this.storing = id;
     try {
       const path = await this.upload(state.gameId, senderId, entry.chunks.join(""), entry.mime);
-      this.incoming.delete(senderId);
-      await this.passOn(state.gameId, senderId, path);
+      if (this.incoming.get(senderId)?.id === id) this.incoming.delete(senderId);
+      await this.passOn(pass, senderId, path);
     } catch (error) {
       console.error(`${MODULE_ID} | Could not store the recording of ${senderId}`, error);
       ui.notifications.error(game.i18n.localize("TCT.Recorder.UploadFailed"));
@@ -453,10 +464,14 @@ export class Recorder {
     }
   }
 
-  /** Moves the recorder on from `writer`, if nothing else happened meanwhile (a skip, a new game). */
-  async passOn(gameId, writer, path) {
+  /**
+   * Moves the recorder on from `writer`, if nothing else happened meanwhile: a skip, a restart, a new game, or a later
+   * attempt of the same holder (that one counts, not this).
+   */
+  async passOn({ gameId, round, token }, writer, path) {
     const state = this.state();
-    if (state.gameId !== gameId || state.holder !== writer) return;
+    if (state.gameId !== gameId || (state.round ?? 0) !== round || state.holder !== writer) return;
+    if (this.latestPass.get(writer) !== token) return;
     // A new message takes the place of the old one; without one, the old one stays.
     const recordings = [...(state.recordings ?? [])];
     if (path) {
@@ -493,19 +508,22 @@ export class Recorder {
     return this.save({ ...this.state(), playback: { index, at: Date.now() } });
   }
 
-  /** The recorder's click, a breath, then the message; through Foundry's interface volume like the click. */
+  /**
+   * The recorder's click, a breath, then the message, at Foundry's interface volume like the click. The message plays
+   * straight from its element: routed through Web Audio, one from another server (Forge's assets) would be silent.
+   */
   async playOne({ path }) {
     this.stopPlayback();
     const run = this.playback;
     this.playing = true;
     this.table.gm?.render();
     try {
-      this.table.stage.recorderClick();
+      this.table.sounds.click(true);
       await new Promise((resolve) => window.setTimeout(resolve, CLICK_PAUSE_MS));
       if (run !== this.playback) return;
       await new Promise((resolve) => {
         const audio = (this.audio = new Audio(path));
-        this.table.stage.route(audio);
+        audio.volume = interfaceVolume();
         audio.addEventListener("ended", resolve, { once: true });
         audio.addEventListener("error", resolve, { once: true });
         audio.addEventListener("tct-stop", resolve, { once: true });
@@ -521,12 +539,21 @@ export class Recorder {
 
   stopPlayback() {
     this.playback++;
+    if (this.playing) {
+      this.playing = false;
+      this.table.gm?.render();
+    }
     const audio = this.audio;
     this.audio = null;
     if (!audio) return;
     audio.pause();
     audio.dispatchEvent(new Event("tct-stop"));
   }
+}
+
+/** Each player's interface volume from Foundry's playlists sidebar. */
+function interfaceVolume() {
+  return Math.clamp(Number(game.settings.get("core", "globalInterfaceVolume")) || 0, 0, 1);
 }
 
 function baseType(mime) {

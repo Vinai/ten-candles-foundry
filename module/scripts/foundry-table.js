@@ -9,6 +9,7 @@ import { Recorder } from "./recorder.js";
 import { Ritual } from "./ritual.js";
 import { SETTING_CHANGED_HOOK, SETTINGS } from "./settings.js";
 import { CharacterSheets } from "./sheets.js";
+import { TableSounds } from "./sounds.js";
 import { TableStage } from "./stage.js";
 import { Truths } from "./truths.js";
 
@@ -46,6 +47,8 @@ export class FoundryTable {
     this.recorder = new Recorder(this);
     this.truths = new Truths(this);
     this.sheets = new CharacterSheets(this);
+    // Foundry's interface channel, so each player's interface volume applies. Silent until their first click.
+    this.sounds = new TableSounds(() => (game.audio.locked ? null : game.audio.interface?.gainNode ?? null));
     // A conflict or Moment request already seen, so a sheet only makes way for a new one.
     this.seenRequests = new Set();
     // Per actor, the traits last seen unburned, to notice the moment one is spent.
@@ -54,6 +57,9 @@ export class FoundryTable {
     this.rerollBurns = new Map();
     // What the table shows happens one thing after the other: dice, a burning card, a candle going out.
     this.beats = Promise.resolve();
+    // Bumped by a new game: whatever the table still meant to show of the old one is dropped.
+    this.generation = 0;
+    this.rerollTimers = new Set();
     // Rolls of the Game Assistant's conflicts already thrown on this table, by "resolutionId:historyIndex".
     this.thrown = new Set();
     const table = this;
@@ -87,8 +93,7 @@ export class FoundryTable {
       this.stage = new TableStage(document.body, image, {
         seats: this.users.map((user) => this.seatData(user)),
         viewer: this.viewerIndex(),
-        // Foundry's interface channel, so each player's interface volume applies. Silent until their first click.
-        audio: () => (game.audio.locked ? null : game.audio.interface?.gainNode ?? null)
+        sounds: this.sounds
       });
     }
     this.applyState(this.gaState(), { instant: true });
@@ -106,9 +111,18 @@ export class FoundryTable {
     this.sheets.start();
     this.makeWayFor(this.gaState(), { initial: true });
     this.applyTruths();
-    game.socket.on(SOCKET, (message) => {
+    game.socket.on(SOCKET, (message, senderId) => {
+      // Anyone may touch the X-card; the cue for the last truth is the active GM's alone.
       if (message?.type === "xcard") this.showXCard();
-      if (message?.type === "alive") this.showAlive();
+      if (message?.type === "alive" && senderId === game.users.activeGM?.id && message.gameId === this.gameId) {
+        this.showAlive();
+      }
+      if (message?.type === "no-roll") this.noRoll(message, senderId);
+    });
+    // The Game Assistant's roll tool in the scene controls (on a plain table) is gone while the truths are spoken.
+    Hooks.on("getSceneControlButtons", (controls) => {
+      const tool = controls.tokens?.tools?.["tencandles-ga-player-roll"];
+      if (tool && this.truths.active) tool.visible = false;
     });
     if (game.user.isGM) {
       this.gm = new GMControls(this);
@@ -154,8 +168,17 @@ export class FoundryTable {
    */
   newGame(state) {
     this.gameId = state.gameId;
+    this.generation++;
+    this.rerollTimers.forEach((timer) => window.clearTimeout(timer));
+    this.rerollTimers.clear();
+    this.rerollBurns.clear();
+    this.snuffing = false;
+    this.stage.clearDice();
+    this.mirror?.releaseAll();
     this.stage.clearPhrase();
     this.finalWords = false;
+    // No clock in the new game yet, so Foundry is not paused either.
+    this.gm?.syncPause();
     this.applyTruths();
     this.ritual.onChange();
     this.recorder.onChange();
@@ -289,6 +312,12 @@ export class FoundryTable {
       else this.beat(() => this.stage.burnCard(this.seatOf(actor), card));
     }
     this.stage.updateSeat(index, this.seatData(this.users[index]));
+    // The conflict card offers only the top card for a reroll; burned or reordered, that may be another one now.
+    const message = game.messages.get(resolution?.chatMessageId);
+    if (resolution?.actorId === actor.id && message) {
+      this.mirror?.render();
+      ui.chat?.updateMessage(message);
+    }
   }
 
   /**
@@ -298,11 +327,13 @@ export class FoundryTable {
   awaitReroll(actor, key, card) {
     const id = `${actor.id}:${key}`;
     this.rerollBurns.set(id, card);
-    window.setTimeout(() => {
+    const timer = window.setTimeout(() => {
+      this.rerollTimers.delete(timer);
       if (!this.rerollBurns.has(id)) return;
       this.takeRerollBurn(actor.id, key);
       this.beat(() => this.stage.burnCard(this.seatOf(actor), card));
     }, REROLL_WAIT_MS);
+    this.rerollTimers.add(timer);
   }
 
   refreshCards() {
@@ -382,25 +413,27 @@ export class FoundryTable {
     this.snuffing = true;
     const candles = this.visibleCandles(state);
     if (candles > 0) this.truths.begin(candles, this.firstSpeaker(state));
-    // Held from now, not from when its turn comes, so nothing new pops up over the bowl meanwhile.
-    this.mirror?.hold();
-    this.beat(async () => {
-      try {
-        await wait(CLEAR_MS);
-        this.snuffing = false;
-        const now = this.gaState();
-        this.litCount = this.visibleCandles(now);
-        this.stage.setCandles(new Set(candleOrder(now.gameId).slice(0, this.litCount)));
-        this.applyEnd();
-        this.applyGutter();
-        if (this.litCount === 0) return;
-        await wait(SMOKE_MS);
-        await this.stage.showPhrase([game.i18n.localize("TCT.Phrase.True"), game.i18n.localize("TCT.Phrase.Dark")]);
-      } finally {
-        this.snuffing = false;
-        this.mirror?.release();
-      }
-    });
+    this.beat(
+      async (current) => {
+        try {
+          await wait(CLEAR_MS);
+          if (!current()) return;
+          this.snuffing = false;
+          const now = this.gaState();
+          this.litCount = this.visibleCandles(now);
+          this.stage.setCandles(new Set(candleOrder(now.gameId).slice(0, this.litCount)));
+          this.applyEnd();
+          this.applyGutter();
+          if (this.litCount === 0) return;
+          await wait(SMOKE_MS);
+          if (!current()) return;
+          await this.stage.showPhrase([game.i18n.localize("TCT.Phrase.True"), game.i18n.localize("TCT.Phrase.Dark")]);
+        } finally {
+          if (current()) this.snuffing = false;
+        }
+      },
+      { hold: true }
+    );
   }
 
   /** Who speaks the first truth: whoever's failure or seized narration put the candle out, otherwise the GM. */
@@ -414,13 +447,23 @@ export class FoundryTable {
   /** While the truths are spoken nobody rolls; the GM's "Und wir leben." ends them. */
   applyTruths() {
     document.body.classList.toggle("tct-truths", this.truths.active);
+    ui.controls?.render({ reset: true });
     this.mirror?.render();
     this.gm?.render();
   }
 
-  /** Queues something the table shows, after whatever it is showing now. */
-  beat(show) {
-    const run = this.beats.then(show);
+  /**
+   * Queues something the table shows, after whatever it is showing now. `show` gets a check whether it is still
+   * wanted: a new game drops it, also halfway. With `hold` the bowl stays clear from now, not only from its turn, so
+   * nothing new pops up over it meanwhile; `slow` lets the card there fade the slow way.
+   */
+  beat(show, { hold = false, slow = false } = {}) {
+    const generation = this.generation;
+    const current = () => generation === this.generation;
+    const holding = hold ? this.mirror?.hold({ slow }) : null;
+    const run = this.beats
+      .then(() => (current() ? show(current) : undefined))
+      .finally(() => holding && this.mirror?.release(holding));
     this.beats = run.catch((error) => console.error(`${MODULE_ID} | Table`, error));
     return run;
   }
@@ -437,7 +480,9 @@ export class FoundryTable {
         const key = `${resolution.id}:${index}`;
         if (this.thrown.has(key)) return;
         this.thrown.add(key);
-        if (replay && resolution === state.activeResolution) this.throwEntry(resolution, entry, history[index + 1], key);
+        // A roll during the truths is called off; it is not thrown either.
+        const live = replay && resolution === state.activeResolution && !this.truths.active;
+        if (live) this.throwEntry(resolution, entry, history[index + 1], key);
       });
     }
   }
@@ -462,35 +507,39 @@ export class FoundryTable {
 
   throwDice(seat, dice, seed) {
     if (!dice.length) return;
-    this.mirror?.hold();
-    return this.beat(async () => {
-      try {
-        await this.stage.rollDice(seat, dice, seed);
-        await wait(AFTER_DICE_MS);
-      } finally {
-        this.stage.clearDice();
-        this.mirror?.release();
-      }
-    });
+    return this.beat(
+      async (current) => {
+        try {
+          await this.stage.rollDice(seat, dice, seed);
+          if (current()) await wait(AFTER_DICE_MS);
+        } finally {
+          this.stage.clearDice();
+        }
+      },
+      { hold: true }
+    );
   }
 
   /** A trait burned for a reroll: the conflict card fades, the card burns in the bowl, then the 1s are rolled again. */
   burnForReroll(resolution, key, dice, seed) {
     const actor = game.actors.get(resolution.actorId);
     const card = this.takeRerollBurn(actor?.id, key) ?? traitCard(key, actor?.system[key]?.text ?? "");
-    this.mirror?.hold({ slow: true });
-    return this.beat(async () => {
-      try {
-        await wait(BURN_FADE_MS + BEFORE_BURN_MS);
-        await this.stage.burnCard(this.seatOf(actor), card);
-        await wait(AFTER_BURN_MS);
-        await this.stage.rollDice(this.seatOf(actor), dice, seed);
-        await wait(AFTER_DICE_MS);
-      } finally {
-        this.stage.clearDice();
-        this.mirror?.release();
-      }
-    });
+    return this.beat(
+      async (current) => {
+        try {
+          await wait(BURN_FADE_MS + BEFORE_BURN_MS);
+          if (!current()) return;
+          await this.stage.burnCard(this.seatOf(actor), card);
+          await wait(AFTER_BURN_MS);
+          if (!current()) return;
+          await this.stage.rollDice(this.seatOf(actor), dice, seed);
+          if (current()) await wait(AFTER_DICE_MS);
+        } finally {
+          this.stage.clearDice();
+        }
+      },
+      { hold: true, slow: true }
+    );
   }
 
   /** The card leaves its stack only when it is its turn to burn. */
@@ -550,11 +599,19 @@ export class FoundryTable {
   /** The GM's cue for the last truth, spoken by all players together; the truths are over. */
   sayAlive() {
     this.truths.end();
-    game.socket.emit(SOCKET, { type: "alive" });
+    game.socket.emit(SOCKET, { type: "alive", gameId: this.gameId });
     this.showAlive();
   }
 
+  /** The GM called off a roll during the truths. */
+  noRoll(message, senderId) {
+    if (senderId !== game.users.activeGM?.id || message.gameId !== this.gameId) return;
+    ui.notifications.warn(game.i18n.localize("TCT.Truths.NoRoll"));
+  }
+
   showAlive() {
+    // The game's last words are not replaced.
+    if (this.finalWords) return;
     this.stage.showPhrase([game.i18n.localize("TCT.Phrase.Alive")]);
   }
 

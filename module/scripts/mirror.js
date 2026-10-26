@@ -4,6 +4,8 @@ import { decorateCard, gaType } from "./ga-cards.js";
 const LINGER_MS = 20000;
 // Cards of a conflict and its truths go as soon as the game is done with them; the table shows what follows.
 const NO_LINGER = new Set(["resolution", "ball-of-truths", "darkness-progression"]);
+// What the game waits on most: an open conflict before a Moment to decide, before the truths.
+const PRECEDENCE = ["resolution", "instant", "ball-of-truths"];
 
 /**
  * The Game Assistant's latest chat card (conflict, Moment, truths, …) lies above the bowl in a pool of light, so
@@ -17,29 +19,40 @@ export class ConflictMirror {
     this.element = element;
     this.messageId = null;
     this.touchedAt = 0;
-    this.holds = 0;
+    this.holds = new Set();
   }
 
   start() {
     // After a reload, bring back whatever the game is still waiting on.
-    const state = this.table.gaState();
-    this.messageId = game.messages.contents.findLast((m) => gaType(m) && this.pinned(m, state))?.id ?? null;
+    this.messageId = this.waitedOn(this.table.gaState())?.id ?? null;
     Hooks.on("createChatMessage", (message) => this.touch(message));
     Hooks.on("updateChatMessage", (message) => this.update(message));
     Hooks.on("deleteChatMessage", (message) => message.id === this.messageId && this.render());
     this.render();
   }
 
-  /** Keeps the bowl clear until `release`; holds nest. `slow` lets the card fade out the slow way. */
+  /**
+   * Keeps the bowl clear until the hold is released; several can hold at once. `slow` lets the card fade out the
+   * slow way. @returns the hold, to release it with
+   */
   hold({ slow = false } = {}) {
-    this.holds++;
+    const hold = Symbol("hold");
+    this.holds.add(hold);
     this.element.classList.toggle("is-slow", slow);
+    this.render();
+    return hold;
+  }
+
+  release(hold) {
+    this.holds.delete(hold);
+    if (!this.holds.size) this.element.classList.remove("is-slow");
     this.render();
   }
 
-  release() {
-    this.holds = Math.max(this.holds - 1, 0);
-    if (!this.holds) this.element.classList.remove("is-slow");
+  /** A new game: nothing of the old one holds the bowl any more. */
+  releaseAll() {
+    this.holds.clear();
+    this.element.classList.remove("is-slow");
     this.render();
   }
 
@@ -79,10 +92,25 @@ export class ConflictMirror {
     }
   }
 
+  /** The card the game still waits on most, if any. */
+  waitedOn(state) {
+    const waiting = game.messages.contents.filter((m) => gaType(m) && m.visible && this.pinned(m, state));
+    const rank = (message) => PRECEDENCE.indexOf(gaType(message));
+    return waiting.sort((a, b) => rank(a) - rank(b))[0] ?? null;
+  }
+
   /** What lies over the bowl right now: a rendered element, or null for nothing. */
   async content() {
     const state = this.table.gaState();
-    const message = game.messages.get(this.messageId);
+    let message = game.messages.get(this.messageId);
+    // Once this card is settled, another one may still be waiting, e.g. an earlier Moment.
+    if (!message || !this.pinned(message, state)) {
+      const waiting = this.waitedOn(state);
+      if (waiting) {
+        message = waiting;
+        this.messageId = waiting.id;
+      }
+    }
     const pinned = message && this.pinned(message, state);
     // The GM presses the Game Assistant's button before the truths; everyone else sees the table's truths card.
     if (this.table.truths.active && !(game.user.isGM && pinned && gaType(message) === "ball-of-truths")) {
@@ -95,7 +123,7 @@ export class ConflictMirror {
 
   async render() {
     const token = (this.renderToken = Symbol());
-    const html = this.holds ? null : await this.content();
+    const html = this.holds.size ? null : await this.content();
     if (token !== this.renderToken) return;
     if (!html) {
       this.element.classList.remove("is-visible");

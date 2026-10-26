@@ -36,17 +36,6 @@ export class TableSounds {
     this.play(recording ? "recorder-start" : "recorder-stop");
   }
 
-  /** Sends a media element (a recorded message) through the same channel, if the browser lets us play yet. */
-  route(media) {
-    const output = this.output();
-    if (!output || output.context.state !== "running") return;
-    try {
-      output.context.createMediaElementSource(media).connect(output);
-    } catch (error) {
-      console.warn(`${MODULE_ID} | Could not route a recording`, error);
-    }
-  }
-
   async play(name) {
     const output = this.output();
     if (!output) return;

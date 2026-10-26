@@ -1,7 +1,6 @@
 import { CandleTable } from "./candle-table.js";
 import { RollingDice } from "./rolling-dice.js";
 import { seatPositions } from "./seat-layout.js";
-import { TableSounds } from "./sounds.js";
 
 // Seats sit on an ellipse this much wider/taller than the tray; card stacks lie just outside the tray's rim.
 const SEAT_SPREAD_X = 1.75;
@@ -35,9 +34,9 @@ const MIN_FIT = 0.45;
  * Knows nothing about Foundry; callers hand in face elements (camera videos or placeholders) and game state.
  */
 export class TableStage {
-  /** @param audio {() => AudioNode | null} where the table's sounds go, or null while the browser keeps quiet */
-  constructor(parent, image, { seats, viewer, audio = () => null }) {
-    this.sounds = new TableSounds(audio);
+  /** @param sounds {TableSounds} the table's sounds, shared with what the table does without pictures */
+  constructor(parent, image, { seats, viewer, sounds }) {
+    this.sounds = sounds;
     this.root = document.createElement("div");
     this.root.className = "tct-stage";
     const canvas = document.createElement("canvas");
@@ -280,16 +279,6 @@ export class TableStage {
 
   clearDice() {
     this.rolling.clear();
-  }
-
-  /** The recorder's button, as before each message is played. */
-  recorderClick() {
-    this.sounds.click(true);
-  }
-
-  /** Lets a media element play through the table's sound channel, so the same volume applies. */
-  route(media) {
-    this.sounds.route(media);
   }
 
   flyingCard({ label, text, faceDown = false }) {

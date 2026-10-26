@@ -1,8 +1,7 @@
 {
   "TCT": {
     "Warn": {
-      "WrongSystem": "Ten Candles – Table requires the “Ten Candles – Game Assistant” system.",
-      "NoCharacter": "{name} has no character – the card could not be placed."
+      "WrongSystem": "Ten Candles – Table requires the “Ten Candles – Game Assistant” system."
     },
     "Ritual": {
       "WorldIsDark": "These things are true. The world is dark.",
@@ -70,7 +69,8 @@
       "BrinkOfThemHint": "What you have seen of THEM. The card goes face down to the GM.",
       "NoGM": "The GM is not connected – your card has not been handed in yet. Open it later with “Write card” and press “Done” again.",
       "NotStored": "Your card did not reach the GM. Open it with “Write card” and press “Done” again.",
-      "TooLate": "The cards were already on their way – your change came too late."
+      "TooLate": "The cards were already on their way – your change came too late.",
+      "TooLong": "This card is too long (at most {max} characters). Open it with “Write card” and shorten it."
     },
     "XCard": {
       "Touched": "Someone touched the X-card. We drop that and move on."
@@ -114,7 +114,8 @@
       "CandlesLeft": "{count} candles are left.",
       "Opening": "These things are true. The world is dark.",
       "Truth": "Truth {n}: {name}",
-      "Alive": "Truth {n}: And we are alive."
+      "Alive": "Truth {n}: And we are alive.",
+      "NoRoll": "Nobody rolls while the truths are spoken. The roll was called off."
     },
     "Sheet": {
       "Button": "Character sheet"
