@@ -2,11 +2,11 @@ import { MODULE_ID } from "./constants.js";
 
 // Recordings in ../sounds/, credited in ../sounds/CREDITS.md.
 const FOLDER = new URL("../sounds/", import.meta.url);
-const FILES = ["match-strike", "candle-out", "card-burn", "recorder-start", "recorder-stop"];
+const FILES = ["match-strike", "candle-out", "card-burn", "dice-roll", "recorder-start", "recorder-stop"];
 
 /**
- * The few sounds the table makes itself: a match struck, a candle going out, a card burning, the recorder's
- * button. Short recordings, fetched once when the table is built and decoded on first use.
+ * The few sounds the table makes itself: a match struck, a candle going out, a card burning, dice rolling, the
+ * recorder's button. Short recordings, fetched once when the table is built and decoded on first use.
  */
 export class TableSounds {
   /** @param output {() => AudioNode | null} where to play (its context is used), or null while audio is locked */
@@ -29,6 +29,11 @@ export class TableSounds {
   /** A card burning in the bowl, from catching to embers: ten seconds. */
   burn() {
     this.play("card-burn");
+  }
+
+  /** Dice hitting the table and rolling out. */
+  dice() {
+    this.play("dice-roll");
   }
 
   /** The recorder's button: pressed to record, pressed again to stop. */

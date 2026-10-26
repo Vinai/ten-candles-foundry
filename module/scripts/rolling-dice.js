@@ -3,9 +3,13 @@ import { seeded } from "./random.js";
 // How long a die takes from the roller's hand to rest; each die a little different.
 const ROLL_MS = 1900;
 const ROLL_SPREAD_MS = 500;
-// Faces flicker past while a die tumbles, slower and slower.
-const FLICKER_MS = 70;
+// Share of its flight after which a die first hits the table.
+const LANDING = 0.5;
 const FADE_MS = 600;
+// Dice lie at least this many die widths apart (centre to centre), so none covers another.
+const SPACING = 1.5;
+// Spots tried for each die; always this many, so every browser draws the same random numbers.
+const TRIES = 24;
 
 const SKULL =
   '<svg class="tct-skull" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" ' +
@@ -27,13 +31,25 @@ const PIPS = {
   6: [0, 2, 3, 5, 6, 8]
 };
 
+// How the cube turns to show a face on top (towards the viewer); opposite faces add up to 7.
+const SHOW = {
+  1: { x: 0, y: 0 },
+  2: { x: 0, y: -90 },
+  3: { x: -90, y: 0 },
+  4: { x: 90, y: 0 },
+  5: { x: 0, y: 90 },
+  6: { x: 0, y: 180 }
+};
+
 /**
- * Dice thrown across the table: from the roller's place onto the tray around the bowl, tumbling and settling on
- * exactly the faces the game rolled. They stay where they fell until cleared.
+ * Dice thrown across the table: from the roller's place onto the tray around the bowl, tumbling as cubes and settling
+ * on exactly the faces the game rolled. They stay where they fell until cleared.
  */
 export class RollingDice {
-  constructor(root) {
+  /** @param onLanding {() => void} called as a throw first hits the table */
+  constructor(root, onLanding = () => {}) {
     this.root = root;
+    this.onLanding = onLanding;
     this.dice = [];
   }
 
@@ -47,64 +63,62 @@ export class RollingDice {
    */
   roll(from, area, dice, seed) {
     const random = seeded(seed);
-    const spots = scatter(area, dice.length, random);
-    return Promise.all(
-      dice.map((die, i) => {
-        const el = document.createElement("div");
-        el.className = `tct-roll-die is-${die.kind}`;
-        this.root.append(el);
-        this.dice.push(el);
-        return this.throw(el, die.value, from, spots[i], random);
-      })
-    ).then(() => {});
+    const elements = dice.map((die) => {
+      const el = document.createElement("div");
+      el.className = `tct-roll-die is-${die.kind}`;
+      el.innerHTML = `<div class="tct-die-cube">${[1, 2, 3, 4, 5, 6].map(face).join("")}</div>`;
+      this.root.append(el);
+      this.dice.push(el);
+      return el;
+    });
+    const size = elements[0]?.offsetWidth ?? 0;
+    const spots = scatter(area, dice.length, size * SPACING, random);
+    const landing = window.setTimeout(() => this.onLanding(), ROLL_MS * LANDING);
+    return Promise.all(dice.map((die, i) => this.throw(elements[i], die.value, from, spots[i], random)))
+      .then(() => {})
+      .finally(() => window.clearTimeout(landing));
   }
 
   throw(el, value, from, to, random) {
     const duration = ROLL_MS + random() * ROLL_SPREAD_MS;
-    const turns = 2 + random() * 3;
-    const rest = (random() - 0.5) * 50;
+    // Whole turns about each axis, then the turn that brings the rolled face up, lying at a slant on the table.
+    const show = SHOW[value] ?? SHOW[1];
+    const turns = {
+      x: 360 * (1 + Math.floor(random() * 2)) + show.x,
+      y: 360 * (1 + Math.floor(random() * 2)) + show.y,
+      z: (random() - 0.5) * 300
+    };
     // Thrown in an arc that lands short, then bounces on along the table and rolls out.
     const at = (t) => ({ x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t });
-    const frame = (t, lift, angle, offset) => {
-      const p = at(t);
-      return {
-        left: `${p.x}px`,
-        top: `${p.y}px`,
-        transform: `translate(-50%, -50%) translateY(${-lift}vw) rotate(${angle}deg) scale(${1 + lift * 0.08})`,
-        offset
-      };
-    };
-    const spin = 360 * turns;
-    const animation = el.animate(
-      [
-        frame(0, 0, 0, 0),
-        frame(0.45, 3.2, spin * 0.45, 0.28),
-        frame(0.7, 0, spin * 0.7, 0.5),
-        frame(0.82, 0.9, spin * 0.85, 0.66),
-        frame(0.93, 0, spin * 0.95, 0.8),
-        frame(1, 0, spin + rest, 1)
-      ],
-      { duration, easing: "cubic-bezier(.25,.6,.35,1)", fill: "forwards" }
+    const path = [
+      [0, 0, 0, 0],
+      [0.45, 3.2, 0.45, 0.28],
+      [0.7, 0, 0.7, LANDING],
+      [0.82, 0.9, 0.86, 0.66],
+      [0.93, 0, 0.96, 0.8],
+      [1, 0, 1, 1]
+    ];
+    const timing = { duration, easing: "cubic-bezier(.25,.6,.35,1)", fill: "forwards" };
+    const flight = el.animate(
+      path.map(([t, lift, , offset]) => {
+        const p = at(t);
+        return {
+          left: `${p.x}px`,
+          top: `${p.y}px`,
+          transform: `translate(-50%, -50%) translateY(${-lift}vw) scale(${1 + lift * 0.08})`,
+          offset
+        };
+      }),
+      timing
     );
-    // The faces flicker while it tumbles and slow down, then it shows what was rolled.
-    const started = performance.now();
-    const flicker = () => {
-      const progress = (performance.now() - started) / duration;
-      if (progress >= 0.9) return;
-      this.face(el, 1 + Math.floor(random() * 6));
-      window.setTimeout(flicker, FLICKER_MS / (1 - progress));
-    };
-    flicker();
-    return animation.finished.then(() => this.face(el, value)).catch(() => {});
-  }
-
-  face(el, value) {
-    if (value === 1) {
-      el.innerHTML = SKULL;
-      return;
-    }
-    const filled = PIPS[value] ?? [];
-    el.innerHTML = Array.from({ length: 9 }, (_, i) => `<span class="${filled.includes(i) ? "is-pip" : ""}"></span>`).join("");
+    const tumble = el.firstElementChild.animate(
+      path.map(([, , turned, offset]) => ({
+        transform: `rotateZ(${turns.z * turned}deg) rotateX(${turns.x * turned}deg) rotateY(${turns.y * turned}deg)`,
+        offset
+      })),
+      timing
+    );
+    return Promise.all([flight.finished, tumble.finished]).catch(() => {});
   }
 
   /** The dice are picked up again. */
@@ -118,14 +132,36 @@ export class RollingDice {
   }
 }
 
-/** Spots in the landing ring, spread out so dice rarely lie on top of each other. */
-function scatter({ x, y, rx, ry, hole }, count, random) {
+/** One side of a die: pips, or the skull for a 1. */
+function face(value) {
+  const content =
+    value === 1
+      ? SKULL
+      : Array.from({ length: 9 }, (_, i) => `<span class="${PIPS[value].includes(i) ? "is-pip" : ""}"></span>`).join("");
+  return `<div class="tct-die-face is-${value}">${content}</div>`;
+}
+
+/**
+ * Spots in the landing ring, apart enough that no die lies on another. Where the ring is too crowded for that, a die
+ * takes the spot furthest from the others.
+ */
+function scatter({ x, y, rx, ry, hole }, count, gap, random) {
   const spots = [];
   const offset = random() * Math.PI * 2;
   for (let i = 0; i < count; i++) {
-    const angle = offset + (i / count) * Math.PI * 2 + (random() - 0.5) * 0.5;
-    const radius = hole + (1 - hole) * (0.25 + random() * 0.75);
-    spots.push({ x: x + Math.cos(angle) * rx * radius, y: y + Math.sin(angle) * ry * radius });
+    let best = null;
+    let bestRoom = -1;
+    for (let k = 0; k < TRIES; k++) {
+      const angle = offset + ((i + random()) / count) * Math.PI * 2 + (random() - 0.5) * 1.2;
+      const radius = hole + (1 - hole) * (0.2 + random() * 0.8);
+      const spot = { x: x + Math.cos(angle) * rx * radius, y: y + Math.sin(angle) * ry * radius };
+      const room = Math.min(Infinity, ...spots.map((other) => Math.hypot(spot.x - other.x, spot.y - other.y)));
+      if (room > bestRoom && bestRoom < gap) {
+        best = spot;
+        bestRoom = room;
+      }
+    }
+    spots.push(best);
   }
   return spots;
 }

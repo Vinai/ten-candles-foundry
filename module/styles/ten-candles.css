@@ -539,48 +539,79 @@ body.tct-active .ets-floating-roll {
   100% { opacity: 0; transform: translateY(-9vw) scale(2.2); }
 }
 
-/* Dice thrown across the table, settling on what the game rolled; a skull for each 1. */
+/* Dice thrown across the table: cubes tumbling onto the face the game rolled; a skull for each 1. */
 .tct-roll-die {
+  --size: 2.1vw;
   position: absolute;
   z-index: 6;
-  width: 2.1vw;
-  height: 2.1vw;
+  width: var(--size);
+  height: var(--size);
+  perspective: 12vw;
+  filter: brightness(calc(0.35 + 0.75 * var(--tct-light)));
+  transition: opacity 0.6s ease;
+}
+
+/* Its shadow on the table. */
+.tct-roll-die::before {
+  content: "";
+  position: absolute;
+  inset: 12%;
+  border-radius: 30%;
+  box-shadow: 0 0.35vw 0.7vw 0.15vw rgba(0, 0, 0, 0.75);
+}
+
+.tct-roll-die.is-gone { opacity: 0; }
+
+.tct-die-cube {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+
+.tct-die-face {
+  --face: #2d4f7c;
+  position: absolute;
+  inset: 0;
   box-sizing: border-box;
   display: grid;
   grid-template: repeat(3, 1fr) / repeat(3, 1fr);
   place-items: center;
   padding: 0.3vw;
-  border-radius: 0.35vw;
+  border-radius: 0.3vw;
   color: #f1ece2;
-  box-shadow: inset 0 -0.2vw 0 rgba(0, 0, 0, 0.35), inset 0 0.15vw 0 rgba(255, 255, 255, 0.18), 0 0.3vw 0.6vw rgba(0, 0, 0, 0.8);
-  filter: brightness(calc(0.35 + 0.75 * var(--tct-light)));
-  transition: opacity 0.6s ease;
+  background: var(--face);
+  box-shadow: inset 0 0 0 0.06vw rgba(0, 0, 0, 0.45), inset 0 0 0.35vw rgba(0, 0, 0, 0.35);
+  backface-visibility: hidden;
 }
 
-.tct-roll-die.is-player { background: #2d4f7c; }
-.tct-roll-die.is-gm { background: #7a2421; }
-.tct-roll-die.is-hope { background: #e4c977; color: #2a2112; box-shadow: 0 0 1vw 0.3vw rgba(255, 210, 120, 0.55); }
-.tct-roll-die.is-gone { opacity: 0; }
+.tct-roll-die.is-gm .tct-die-face { --face: #7a2421; }
+.tct-roll-die.is-hope .tct-die-face { --face: #e4c977; color: #2a2112; }
+.tct-roll-die.is-hope::before { box-shadow: 0 0 1vw 0.4vw rgba(255, 210, 120, 0.55); }
 
-.tct-roll-die > span {
+/* Opposite faces add up to 7; the script turns the cube so the rolled one lies on top. */
+.tct-die-face.is-1 { transform: translateZ(calc(var(--size) / 2)); }
+.tct-die-face.is-6 { transform: rotateY(180deg) translateZ(calc(var(--size) / 2)); }
+.tct-die-face.is-2 { transform: rotateY(90deg) translateZ(calc(var(--size) / 2)); }
+.tct-die-face.is-5 { transform: rotateY(-90deg) translateZ(calc(var(--size) / 2)); }
+.tct-die-face.is-3 { transform: rotateX(90deg) translateZ(calc(var(--size) / 2)); }
+.tct-die-face.is-4 { transform: rotateX(-90deg) translateZ(calc(var(--size) / 2)); }
+
+.tct-die-face > span {
   width: 0.36vw;
   height: 0.36vw;
   border-radius: 50%;
 }
 
-.tct-roll-die > .is-pip { background: currentColor; }
+.tct-die-face > .is-pip { background: currentColor; }
 
-.tct-roll-die > .tct-skull {
+.tct-die-face > .tct-skull {
   grid-area: 1 / 1 / 4 / 4;
   width: 100%;
   height: 100%;
-  color: #0b0b0d;
-}
-
-.tct-roll-die.is-player > .tct-skull,
-.tct-roll-die.is-gm > .tct-skull {
   color: #f1ece2;
 }
+
+.tct-roll-die.is-hope .tct-die-face > .tct-skull { color: #0b0b0d; }
 
 /* On the Game Assistant's conflict card: a small black skull instead of a rolled 1. */
 .tct-skull-face {
