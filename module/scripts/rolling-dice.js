@@ -171,7 +171,8 @@ function scatter({ x, y, rx, ry, hole }, count, gap, random) {
     let bestRoom = -1;
     for (let k = 0; k < TRIES; k++) {
       const angle = offset + ((i + random()) / count) * Math.PI * 2 + (random() - 0.5) * 1.2;
-      const radius = hole + (1 - hole) * (0.2 + random() * 0.8);
+      // Spread evenly over the ring's area, so the wide outer part gets its share.
+      const radius = Math.sqrt(hole * hole + (1 - hole * hole) * random());
       const spot = { x: x + Math.cos(angle) * rx * radius, y: y + Math.sin(angle) * ry * radius };
       const room = Math.min(Infinity, ...spots.map((other) => Math.hypot(spot.x - other.x, spot.y - other.y)));
       if (room > bestRoom && bestRoom < gap) {
