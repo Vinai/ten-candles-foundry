@@ -9,8 +9,8 @@ import { SETTINGS } from "./settings.js";
  *
  * The dead stay at the table, their face in black and white like an old television. They no longer roll and no
  * longer speak truths; they still record their final message. A Martyr's hope die (rulebook: "they may grant their
- * hope die to another survivor") is passed on as a note to everyone: the Game Assistant has no way to give a
- * character a second hope die, so the table keeps track of it.
+ * hope die to another survivor") is passed on through the Game Assistant where it can (`transferHopeDie`); where it
+ * cannot give a character a second hope die, it is a note to everyone and the table keeps track of it.
  *
  * World setting `dead`: {gameId, users: {userId: {martyr, hopeTo}}}, written by the active GM.
  */
@@ -146,6 +146,10 @@ export class Deaths {
     const entry = users[message.userId];
     const heir = game.users.get(message.heir);
     if (!entry?.martyr || entry.hopeTo || !heir || heir.isGM || this.isDead(heir)) return;
+    const giver = game.users.get(message.userId)?.character;
+    if (game.evilTenCandles?.transferHopeDie && giver && heir.character) {
+      await game.evilTenCandles.transferHopeDie(giver.uuid, heir.character.uuid);
+    }
     await this.save({ ...users, [message.userId]: { ...entry, hopeTo: heir.id } });
   }
 

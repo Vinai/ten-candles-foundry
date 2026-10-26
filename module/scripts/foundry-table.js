@@ -558,7 +558,9 @@ export class FoundryTable {
     const dice = (values, kind) => (values ?? []).map((value) => ({ value, kind }));
     switch (entry.type) {
       case "player-roll": {
-        const hope = next?.type === "hope-roll" ? [{ value: next.result, kind: "hope" }] : [];
+        // A character may roll several hope dice (their own and a Martyr's), where the Game Assistant allows it.
+        const hopeResults = next?.type === "hope-roll" ? (next.results ?? [next.result]) : [];
+        const hope = hopeResults.map((value) => ({ value, kind: "hope" }));
         return this.throwDice(player, [...dice(entry.results, "player"), ...hope], seed);
       }
       case "gm-roll":
