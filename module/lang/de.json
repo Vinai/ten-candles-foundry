@@ -144,8 +144,8 @@
       "PositionHint": "Platz im Stapel: Nur die oberste Karte ist aktiv. Ziehe eine Karte, um die Reihenfolge zu ändern."
     }
   },
-  "ETC.Chat.ProvisionalPlayerNarrates": "{name} sollte das Narrativ erhalten.",
-  "ETC.Chat.ProvisionalGMNarrates": "Die Spielleitung sollte das Narrativ erhalten.",
+  "ETC.Chat.ProvisionalPlayerNarrates": "{name} erhält Narrativ",
+  "ETC.Chat.ProvisionalGMNarrates": "Spielleitung erhält Narrativ",
   "ETC.Chat.FinalPlayerNarrates": "{name} erhält das Narrativ.",
   "ETC.Chat.FinalGMNarrates": "Die Spielleitung erhält das Narrativ.",
   "ETC.Chat.NarrationSeizeCompact": "{name} kann das Narrativ übernehmen",
