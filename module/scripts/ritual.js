@@ -327,13 +327,22 @@ export class Ritual {
     });
   }
 
-  /** TEMPORARY, for testing: back to the previous step, keeping what was written, so passing can be tried again. */
+  /**
+   * TEMPORARY, for testing: back to the previous step, keeping what was written, so passing can be tried again. What
+   * that step delivered leaves the sheets again, so the next pass looks like the first.
+   */
   stepBack() {
     return this.enqueue(async () => {
       const state = this.state();
       const previous = Object.keys(STEPS).find((key) => STEPS[key].next === state.step);
       if (!previous || state.passing) return;
-      await this.save({ ...state, step: previous });
+      const kinds = STEPS[previous].writes ?? [];
+      if (kinds.length) {
+        for (const user of this.table.users.filter((u) => !u.isGM && u.character)) {
+          await user.character.update(Object.fromEntries(kinds.map((kind) => [`system.${kind}.text`, ""])));
+        }
+      }
+      await this.save({ ...state, step: previous, theyCard: kinds.includes("brink") ? null : state.theyCard });
     });
   }
 
