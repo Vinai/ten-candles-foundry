@@ -283,8 +283,8 @@ body.tct-active .ets-floating-roll {
 /* Left of your own face, opposite the roll button: your sheet, the card you are writing, the recorder. */
 .tct-own-controls {
   position: fixed;
-  /* Above Foundry's windows: the sheet button closes the sheet that opens over it. */
-  z-index: 1000;
+  /* Above Foundry's interface, below its windows: an open sheet covers the buttons. */
+  z-index: 90;
   right: calc(50% + 15vw);
   bottom: 2.5rem;
   display: flex;
