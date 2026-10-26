@@ -7,6 +7,8 @@ const SEAT_SPREAD_X = 1.75;
 const SEAT_SPREAD_Y = 2.3;
 const STACK_SPREAD_X = 1.28;
 const STACK_SPREAD_Y = 1.45;
+// The match is struck, then the candles catch.
+const STRIKE_TO_FLAME_MS = 1000;
 const TOTAL_DICE = 10;
 // The dice row hangs this far below the tray; its dice and the stacks are sized in vw (see ten-candles.css).
 const DICE_ROW_GAP = 10;
@@ -320,18 +322,28 @@ export class TableStage {
 
   /**
    * Lights and puts out candles to match `lit` (a set of candle indices). One match is struck for all candles lit
-   * together; a candle going out is heard. `instant` does it silently, e.g. when a page loads mid-game.
+   * together, and they catch a moment later; a candle going out is heard. `instant` does it silently, e.g. when a page
+   * loads mid-game.
    */
   setCandles(lit, { instant = false } = {}) {
-    let struck = false;
+    // What the match lights when it gets there: the latest wish, should the candles change meanwhile.
+    this.candlesWanted = lit;
+    let unlit = false;
     let snuffed = false;
-    this.table.candles.forEach((_, index) => {
-      if (lit.has(index)) struck = this.table.light(index, { instant }) || struck;
-      else snuffed = this.table.snuff(index, { instant }) || snuffed;
+    this.table.candles.forEach((candle, index) => {
+      if (!lit.has(index)) snuffed = this.table.snuff(index, { instant }) || snuffed;
+      else if (instant) this.table.light(index, { instant });
+      else unlit ||= candle.state !== "lit" && candle.state !== "lighting";
     });
     if (instant) return;
-    if (struck) this.sounds.strike();
     if (snuffed) this.sounds.snuff();
+    if (unlit && !this.striking) {
+      this.sounds.strike();
+      this.striking = window.setTimeout(() => {
+        this.striking = null;
+        this.candlesWanted.forEach((index) => this.table.light(index));
+      }, STRIKE_TO_FLAME_MS);
+    }
   }
 
   /** A card lying by the bowl that anyone can touch. */
