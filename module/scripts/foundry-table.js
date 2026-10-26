@@ -1,5 +1,6 @@
 import { isStarted, nextDeath } from "./candle-clock.js";
 import { GA_PAINTING, GA_STATE_HOOK, GA_STATE_SETTING, GA_SYSTEM_ID, MODULE_ID, SOCKET, TOTAL_CANDLES } from "./constants.js";
+import { Deaths } from "./deaths.js";
 import { CameraFaces } from "./faces.js";
 import { gaType } from "./ga-cards.js";
 import { GMControls } from "./gm-controls.js";
@@ -57,6 +58,7 @@ export class FoundryTable {
     this.recorder = new Recorder(this);
     this.truths = new Truths(this);
     this.moments = new Moments(this);
+    this.deaths = new Deaths(this);
     this.sheets = new CharacterSheets(this);
     // Foundry's interface channel, so each player's interface volume applies. Silent until their first click.
     this.sounds = new TableSounds(() => (game.audio.locked ? null : game.audio.interface?.gainNode ?? null));
@@ -137,7 +139,7 @@ export class FoundryTable {
     // The Game Assistant's roll tool in the scene controls (on a plain table) is gone while the truths are spoken.
     Hooks.on("getSceneControlButtons", (controls) => {
       const tool = controls.tokens?.tools?.["tencandles-ga-player-roll"];
-      if (tool && this.truths.active) tool.visible = false;
+      if (tool && (this.truths.active || this.deaths.isDead(game.user))) tool.visible = false;
     });
     if (game.user.isGM) {
       this.gm = new GMControls(this);
@@ -146,6 +148,8 @@ export class FoundryTable {
     this.ritual.start();
     this.recorder.start();
     this.moments.start();
+    this.deaths.start();
+    document.body.classList.toggle("tct-dead", this.deaths.isDead(game.user));
     window.setInterval(() => this.applyGutter(), GUTTER_TICK_MS);
 
     Hooks.on(GA_STATE_HOOK, (state) => {
@@ -156,6 +160,7 @@ export class FoundryTable {
       this.mirror?.render();
       this.gm?.onGaState(state);
       this.moments.onGaState(state);
+      this.deaths.onGaState(state);
       this.gm?.render();
     });
     Hooks.on(SETTING_CHANGED_HOOK, (key) => {
@@ -168,6 +173,7 @@ export class FoundryTable {
       if (key === SETTINGS.truths) this.applyTruths();
       // A Moment's card says whether its roll is under way.
       if (key === SETTINGS.momentRoll) this.redrawCards("instant");
+      if (key === SETTINGS.dead) this.deaths.onChange();
       // The stacks are locked from "Licht aus"; Foundry's pause follows the clock.
       if (key === SETTINGS.candleClock) {
         this.sheets.renderAll();
@@ -279,6 +285,7 @@ export class FoundryTable {
   seatData(user) {
     return {
       name: user.character?.name || user.name,
+      dead: this.deaths.isDead(user),
       face: this.plain ? null : this.faces.get(user),
       ...this.cardsOf(user)
     };
@@ -296,7 +303,9 @@ export class FoundryTable {
     if (!system) return { cards: pending, hope: false };
     const unburned = unburnedTraits(system);
     this.unburned.set(user.character.id, unburned);
-    if (!own) return { cards: [], hope: system.hopeDieAvailable };
+    // The dead roll no more; a Martyr's hope die is carried on by another.
+    const hope = system.hopeDieAvailable && !this.deaths.isDead(user);
+    if (!own) return { cards: [], hope };
     const waiting = (key) => this.rerollBurns.get(`${user.character.id}:${key}`);
     const traits = [...system.resourceOrderList]
       .reverse()
@@ -305,7 +314,7 @@ export class FoundryTable {
     const brink = written(system, "brink")
       ? [{ label: game.i18n.localize(this.ritual.brinkLabel(user)), text: system.brink.text, faceDown: true }]
       : [];
-    return { cards: [...brink, ...traits, ...pending], hope: system.hopeDieAvailable };
+    return { cards: [...brink, ...traits, ...pending], hope };
   }
 
   refreshSeats() {
@@ -689,10 +698,10 @@ export class FoundryTable {
     this.showAlive();
   }
 
-  /** The GM called off a roll during the truths. */
+  /** The GM called off a roll: during the truths, or by someone whose character has died. */
   noRoll(message, senderId) {
     if (senderId !== game.users.activeGM?.id || message.gameId !== this.gameId) return;
-    ui.notifications.warn(game.i18n.localize("TCT.Truths.NoRoll"));
+    ui.notifications.warn(game.i18n.localize(message.dead ? "TCT.Death.NoRoll" : "TCT.Truths.NoRoll"));
   }
 
   showAlive() {

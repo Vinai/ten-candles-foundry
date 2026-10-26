@@ -978,6 +978,45 @@ body:not(.tct-the-end) .tct-phrase.is-final {
   color: #f3d58a;
 }
 
+/* The dead are still at the table, in black and white like an old television; they roll no more. The filter keeps
+   the face's list of functions, so it fades over from colour. */
+.tct-seat.is-dead .tct-face {
+  position: relative;
+  filter: brightness(calc(0.12 + 0.95 * var(--tct-light))) sepia(0) saturate(0) contrast(1.35);
+}
+
+.tct-seat.is-dead .tct-face::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.28) 0 1px, transparent 1px 3px);
+  pointer-events: none;
+}
+
+body.tct-dead .ets-floating-roll {
+  display: none !important;
+}
+
+.tct-death-list {
+  margin: 0.5rem 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tct-death-list li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.8rem;
+  align-items: center;
+  padding: 0.25rem 0;
+}
+
+.tct-heirs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
 /* While the truths are spoken nobody rolls. */
 body.tct-truths :is(.ets-floating-roll, .ets-sheet-roll) {
   display: none !important;

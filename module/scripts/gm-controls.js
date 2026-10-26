@@ -31,6 +31,8 @@ export class GMControls {
     this.pauseButton = this.button(() => this.togglePause());
     this.draughtButton = this.button(() => this.draught(), "TCT.GM.Draught");
     this.draughtButton.dataset.tooltip = game.i18n.localize("TCT.GM.DraughtHint");
+    this.deathsButton = this.button(() => this.table.deaths.edit(), "TCT.GM.Deaths");
+    this.deathsButton.dataset.tooltip = game.i18n.localize("TCT.GM.DeathsHint");
     this.aliveButton = this.button(() => this.table.sayAlive(), "TCT.GM.Alive");
     this.aliveButton.dataset.tooltip = game.i18n.localize("TCT.GM.AliveHint");
     this.recorderButton = this.button(() => this.recorderStep());
@@ -49,6 +51,7 @@ export class GMControls {
       this.pauseButton,
       this.draughtButton,
       this.aliveButton,
+      this.deathsButton,
       this.recorderButton,
       this.playButton,
       this.status,
@@ -251,7 +254,7 @@ export class GMControls {
    */
   onGaState(state) {
     if (!this.inCharge) return;
-    this.refuseRollDuringTruths(state);
+    this.refuseRoll(state);
     this.callOffPracticeRoll(state);
     const darkened = this.darkened;
     if (!darkened || Date.now() > darkened.until) return;
@@ -277,15 +280,18 @@ export class GMControls {
   }
 
   /**
-   * Nobody rolls while the truths are spoken. The roll buttons are hidden, but a conflict can still be asked for
-   * (e.g. from the scene controls on a plain table); the GM's browser calls it off and tells the player.
+   * Nobody rolls while the truths are spoken, and the dead roll no more. Their roll buttons are hidden, but a
+   * conflict can still be asked for (e.g. from the scene controls on a plain table); the GM's browser calls it off
+   * and tells the player.
    */
-  refuseRollDuringTruths(state) {
+  refuseRoll(state) {
     const resolution = state.activeResolution;
-    if (!resolution || !this.table.truths.active || this.refused === resolution.id) return;
+    if (!resolution || this.refused === resolution.id) return;
+    const dead = this.table.deaths.isDead(game.users.get(resolution.playerId));
+    if (!this.table.truths.active && !dead) return;
     this.refused = resolution.id;
     game.evilTenCandles?.cancelActiveResolution();
-    const message = { type: "no-roll", gameId: state.gameId };
+    const message = { type: "no-roll", gameId: state.gameId, dead };
     game.socket.emit(SOCKET, message, { recipients: [resolution.playerId] });
     if (resolution.playerId === game.user.id) this.table.noRoll(message, game.user.id);
   }
@@ -322,6 +328,7 @@ export class GMControls {
     this.draughtButton.disabled = !isStarted(clock) || this.table.gaState().litCandles <= 0;
     // At the very end nobody is left to answer.
     this.aliveButton.hidden = !isStarted(clock) || this.table.burningCandles() <= 0;
+    this.deathsButton.hidden = !isStarted(clock) || this.table.burningCandles() <= 0;
     // Lit up while the truths are being spoken: they end with this button.
     this.aliveButton.classList.toggle("is-urgent", this.table.truths.active);
 

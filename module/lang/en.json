@@ -42,6 +42,8 @@
     "GM": {
       "Seats": "Seating",
       "StepBack": "Step back",
+      "Deaths": "The dead",
+      "DeathsHint": "Mark whose character has died (and whether as a Martyr). The dead no longer roll or speak truths.",
       "StepBackHint": "Back to the previous step of character creation. Every card stays written; what that step passed on is passed on again.",
       "LightsOut": "Lights out",
       "LightsOn": "Lights on",
@@ -128,6 +130,18 @@
     },
     "Conflict": {
       "Failure": "Failure"
+    },
+    "Death": {
+      "Title": "The dead",
+      "Hint": "Whose character has died? Martyrs may pass on their hope die. Unticking brings a character back, should it have been a slip.",
+      "Dead": "dead",
+      "Martyr": "Martyr",
+      "Save": "Apply",
+      "NoRoll": "Your character has died and rolls no more. The roll was called off.",
+      "HeirTitle": "Martyrdom",
+      "HeirHint": "{name} dies a Martyr. Who gets the hope die?",
+      "HeirChoose": "Pass it on",
+      "HopeGiven": "{to} receives {from}'s hope die."
     },
     "Moment": {
       "Question": "Does the situation fit the Moment?",

@@ -37,11 +37,16 @@ export class Truths {
     return game.settings.set(MODULE_ID, SETTINGS.truths, {});
   }
 
-  /** Who speaks which truth: clockwise from the first speaker, the last one spoken by all players. */
+  /**
+   * Who speaks which truth: clockwise from the first speaker, the last one spoken by all players. The dead speak no
+   * more; a dead first speaker passes it on to the next one clockwise.
+   */
   speakers({ candles, first }) {
     const users = this.table.users;
-    const start = Math.max(users.findIndex((user) => user.id === first), 0);
-    return Array.from({ length: candles - 1 }, (_, i) => users[(start + i) % users.length]);
+    const from = Math.max(users.findIndex((user) => user.id === first), 0);
+    const living = [...users.slice(from), ...users.slice(0, from)].filter((user) => !this.table.deaths.isDead(user));
+    if (!living.length) return [];
+    return Array.from({ length: candles - 1 }, (_, i) => living[i % living.length]);
   }
 
   /** The card over the bowl: the number of truths for the players, the whole order for the GM. */

@@ -81,6 +81,7 @@ export class TableStage {
     this.seatElements = seats.map((data) => {
       const seat = document.createElement("div");
       seat.className = "tct-seat";
+      seat.classList.toggle("is-dead", Boolean(data.dead));
       const face = document.createElement("div");
       face.className = "tct-face";
       face.append(data.face);
@@ -101,7 +102,9 @@ export class TableStage {
   /** Replace one seat's name, cards and hope die without rebuilding the table. */
   updateSeat(index, data) {
     this.seats[index] = data;
-    this.seatElements[index].seat.querySelector(".tct-name").textContent = data.name;
+    const { seat } = this.seatElements[index];
+    seat.querySelector(".tct-name").textContent = data.name;
+    seat.classList.toggle("is-dead", Boolean(data.dead));
     this.renderStack(index);
   }
 

@@ -11,6 +11,7 @@ export const SETTINGS = {
   recorder: "recorder",
   truths: "truths",
   momentRoll: "momentRoll",
+  dead: "dead",
   plainTable: "plainTable"
 };
 
@@ -76,6 +77,15 @@ export function registerSettings() {
     type: Object,
     default: {},
     onChange: (value) => Hooks.callAll(SETTING_CHANGED_HOOK, SETTINGS.momentRoll, value)
+  });
+
+  // Characters who have died in this game, and the hope a Martyr passed on. See deaths.js.
+  game.settings.register(MODULE_ID, SETTINGS.dead, {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: {},
+    onChange: (value) => Hooks.callAll(SETTING_CHANGED_HOOK, SETTINGS.dead, value)
   });
 
   // Escape hatch for weak machines or trouble: keep Foundry's own canvas and camera dock.

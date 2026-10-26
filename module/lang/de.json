@@ -42,6 +42,8 @@
     "GM": {
       "Seats": "Sitzordnung",
       "StepBack": "Schritt zurück",
+      "Deaths": "Tote",
+      "DeathsHint": "Markiere, wessen Figur gestorben ist (und ob als Märtyrer). Tote würfeln nicht mehr und sprechen keine Wahrheiten.",
       "StepBackHint": "Zurück zum vorigen Schritt der Charaktererschaffung. Alle Karten bleiben geschrieben; was dieser Schritt weitergegeben hat, wird noch einmal weitergegeben.",
       "LightsOut": "Licht aus",
       "LightsOn": "Licht an",
@@ -128,6 +130,18 @@
     },
     "Conflict": {
       "Failure": "Fehlschlag"
+    },
+    "Death": {
+      "Title": "Tote",
+      "Hint": "Wessen Figur ist gestorben? Märtyrer können ihren Hoffnungswürfel weitergeben. Ein Haken weg holt eine Figur zurück, falls es ein Versehen war.",
+      "Dead": "tot",
+      "Martyr": "Märtyrertod",
+      "Save": "Übernehmen",
+      "NoRoll": "Deine Figur ist gestorben und würfelt nicht mehr. Der Wurf wurde abgebrochen.",
+      "HeirTitle": "Märtyrertod",
+      "HeirHint": "{name} stirbt als Märtyrer. Wer bekommt den Hoffnungswürfel?",
+      "HeirChoose": "Weitergeben",
+      "HopeGiven": "{to} erhält den Hoffnungswürfel von {from}."
     },
     "Moment": {
       "Question": "Passt die Situation zum Moment?",
