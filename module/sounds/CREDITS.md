@@ -9,6 +9,7 @@ Each file is a cut of the original: mixed to mono, faded at the ends and levelle
 | `match-strike.wav` | [Match Lighting Candle](https://freesound.org/people/devilqube/sounds/370362/) | devilqube | whole |
 | `candle-out.wav` | [Blowing Out Candle_shorter.wav](https://freesound.org/people/tlcolbe/sounds/406647/) | tlcolbe | last 1.2 s |
 | `card-burn.wav` | [1.10_burning-paper.wav](https://freesound.org/people/15GKovacovaJulie/sounds/461075/) | 15GKovacovaJulie | 0.2–10.2 s |
-| `dice-roll.wav` | [Dice Rolling on Table](https://freesound.org/people/Flem0527/sounds/629982/) | Flem0527 | 0.09–1.11 s |
+| `dice-pair.wav` | [Dice Rolling on Table](https://freesound.org/people/Flem0527/sounds/629982/) | Flem0527 | 0.09–1.11 s |
+| `dice-single.wav` | [Dice_Rolls_15cm.wav](https://freesound.org/people/andresix/sounds/347807/) | andresix | 0.55–1.30 s |
 | `recorder-start.wav` | [Tape Deck Buttons and Switches](https://freesound.org/people/Nekkowe/sounds/403247/) | Nekkowe | 0.15–0.78 s |
 | `recorder-stop.wav` | [Tape Deck Buttons and Switches](https://freesound.org/people/Nekkowe/sounds/403247/) | Nekkowe | 1.27–2.15 s |

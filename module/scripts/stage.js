@@ -47,7 +47,7 @@ export class TableStage {
     this.table = new CandleTable(canvas, image);
     this.table.onFrame = () => this.updateLight();
     this.dice = this.createDice();
-    this.rolling = new RollingDice(this.root, () => this.sounds.dice());
+    this.rolling = new RollingDice(this.root, (count) => this.sounds.dice(count));
     this.setSeats(seats, viewer);
     this.onResize = () => {
       this.table.resize();

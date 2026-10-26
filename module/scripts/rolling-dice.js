@@ -56,7 +56,7 @@ const SHOW = {
  * on exactly the faces the game rolled. They stay where they fell until cleared.
  */
 export class RollingDice {
-  /** @param onThrow {() => void} called as the dice leave the hand, for their sound */
+  /** @param onThrow {(count: number) => void} called as the dice leave the hand, for their sound */
   constructor(root, onThrow = () => {}) {
     this.root = root;
     this.onThrow = onThrow;
@@ -86,7 +86,7 @@ export class RollingDice {
     });
     const size = elements[0]?.offsetWidth ?? 0;
     const spots = scatter(area, dice.length, size * SPACING, random);
-    if (dice.length) this.onThrow();
+    if (dice.length) this.onThrow(dice.length);
     return Promise.all(dice.map((die, i) => this.throw(elements[i], die.value, from, spots[i], random))).then(() => {});
   }
 
