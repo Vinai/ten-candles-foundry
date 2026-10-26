@@ -652,6 +652,15 @@ body.tct-active .ets-floating-roll {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+/* A GM's 6 does not decide the conflict, but it counts against the players' 6s for the narration: a threat, not
+   the Game Assistant's success green. */
+.ets-die.ets-die--red.is-success {
+  border-color: #c0392b;
+  color: #ff6b5e;
+  background: #1a0d0c;
+  box-shadow: 0 0 0.5rem rgba(220, 50, 40, 0.65);
+}
+
 /* The GM's dice still to come, on the players' conflict card. */
 .ets-conflict-gm-reserved-space .is-sizer.tct-gm-dice-waiting {
   visibility: visible;
