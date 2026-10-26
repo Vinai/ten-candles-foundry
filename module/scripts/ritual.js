@@ -4,6 +4,8 @@ import { SETTINGS } from "./settings.js";
 
 // Long enough for the slide in stage.js (1.8 s) to land before the cards appear in the recipients' stacks.
 const PASS_MS = 2000;
+// Once passed cards lie in their new stacks, the candles of the step are lit this much later.
+const LIGHT_AFTER_PASS_MS = 2000;
 // A writer waits this long for the GM to confirm a card before telling the player it did not arrive.
 const ACK_TIMEOUT_MS = 8000;
 // More than any card holds; keeps a misbehaving client from filling the world setting.
@@ -323,6 +325,12 @@ export class Ritual {
       }
       const theyCard = step.writes ? await this.deliver(this.state(), step.writes) : state.theyCard;
       if (!unchanged()) return;
+      if (step.pass) {
+        // The cards settle in their stacks first, the GM's card about Them too; then the candles are lit.
+        await this.save({ ...this.state(), theyCard });
+        await new Promise((resolve) => window.setTimeout(resolve, LIGHT_AFTER_PASS_MS));
+        if (!unchanged()) return;
+      }
       await this.save({ ...this.state(), step: step.next, passing: null, theyCard });
     });
   }
