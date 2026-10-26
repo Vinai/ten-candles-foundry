@@ -21,6 +21,14 @@
         "Look": "Aussehen: Wie sieht sie auf den ersten Blick aus?",
         "Concept": "Konzept: Wer oder was ist sie, in wenigen Worten?",
         "Then": "Danach: „{button}“."
+      },
+      "Arrange": {
+        "Title": "Stapel ordnen",
+        "Ask": "Bitte die Spielerinnen und Spieler, im Charakterbogen ihren Stapel zu ordnen (eine Karte ziehen):",
+        "Order": "Tugend, Laster und Moment in beliebiger Reihenfolge. Nur die oberste Karte ist im Spiel.",
+        "Brink": "Der Abgrund liegt immer ganz unten.",
+        "Moments": "In der Runde möglichst nicht mehr als ein Moment obenauf.",
+        "Then": "Danach: „{button}“. Ab dann ist die Reihenfolge fest."
       }
     },
     "Card": {

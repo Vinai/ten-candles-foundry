@@ -1,3 +1,4 @@
+import { isStarted } from "./candle-clock.js";
 import { MODULE_ID, SOCKET } from "./constants.js";
 import { leftOf, rightOf } from "./seat-layout.js";
 import { SETTINGS } from "./settings.js";
@@ -23,6 +24,12 @@ const STEPS = {
   momentsDone: { next: "brinks", button: "TCT.Ritual.Step.Brinks", candles: 6 },
   brinks: { next: "arrange", button: "TCT.Ritual.Step.Pass", candles: 6, writes: ["brink"], pass: true, gmWrites: true },
   arrange: { candles: 9 }
+};
+
+// What the GM is reminded of while the players work on their own: strings under TCT.Ritual.<key>, then the button.
+const GM_CARDS = {
+  concepts: { key: "Concepts", items: ["Name", "Look", "Concept"], then: STEPS.concepts.button },
+  arrange: { key: "Arrange", items: ["Order", "Brink", "Moments"], then: "TCT.GM.LightsOut" }
 };
 
 const LABELS = {
@@ -135,19 +142,22 @@ export class Ritual {
   }
 
   /**
-   * The GM's card over the bowl while the players work out their concepts (the rulebook's "Create Concepts"): what to
-   * ask of them, and what comes next. Null at any other time, and for players.
+   * The GM's card over the bowl for the steps the players do on their own: what to ask of them, and what comes next.
+   * While they work out their concepts (the rulebook's "Create Concepts") and once the Brinks are passed, while they
+   * arrange their stacks, until "Licht aus". Null at any other time, and for players.
    */
-  conceptsCard() {
-    if (!game.user.isGM || this.state().step !== "concepts") return null;
-    const t = (key, data) => foundry.utils.escapeHTML(game.i18n.format(`TCT.Ritual.Concepts.${key}`, data ?? {}));
-    const card = document.createElement("article");
-    card.className = "tct-truths-card";
-    const items = ["Name", "Look", "Concept"].map((key) => `<li>${t(key)}</li>`).join("");
-    card.innerHTML =
+  gmCard() {
+    const step = this.state().step;
+    const card = GM_CARDS[step];
+    if (!game.user.isGM || !card || isStarted(this.table.clock())) return null;
+    const t = (key, data) => foundry.utils.escapeHTML(game.i18n.format(`TCT.Ritual.${card.key}.${key}`, data ?? {}));
+    const element = document.createElement("article");
+    element.className = "tct-truths-card";
+    const items = card.items.map((key) => `<li>${t(key)}</li>`).join("");
+    element.innerHTML =
       `<h3>${t("Title")}</h3><p class="tct-truths-left">${t("Ask")}</p><ul class="tct-truths-list">${items}</ul>` +
-      `<p class="tct-truths-opening">${t("Then", { button: game.i18n.localize(STEPS.concepts.button) })}</p>`;
-    return card;
+      `<p class="tct-truths-opening">${t("Then", { button: game.i18n.localize(card.then) })}</p>`;
+    return element;
   }
 
   /** The GM keeps the card the player on their right wrote about Them. */

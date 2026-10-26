@@ -10,9 +10,9 @@ const PRECEDENCE = ["resolution", "instant", "ball-of-truths"];
 /**
  * The Game Assistant's latest chat card (conflict, Moment, truths, …) lies above the bowl in a pool of light, so
  * nobody needs the chat. It is the real message rendered once more: the Game Assistant wires up its buttons itself.
- * While the players work out their concepts, the GM finds what to ask of them there. While the truths are spoken,
- * the table's own truths card lies there instead (the GM keeps the Game Assistant's card while it still has a button
- * to press). The table can hold it back while dice roll or a card burns.
+ * While the players work out their concepts or arrange their stacks, the GM finds what to ask of them there. While
+ * the truths are spoken, the table's own truths card lies there instead (the GM keeps the Game Assistant's card while
+ * it still has a button to press). The table can hold it back while dice roll or a card burns.
  */
 export class ConflictMirror {
   constructor(table, element) {
@@ -102,8 +102,8 @@ export class ConflictMirror {
 
   /** What lies over the bowl right now: a rendered element, or null for nothing. */
   async content() {
-    const concepts = this.table.ritual.conceptsCard();
-    if (concepts) return concepts;
+    const reminder = this.table.ritual.gmCard();
+    if (reminder) return reminder;
     const state = this.table.gaState();
     let message = game.messages.get(this.messageId);
     // Once this card is settled, another one may still be waiting, e.g. an earlier Moment.
