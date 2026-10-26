@@ -22,8 +22,10 @@ const SMOKE_MS = 3000;
 const BURN_FADE_MS = 1500;
 const BEFORE_BURN_MS = 2400;
 const AFTER_BURN_MS = 5000;
-// The conflict card comes back this long after the dice came to rest.
-const AFTER_DICE_MS = 4000;
+// The conflict card comes back this long after the dice came to rest. Before "Licht aus" there is no card, only dice
+// rolled to hear them, and they lie a little longer.
+const AFTER_DICE_MS = 3000;
+const AFTER_PRACTICE_DICE_MS = 4000;
 // At "Licht aus" the dice row appears this long after the click: the match, the last candle catching, a breath.
 const DICE_AFTER_LIGHTS_MS = 2000;
 // A trait spent during its owner's conflict waits this long for the Game Assistant to say it was for a reroll.
@@ -566,13 +568,17 @@ export class FoundryTable {
     return run;
   }
 
+  afterDice() {
+    return isStarted(this.clock()) ? AFTER_DICE_MS : AFTER_PRACTICE_DICE_MS;
+  }
+
   throwDice(seat, dice, seed) {
     if (!dice.length) return;
     return this.diceThrown(this.beat(
       async (current) => {
         try {
           await this.stage.rollDice(seat, dice, seed);
-          if (current()) await wait(AFTER_DICE_MS);
+          if (current()) await wait(this.afterDice());
         } finally {
           this.stage.clearDice();
         }
@@ -594,7 +600,7 @@ export class FoundryTable {
           await wait(AFTER_BURN_MS);
           if (!current()) return;
           await this.stage.rollDice(this.seatOf(actor), dice, seed);
-          if (current()) await wait(AFTER_DICE_MS);
+          if (current()) await wait(this.afterDice());
         } finally {
           this.stage.clearDice();
         }
