@@ -327,6 +327,16 @@ export class Ritual {
     });
   }
 
+  /** TEMPORARY, for testing: back to the previous step, keeping what was written, so passing can be tried again. */
+  stepBack() {
+    return this.enqueue(async () => {
+      const state = this.state();
+      const previous = Object.keys(STEPS).find((key) => STEPS[key].next === state.step);
+      if (!previous || state.passing) return;
+      await this.save({ ...state, step: previous });
+    });
+  }
+
   /** Writes the step's cards into the recipients' sheets. @returns the card about Them, if the GM received it */
   async deliver(state, kinds) {
     let theyCard = state.theyCard;

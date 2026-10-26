@@ -25,6 +25,9 @@ export class GMControls {
     this.panel.className = "tct-gm-panel";
     this.seatsButton = this.button(() => this.editSeats(), "TCT.GM.Seats");
     this.ritualButton = this.button(() => this.nextRitualStep());
+    // TEMPORARY, for testing passing again and again; revert this commit before the game.
+    this.backButton = this.button(() => this.table.ritual.stepBack());
+    this.backButton.textContent = "Test: Schritt zurück";
     this.lightsButton = this.button(() => this.toggleLights());
     this.pauseButton = this.button(() => this.togglePause());
     this.draughtButton = this.button(() => this.draught(), "TCT.GM.Draught");
@@ -42,6 +45,7 @@ export class GMControls {
     this.panel.append(
       this.seatsButton,
       this.ritualButton,
+      this.backButton,
       this.lightsButton,
       this.pauseButton,
       this.draughtButton,
@@ -312,6 +316,7 @@ export class GMControls {
     // Settled during character creation: the cards were passed along this order.
     this.seatsButton.hidden = isStarted(clock);
     this.ritualButton.textContent = ritual.nextLabel ?? "";
+    this.backButton.hidden = isStarted(clock) || ritual.state().step === "idle";
     this.lightsButton.textContent = game.i18n.localize(this.lightsOut ? "TCT.GM.LightsOn" : "TCT.GM.LightsOut");
     this.pauseButton.textContent = game.i18n.localize(isPaused(clock) ? "TCT.GM.Resume" : "TCT.GM.Pause");
     this.pauseButton.disabled = !isStarted(clock);
