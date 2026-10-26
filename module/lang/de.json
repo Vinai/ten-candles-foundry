@@ -126,6 +126,9 @@
       "Down": "Nach unten",
       "Save": "Übernehmen"
     },
+    "Conflict": {
+      "Failure": "Fehlschlag"
+    },
     "Truths": {
       "Title": "Ritual der Wahrheiten",
       "One": "1 Wahrheit",
@@ -144,8 +147,9 @@
       "PositionHint": "Platz im Stapel: Nur die oberste Karte ist aktiv. Ziehe eine Karte, um die Reihenfolge zu ändern."
     }
   },
-  "ETC.Chat.ProvisionalPlayerNarrates": "{name} erhält Narrativ",
-  "ETC.Chat.ProvisionalGMNarrates": "GM erhält Narrativ",
+  "ETC.Chat.ProvisionalSuccess": "Erfolg",
+  "ETC.Chat.ProvisionalPlayerNarrates": "Narrativ: {name} (vorläufig)",
+  "ETC.Chat.ProvisionalGMNarrates": "Narrativ: GM (vorläufig)",
   "ETC.Chat.FinalPlayerNarrates": "{name} erhält das Narrativ.",
   "ETC.Chat.FinalGMNarrates": "Der GM erhält das Narrativ.",
   "ETC.Chat.NarrationSeizeCompact": "{name} kann das Narrativ übernehmen",

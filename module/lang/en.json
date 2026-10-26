@@ -126,6 +126,9 @@
       "Down": "Move down",
       "Save": "Apply"
     },
+    "Conflict": {
+      "Failure": "Failure"
+    },
     "Truths": {
       "Title": "Establishing truths",
       "One": "1 truth",

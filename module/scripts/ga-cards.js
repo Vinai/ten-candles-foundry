@@ -88,6 +88,11 @@ function decorateConflict(message, html) {
     actions.remove();
     html.querySelector(".ets-conflict-player-row")?.classList.remove("has-actions");
   }
+  // A failure is only provisional while the player can still reroll: 1s and an unused top card, or the Brink.
+  const failure = html.querySelector(".is-provisional-failure .ets-conflict-result__heading strong");
+  if (failure && !html.querySelector(".ets-conflict-resource-action:not([disabled])")) {
+    failure.textContent = game.i18n.localize("TCT.Conflict.Failure");
+  }
 }
 
 /**
