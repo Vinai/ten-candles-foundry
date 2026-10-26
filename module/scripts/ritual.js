@@ -156,7 +156,7 @@ export class Ritual {
     const items = card.items.map((key) => `<li>${t(key)}</li>`).join("");
     element.innerHTML =
       `<h3>${t("Title")}</h3><p class="tct-truths-left">${t("Ask")}</p><ul class="tct-truths-list">${items}</ul>` +
-      `<p class="tct-truths-opening">${t("Then", { button: game.i18n.localize(card.then) })}</p>`;
+      `<p class="tct-truths-opening tct-gm-then">${t("Then", { button: game.i18n.localize(card.then) })}</p>`;
     return element;
   }
 

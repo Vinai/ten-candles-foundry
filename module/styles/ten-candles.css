@@ -939,6 +939,11 @@ body:not(.tct-the-end) .tct-phrase.is-final {
   border-top: 1px solid rgba(216, 201, 168, 0.15);
 }
 
+/* On the GM's reminders, what comes next stands apart from the list. */
+.tct-gm-then {
+  margin: 1rem 0 0;
+}
+
 .tct-truths-list li.is-alive {
   color: #f3d58a;
 }
