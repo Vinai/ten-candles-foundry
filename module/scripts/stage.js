@@ -263,7 +263,7 @@ export class TableStage {
   }
 
   /**
-   * Dice thrown from a seat onto the tray around the bowl, anywhere up to its rim, landing on the given faces.
+   * Dice thrown from a seat onto the tray, anywhere up to its rim (the bowl too), landing on the given faces.
    * @param dice {{value: number, kind: "player"|"hope"|"gm"}[]}
    * @returns {Promise<void>} once they are at rest
    */
@@ -273,8 +273,7 @@ export class TableStage {
     const from = this.seatElements[seat] ? this.ringPoint(this.seatElements[seat].angle) : { x: tray.x, y: tray.y + tray.ry };
     const rx = tray.rx;
     const ry = tray.ry * 0.95;
-    const hole = Math.min((bowl.rx * 1.3) / rx, 0.8);
-    return this.rolling.roll(from, { x: bowl.x, y: bowl.y, rx, ry, hole }, dice, seed);
+    return this.rolling.roll(from, { x: bowl.x, y: bowl.y, rx, ry }, dice, seed);
   }
 
   clearDice() {

@@ -65,8 +65,7 @@ export class RollingDice {
 
   /**
    * @param from {{x: number, y: number}} where the dice leave the hand
-   * @param area {{x: number, y: number, rx: number, ry: number, hole: number}} the ellipse they land in, with a hole
-   *   (share of its size) they keep out of, so none ends up in the bowl
+   * @param area {{x: number, y: number, rx: number, ry: number}} the ellipse they land in
    * @param dice {{value: number, kind: "player"|"hope"|"gm"}[]}
    * @param seed {string} the same throw lands the same way in every browser
    * @returns {Promise<void>} once every die is at rest
@@ -160,10 +159,10 @@ function face(value, ink) {
 }
 
 /**
- * Spots in the landing ring, apart enough that no die lies on another. Where the ring is too crowded for that, a die
+ * Spots in the landing ellipse, apart enough that no die lies on another. Where it is too crowded for that, a die
  * takes the spot furthest from the others.
  */
-function scatter({ x, y, rx, ry, hole }, count, gap, random) {
+function scatter({ x, y, rx, ry }, count, gap, random) {
   const spots = [];
   const offset = random() * Math.PI * 2;
   for (let i = 0; i < count; i++) {
@@ -171,8 +170,8 @@ function scatter({ x, y, rx, ry, hole }, count, gap, random) {
     let bestRoom = -1;
     for (let k = 0; k < TRIES; k++) {
       const angle = offset + ((i + random()) / count) * Math.PI * 2 + (random() - 0.5) * 1.2;
-      // Spread evenly over the ring's area, so the wide outer part gets its share.
-      const radius = Math.sqrt(hole * hole + (1 - hole * hole) * random());
+      // Spread evenly over the area, so the wide outer part gets its share.
+      const radius = Math.sqrt(random());
       const spot = { x: x + Math.cos(angle) * rx * radius, y: y + Math.sin(angle) * ry * radius };
       const room = Math.min(Infinity, ...spots.map((other) => Math.hypot(spot.x - other.x, spot.y - other.y)));
       if (room > bestRoom && bestRoom < gap) {
