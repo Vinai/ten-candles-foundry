@@ -457,11 +457,7 @@ export class TableStage {
       stack.style.top = `${pos.isViewer ? Math.max(point.y, this.belowDice(tray)) : point.y}px`;
     });
     this.placeRecorder();
-    if (this.xCard) {
-      // On the table off the tray's top right, clear of the candles, the card over the bowl and the seats.
-      this.xCard.style.left = `${tray.x + tray.rx * 1.02}px`;
-      this.xCard.style.top = `${tray.y - tray.ry * 1.1}px`;
-    }
+    if (this.xCard) this.placeXCard(tray);
     if (this.mirror) {
       const bowl = this.table.bowlOnScreen;
       this.mirror.style.left = `${bowl.x}px`;
@@ -469,6 +465,34 @@ export class TableStage {
     }
     this.dice.style.left = `${tray.x}px`;
     this.dice.style.top = `${tray.y + tray.ry + DICE_ROW_GAP}px`;
+  }
+
+  /**
+   * The X-card lies on the table just off the tray's top right, clear of the candles and the card over the bowl.
+   * Where exactly depends on the seats: of the spots along that stretch of the rim, the one furthest from any face or
+   * stack.
+   */
+  placeXCard(tray) {
+    const boxes = this.seatElements.flatMap(({ seat, stack }) =>
+      [seat, stack].map((el) => ({
+        x: parseFloat(el.style.left),
+        y: parseFloat(el.style.top),
+        halfWidth: el.offsetWidth / 2,
+        halfHeight: el.offsetHeight / 2
+      }))
+    );
+    // How far a point is from a box (0 inside it).
+    const room = (p) =>
+      Math.min(...boxes.map((b) => Math.hypot(Math.max(Math.abs(p.x - b.x) - b.halfWidth, 0), Math.max(Math.abs(p.y - b.y) - b.halfHeight, 0))));
+    let best = null;
+    for (let degrees = -85; degrees <= 0; degrees += 5) {
+      const angle = (degrees * Math.PI) / 180;
+      const spot = { x: tray.x + Math.cos(angle) * tray.rx * 1.1, y: tray.y + Math.sin(angle) * tray.ry * 1.2 };
+      spot.room = room(spot);
+      if (!best || spot.room > best.room) best = spot;
+    }
+    this.xCard.style.left = `${best.x}px`;
+    this.xCard.style.top = `${best.y}px`;
   }
 
   /** Where a stack's centre must be to clear the dice row under the tray, even with all cards fanned out. */
