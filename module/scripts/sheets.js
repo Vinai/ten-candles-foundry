@@ -62,7 +62,8 @@ export class CharacterSheets {
       badge.className = "tct-stack-position";
       badge.textContent = label ? game.i18n.format(label, { n }) : String(n);
       badge.dataset.tooltip = game.i18n.localize("TCT.Sheet.PositionHint");
-      card.querySelector(".etc-resource-heading")?.prepend(badge);
+      card.classList.add("tct-numbered");
+      card.prepend(badge);
     });
   }
 
