@@ -9,6 +9,8 @@ const STACK_SPREAD_X = 1.28;
 const STACK_SPREAD_Y = 1.45;
 // The match is struck, then the candles catch.
 const STRIKE_TO_FLAME_MS = 1000;
+// The X-card keeps this much room (in vw) to the tray, the faces and the stacks, where it can.
+const X_CARD_ROOM_VW = 2.5;
 const TOTAL_DICE = 10;
 // The dice row hangs this far below the tray; its dice and the stacks are sized in vw (see ten-candles.css).
 const DICE_ROW_GAP = 10;
@@ -468,11 +470,12 @@ export class TableStage {
   }
 
   /**
-   * The X-card lies on the table just off the tray's top right, clear of the candles and the card over the bowl.
-   * Where exactly depends on the seats: of the spots along that stretch of the rim, the one furthest from any face or
-   * stack.
+   * The X-card lies on the table off the tray's top right, clear of the candles and the card over the bowl. Where
+   * exactly depends on the seats: the spot nearest the tray and the diagonal that keeps enough room to the rim (the
+   * candles there stand up over it), to every face and to every stack.
    */
   placeXCard(tray) {
+    const enough = X_CARD_ROOM_VW * (window.innerWidth / 100);
     const boxes = this.seatElements.flatMap(({ seat, stack }) =>
       [seat, stack].map((el) => ({
         x: parseFloat(el.style.left),
@@ -482,14 +485,18 @@ export class TableStage {
       }))
     );
     // How far a point is from a box (0 inside it).
-    const room = (p) =>
-      Math.min(...boxes.map((b) => Math.hypot(Math.max(Math.abs(p.x - b.x) - b.halfWidth, 0), Math.max(Math.abs(p.y - b.y) - b.halfHeight, 0))));
+    const fromBox = (p, b) =>
+      Math.hypot(Math.max(Math.abs(p.x - b.x) - b.halfWidth, 0), Math.max(Math.abs(p.y - b.y) - b.halfHeight, 0));
+    const room = (p, reach) => Math.min((reach - 1) * tray.ry, ...boxes.map((b) => fromBox(p, b)));
+    // The diagonal first, then ever further to either side of it.
+    const angles = [0, 5, -5, 10, -10, 15, -15, 20, -20, 25, -25, 30, -30, 35, -35, 40].map((d) => ((d - 45) * Math.PI) / 180);
     let best = null;
-    for (let degrees = -85; degrees <= 0; degrees += 5) {
-      const angle = (degrees * Math.PI) / 180;
-      const spot = { x: tray.x + Math.cos(angle) * tray.rx * 1.1, y: tray.y + Math.sin(angle) * tray.ry * 1.2 };
-      spot.room = room(spot);
-      if (!best || spot.room > best.room) best = spot;
+    for (let reach = 1.1; reach <= 1.6; reach += 0.05) {
+      for (const angle of angles) {
+        const spot = { x: tray.x + Math.cos(angle) * tray.rx * reach, y: tray.y + Math.sin(angle) * tray.ry * reach };
+        spot.room = Math.min(room(spot, reach), enough);
+        if (!best || spot.room > best.room + 0.5) best = spot;
+      }
     }
     this.xCard.style.left = `${best.x}px`;
     this.xCard.style.top = `${best.y}px`;
