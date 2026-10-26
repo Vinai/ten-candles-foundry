@@ -13,7 +13,15 @@
         "MomentsDone": "Moments done",
         "Brinks": "Write “I have seen you …”"
       },
-      "Written": "{done} of {total} written"
+      "Written": "{done} of {total} written",
+      "Concepts": {
+        "Title": "Concepts",
+        "Ask": "Ask the players to work out a concept for their characters and introduce them to the group:",
+        "Name": "Name: what are they called?",
+        "Look": "Look: what do they look like at a quick glance?",
+        "Concept": "Concept: in a few words, who or what are they?",
+        "Then": "Then: “{button}”."
+      }
     },
     "Card": {
       "Virtue": "Virtue",

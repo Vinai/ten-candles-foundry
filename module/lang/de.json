@@ -13,7 +13,15 @@
         "MomentsDone": "Momente fertig",
         "Brinks": "„Ich habe dich gesehen …“ schreiben"
       },
-      "Written": "{done} von {total} geschrieben"
+      "Written": "{done} von {total} geschrieben",
+      "Concepts": {
+        "Title": "Konzepte",
+        "Ask": "Bitte die Spielerinnen und Spieler, sich ein Konzept für ihre Figur zu überlegen und es der Runde vorzustellen:",
+        "Name": "Name: Wie heißt die Figur?",
+        "Look": "Aussehen: Wie sieht sie auf den ersten Blick aus?",
+        "Concept": "Konzept: Wer oder was ist sie, in wenigen Worten?",
+        "Then": "Danach: „{button}“."
+      }
     },
     "Card": {
       "Virtue": "Tugend",

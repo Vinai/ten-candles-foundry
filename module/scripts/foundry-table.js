@@ -151,7 +151,10 @@ export class FoundryTable {
     Hooks.on(SETTING_CHANGED_HOOK, (key) => {
       if (key === SETTINGS.lightsOut) this.applyLights();
       if (key === SETTINGS.seatOrder) this.refreshSeats();
-      if (key === SETTINGS.ritual) this.ritual.onChange();
+      if (key === SETTINGS.ritual) {
+        this.ritual.onChange();
+        this.mirror?.render();
+      }
       if (key === SETTINGS.recorder) this.recorder.onChange();
       if (key === SETTINGS.truths) this.applyTruths();
       // The stacks are locked from "Licht aus"; Foundry's pause follows the clock.

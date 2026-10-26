@@ -134,6 +134,22 @@ export class Ritual {
       }));
   }
 
+  /**
+   * The GM's card over the bowl while the players work out their concepts (the rulebook's "Create Concepts"): what to
+   * ask of them, and what comes next. Null at any other time, and for players.
+   */
+  conceptsCard() {
+    if (!game.user.isGM || this.state().step !== "concepts") return null;
+    const t = (key, data) => foundry.utils.escapeHTML(game.i18n.format(`TCT.Ritual.Concepts.${key}`, data ?? {}));
+    const card = document.createElement("article");
+    card.className = "tct-truths-card";
+    const items = ["Name", "Look", "Concept"].map((key) => `<li>${t(key)}</li>`).join("");
+    card.innerHTML =
+      `<h3>${t("Title")}</h3><p class="tct-truths-left">${t("Ask")}</p><ul class="tct-truths-list">${items}</ul>` +
+      `<p class="tct-truths-opening">${t("Then", { button: game.i18n.localize(STEPS.concepts.button) })}</p>`;
+    return card;
+  }
+
   /** The GM keeps the card the player on their right wrote about Them. */
   gmCards(user) {
     const { theyCard } = this.state();
