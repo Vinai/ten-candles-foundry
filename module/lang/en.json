@@ -59,6 +59,7 @@
     },
     "Write": {
       "Button": "Write card",
+      "EditButton": "Edit card",
       "Done": "Done",
       "EditHint": "Click to change the card",
       "TraitsTitle": "Virtue and vice",
@@ -68,10 +69,10 @@
       "BrinkHint": "For {name}: what you have seen of them. The card goes face down to your left.",
       "BrinkByThemHint": "For {name}: what THEY have seen of them. The card goes face down to your left.",
       "BrinkOfThemHint": "What you have seen of THEM. The card goes face down to the GM.",
-      "NoGM": "The GM is not connected – your card has not been handed in yet. Open it later with “Write card” and press “Done” again.",
-      "NotStored": "Your card did not reach the GM. Open it with “Write card” and press “Done” again.",
+      "NoGM": "The GM is not connected – your card has not been handed in yet. Open it again later and press “Done”.",
+      "NotStored": "Your card did not reach the GM. Open it again and press “Done”.",
       "TooLate": "The cards were already on their way – your change came too late.",
-      "TooLong": "This card is too long (at most {max} characters). Open it with “Write card” and shorten it."
+      "TooLong": "This card is too long (at most {max} characters). Open it again and shorten it."
     },
     "XCard": {
       "Touched": "Someone touched the X-card. We drop that and move on."

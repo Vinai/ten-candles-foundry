@@ -387,7 +387,11 @@ export class FoundryTable {
   renderWriteButton() {
     this.sheetButton.hidden = !game.user.character;
     const state = this.ritual.state();
-    this.writeButton.hidden = !this.ritual.step.writes || Boolean(state.passing) || !this.ritual.writers().includes(game.user);
+    const writes = this.ritual.step.writes;
+    this.writeButton.hidden = !writes || Boolean(state.passing) || !this.ritual.writers().includes(game.user);
+    // Once written, the same button opens the card again to change it.
+    const written = writes?.some((kind) => state.cards[game.user.id]?.[kind]);
+    this.writeButton.textContent = game.i18n.localize(written ? "TCT.Write.EditButton" : "TCT.Write.Button");
   }
 
   applyState(state, { instant = false } = {}) {
