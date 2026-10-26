@@ -705,6 +705,12 @@ body.tct-active .ets-floating-roll {
   box-shadow: 0 0 2.5rem rgba(0, 0, 0, 0.85);
 }
 
+/* Over the bowl a card hides what lies beneath it, a stack reaching under it included. */
+.tct-mirror .ets-design2-card,
+.tct-mirror .tct-truths-card {
+  background-color: rgb(10, 12, 18);
+}
+
 body.tct-active #chat-notifications .chat-message.tct-ga-card {
   display: none;
 }

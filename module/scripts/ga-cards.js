@@ -55,8 +55,10 @@ export function decorateCard(message, html, state) {
     case "ball-of-truths":
       return decorateTruths(html, state);
     case "character-departure":
-      // A death in the last scene is the player's to narrate, not a farewell text picked at random.
+      // A death in the last scene is the player's to narrate, not a farewell text picked at random; candles and dice
+      // are on the table already.
       html.querySelector(".ets-departure-card__message")?.remove();
+      html.querySelector(".ets-collective-state-band")?.remove();
       return;
     case "instant":
       // Whether the Moment was lived is the GM's call, by the roll; the player only sees the question.
