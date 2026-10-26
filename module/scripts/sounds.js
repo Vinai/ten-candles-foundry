@@ -6,8 +6,8 @@ const FILES = ["match-strike", "candle-out", "card-burn", "dice-single", "dice-p
 // A handful of dice sounds like this many pairs at most; more would only be louder.
 const MAX_DICE_LAYERS = 5;
 // The pairs of a handful hit the table one after the other, this far apart, give or take a little.
-const DICE_STEP_S = 0.09;
-const DICE_JITTER_S = 0.04;
+const DICE_STEP_S = 0.14;
+const DICE_JITTER_S = 0.06;
 
 /**
  * The few sounds the table makes itself: a match struck, a candle going out, a card burning, dice rolling, the
