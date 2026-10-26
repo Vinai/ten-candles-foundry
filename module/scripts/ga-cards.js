@@ -66,6 +66,8 @@ export function decorateCard(message, html, state) {
 }
 
 function decorateConflict(message, html) {
+  // Candles and dice are on the table already; the card has no room to spare over the bowl.
+  html.querySelector(".ets-collective-state-band")?.remove();
   // A rolled 1 costs a die: a skull instead of the number.
   for (const die of html.querySelectorAll(".ets-die.is-danger")) die.innerHTML = skull();
   // "… muss den Konflikt noch bestätigen." and "Das Ergebnis bleibt vorläufig …" say what everyone knows and make the
