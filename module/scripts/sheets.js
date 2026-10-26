@@ -66,6 +66,11 @@ export class CharacterSheets {
       badge.dataset.tooltip = game.i18n.localize("TCT.Sheet.PositionHint");
       card.classList.add("tct-numbered");
       card.prepend(badge);
+      // The picture that follows the pointer would show half a tab: it is taken without it, the card keeps it.
+      card.addEventListener("dragstart", () => {
+        badge.hidden = true;
+        requestAnimationFrame(() => (badge.hidden = false));
+      });
     });
   }
 
