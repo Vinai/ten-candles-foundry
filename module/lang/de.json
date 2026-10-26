@@ -130,7 +130,10 @@
       "NoRoll": "Während die Wahrheiten gesprochen werden, wird nicht gewürfelt. Der Wurf wurde abgebrochen."
     },
     "Sheet": {
-      "Button": "Charakterbogen"
+      "Button": "Charakterbogen",
+      "Top": "{n} · oben",
+      "Bottom": "{n} · unten",
+      "PositionHint": "Platz im Stapel: Nur die oberste Karte ist im Spiel. Ziehe eine Karte, um die Reihenfolge zu ändern."
     }
   },
   "ETC.Chat.ProvisionalPlayerNarrates": "{name} sollte das Narrativ erhalten.",

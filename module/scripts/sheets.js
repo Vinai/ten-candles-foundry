@@ -42,6 +42,29 @@ export class CharacterSheets {
       }
     }
     if (!game.user.isGM) for (const text of element.querySelectorAll(".etc-resource-text")) text.readOnly = true;
+    this.numberStack(actor, element);
+  }
+
+  /**
+   * The sheet lays the cards out in stack order, the Brink last; one below the other and numbered, that order shows:
+   * 1 is on top, the Brink at the bottom. Burned cards have left the stack and get no number.
+   */
+  numberStack(actor, element) {
+    element.querySelector(".etc-resource-grid")?.classList.add("tct-stacked");
+    for (const old of element.querySelectorAll(".tct-stack-position")) old.remove();
+    const inStack = [...element.querySelectorAll(".etc-resource")].filter((card) => {
+      const key = card.dataset.resourceKey;
+      return !key || unburned(actor.system, key);
+    });
+    inStack.forEach((card, i) => {
+      const n = i + 1;
+      const label = i === 0 ? "TCT.Sheet.Top" : n === inStack.length ? "TCT.Sheet.Bottom" : null;
+      const badge = document.createElement("span");
+      badge.className = "tct-stack-position";
+      badge.textContent = label ? game.i18n.format(label, { n }) : String(n);
+      badge.dataset.tooltip = game.i18n.localize("TCT.Sheet.PositionHint");
+      card.querySelector(".etc-resource-heading")?.prepend(badge);
+    });
   }
 
   /** The open sheets of an actor in this browser. */

@@ -130,7 +130,10 @@
       "NoRoll": "Nobody rolls while the truths are spoken. The roll was called off."
     },
     "Sheet": {
-      "Button": "Character sheet"
+      "Button": "Character sheet",
+      "Top": "{n} · top",
+      "Bottom": "{n} · bottom",
+      "PositionHint": "Place in the stack: only the top card is in play. Drag a card to change the order."
     }
   }
 }

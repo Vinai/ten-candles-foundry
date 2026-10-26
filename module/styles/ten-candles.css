@@ -990,6 +990,21 @@ body.tct-truths :is(.ets-floating-roll, .ets-sheet-roll) {
   filter: grayscale(0.4) brightness(0.8);
 }
 
+/* The sheet's cards one below the other in stack order, each with its place: 1 on top, the Brink at the bottom. */
+.etc-resource-grid.tct-stacked {
+  grid-template-columns: 1fr;
+}
+
+.tct-stack-position {
+  flex: 0 0 auto;
+  padding: 0.1rem 0.5rem;
+  font-family: "Special Elite", "Courier New", monospace;
+  font-size: 0.85rem;
+  color: #2a2112;
+  background: #e4c977;
+  border-radius: 999px;
+}
+
 /* In the character sheet, players pick up a whole card to change the order of their stack; its (read-only) text
    would otherwise start a text selection instead. */
 .etc-resource.tct-draggable {
