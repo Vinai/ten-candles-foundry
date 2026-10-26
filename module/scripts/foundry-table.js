@@ -26,6 +26,9 @@ const AFTER_BURN_MS = 5000;
 const AFTER_DICE_MS = 4000;
 // A trait spent during its owner's conflict waits this long for the Game Assistant to say it was for a reroll.
 const REROLL_WAIT_MS = 2500;
+// The Game Assistant's buttons that ask for a roll, and how long after a click they wait for its dice to come.
+const ROLL_BUTTONS = '.ets-floating-roll, .ets-sheet-roll, [data-tool="tencandles-ga-player-roll"]';
+const ROLL_CLICK_MS = 1500;
 // A failure or seized narration this recent put the candle out; otherwise it burned down or was blown out.
 const CAUSE_MS = 15000;
 const TRAIT_LABELS = { virtue: "TCT.Card.Virtue", vice: "TCT.Card.Vice", moment: "TCT.Card.Moment" };
@@ -62,6 +65,9 @@ export class FoundryTable {
     this.rerollTimers = new Set();
     // Rolls of the Game Assistant's conflicts already thrown on this table, by "resolutionId:historyIndex".
     this.thrown = new Set();
+    // Throws waiting, rolling or lying on the table; meanwhile nobody here asks for another roll.
+    this.diceOut = 0;
+    this.rollClickedAt = 0;
     const table = this;
     this.api = {
       setSeatOrder: (names) => this.setSeatOrder(names),
@@ -108,6 +114,7 @@ export class FoundryTable {
     }
     // Rolls from before this page loaded are not thrown again.
     this.observeRolls(this.gaState(), { replay: false });
+    document.addEventListener("click", (event) => this.oneRollAtATime(event), true);
     this.sheets.start();
     this.makeWayFor(this.gaState(), { initial: true });
     this.applyTruths();
@@ -509,9 +516,31 @@ export class FoundryTable {
     }
   }
 
+  /**
+   * One throw at a time: a roll button does nothing while dice are in the air or on the table, or a conflict is open,
+   * nor right after a click, before its dice have come.
+   */
+  oneRollAtATime(event) {
+    if (!event.target.closest?.(ROLL_BUTTONS)) return;
+    const busy = this.diceOut > 0 || this.gaState().activeResolution || Date.now() - this.rollClickedAt < ROLL_CLICK_MS;
+    if (!busy) {
+      this.rollClickedAt = Date.now();
+      return;
+    }
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }
+
+  /** Counts a throw from when it is queued until its dice are picked up again. */
+  diceThrown(run) {
+    this.diceOut++;
+    run.finally(() => this.diceOut--).catch(() => {});
+    return run;
+  }
+
   throwDice(seat, dice, seed) {
     if (!dice.length) return;
-    return this.beat(
+    return this.diceThrown(this.beat(
       async (current) => {
         try {
           await this.stage.rollDice(seat, dice, seed);
@@ -521,14 +550,14 @@ export class FoundryTable {
         }
       },
       { hold: true }
-    );
+    ));
   }
 
   /** A trait burned for a reroll: the conflict card fades, the card burns in the bowl, then the 1s are rolled again. */
   burnForReroll(resolution, key, dice, seed) {
     const actor = game.actors.get(resolution.actorId);
     const card = this.takeRerollBurn(actor?.id, key) ?? traitCard(key, actor?.system[key]?.text ?? "");
-    return this.beat(
+    return this.diceThrown(this.beat(
       async (current) => {
         try {
           await wait(BURN_FADE_MS + BEFORE_BURN_MS);
@@ -543,7 +572,7 @@ export class FoundryTable {
         }
       },
       { hold: true, slow: true }
-    );
+    ));
   }
 
   /** The card leaves its stack only when it is its turn to burn. */
