@@ -87,7 +87,8 @@ export class ConflictMirror {
       case "ball-of-truths":
         return state.stage === "ball-of-truths";
       case "instant":
-        return (state.instantRequests ?? []).some((request) => request.messageIds?.includes(message.id));
+        // A Moment held back by a conflict comes back as a new card; the old one stays behind in the chat.
+        return (state.instantRequests ?? []).some((request) => request.activeMessageId === message.id);
       default:
         return false;
     }

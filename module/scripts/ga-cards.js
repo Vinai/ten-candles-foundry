@@ -54,6 +54,10 @@ export function decorateCard(message, html, state) {
       return decorateConflict(message, html);
     case "ball-of-truths":
       return decorateTruths(html, state);
+    case "instant":
+      // Whether the Moment was lived is the GM's call, by the roll; the player only sees the question.
+      if (!game.user.isGM) html.querySelector("[data-instant-actions]")?.remove();
+      return;
     case "darkness-progression":
       // The table's own truths card says what remains; this one is the GM's note in the chat.
       if (!game.user.isGM) html.classList.add("tct-hidden");
