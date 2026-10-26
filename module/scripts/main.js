@@ -5,7 +5,12 @@ import { registerSettings, SETTINGS } from "./settings.js";
 
 Hooks.once("init", () => {
   registerSettings();
-  if (game.system.id === GA_SYSTEM_ID) decorateCards();
+  if (game.system.id !== GA_SYSTEM_ID) return;
+  decorateCards();
+  // Foundry asks a player without a character to pick one as the game loads; the ritual makes and assigns it.
+  Hooks.on("renderUserConfig", (app) => {
+    if (!game.ready && app.document === game.user) app.close({ animate: false });
+  });
 });
 
 Hooks.once("ready", async () => {
