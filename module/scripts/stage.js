@@ -446,11 +446,9 @@ export class TableStage {
     });
     this.placeRecorder();
     if (this.xCard) {
-      // Beside the card over the bowl, never under it.
-      const bowl = this.table.bowlOnScreen;
-      const mirrorHalf = Math.min(Math.max(280, window.innerWidth * 0.21), 380) / 2;
-      this.xCard.style.left = `${bowl.x + Math.max(bowl.rx * 1.55, mirrorHalf + 0.025 * window.innerWidth)}px`;
-      this.xCard.style.top = `${bowl.y - bowl.ry * 0.2}px`;
+      // On the table off the tray's top right, clear of the candles, the card over the bowl and the seats.
+      this.xCard.style.left = `${tray.x + tray.rx * 1.02}px`;
+      this.xCard.style.top = `${tray.y - tray.ry * 1.1}px`;
     }
     if (this.mirror) {
       const bowl = this.table.bowlOnScreen;
