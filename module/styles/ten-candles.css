@@ -990,6 +990,16 @@ body.tct-truths :is(.ets-floating-roll, .ets-sheet-roll) {
   filter: grayscale(0.4) brightness(0.8);
 }
 
+/* In the character sheet, players pick up a whole card to change the order of their stack; its (read-only) text
+   would otherwise start a text selection instead. */
+.etc-resource.tct-draggable {
+  cursor: grab;
+}
+
+.etc-resource.tct-draggable .etc-resource-text {
+  pointer-events: none;
+}
+
 /* For whoever holds the recorder: mute in Discord while recording, unmute afterwards (that one is clicked away). */
 .tct-discord-note {
   position: fixed;

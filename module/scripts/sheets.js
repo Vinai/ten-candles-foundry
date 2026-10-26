@@ -30,8 +30,14 @@ export class CharacterSheets {
       if ((unburned(system, key) && key !== top) || !locked) {
         card.querySelector(".etc-resource-state-action")?.setAttribute("disabled", "");
       }
+      const handle = card.querySelector(".etc-resource-drag-handle");
       // "Once stacks are built, they are locked and cannot be changed."
-      if (locked) card.querySelector(".etc-resource-drag-handle")?.remove();
+      if (locked) handle?.remove();
+      // Players move the whole card, not only its handle; their card texts are read-only, so nothing is in the way.
+      else if (handle && !game.user.isGM) {
+        card.draggable = true;
+        card.classList.add("tct-draggable");
+      }
     }
     if (!game.user.isGM) for (const text of element.querySelectorAll(".etc-resource-text")) text.readOnly = true;
   }
