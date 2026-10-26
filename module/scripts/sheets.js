@@ -37,6 +37,8 @@ export class CharacterSheets {
       else if (handle && !game.user.isGM) {
         card.draggable = true;
         card.classList.add("tct-draggable");
+        // A drag source of its own inside the card would compete with it; now it is just where the card is held.
+        handle.removeAttribute("draggable");
       }
     }
     if (!game.user.isGM) for (const text of element.querySelectorAll(".etc-resource-text")) text.readOnly = true;
