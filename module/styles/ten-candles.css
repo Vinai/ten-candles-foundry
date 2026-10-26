@@ -990,11 +990,7 @@ body.tct-truths :is(.ets-floating-roll, .ets-sheet-roll) {
   filter: grayscale(0.4) brightness(0.8);
 }
 
-/* The sheet's cards one below the other in stack order, each with its place: 1 on top, the Brink at the bottom. */
-.etc-resource-grid.tct-stacked {
-  grid-template-columns: 1fr;
-}
-
+/* Each of the sheet's cards with its place in the stack: 1 on top, the Brink at the bottom. */
 .tct-stack-position {
   flex: 0 0 auto;
   padding: 0.1rem 0.5rem;

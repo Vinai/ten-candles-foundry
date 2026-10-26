@@ -46,11 +46,10 @@ export class CharacterSheets {
   }
 
   /**
-   * The sheet lays the cards out in stack order, the Brink last; one below the other and numbered, that order shows:
-   * 1 is on top, the Brink at the bottom. Burned cards have left the stack and get no number.
+   * The sheet lays the cards out in stack order, row by row with the Brink last; numbered, that order shows: 1 is on
+   * top, the Brink at the bottom. Burned cards have left the stack and get no number.
    */
   numberStack(actor, element) {
-    element.querySelector(".etc-resource-grid")?.classList.add("tct-stacked");
     for (const old of element.querySelectorAll(".tct-stack-position")) old.remove();
     const inStack = [...element.querySelectorAll(".etc-resource")].filter((card) => {
       const key = card.dataset.resourceKey;
