@@ -25,6 +25,8 @@
     },
     "GM": {
       "Seats": "Sitzordnung",
+      "StepBack": "Schritt zurück",
+      "StepBackHint": "Zurück zum vorigen Schritt der Charaktererschaffung. Alle Karten bleiben geschrieben; was dieser Schritt weitergegeben hat, wird noch einmal weitergegeben.",
       "LightsOut": "Licht aus",
       "LightsOn": "Licht an",
       "Pause": "Pause",

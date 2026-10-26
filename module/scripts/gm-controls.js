@@ -25,9 +25,8 @@ export class GMControls {
     this.panel.className = "tct-gm-panel";
     this.seatsButton = this.button(() => this.editSeats(), "TCT.GM.Seats");
     this.ritualButton = this.button(() => this.nextRitualStep());
-    // TEMPORARY, for testing passing again and again; revert this commit before the game.
-    this.backButton = this.button(() => this.table.ritual.stepBack());
-    this.backButton.textContent = "Test: Schritt zurück";
+    this.backButton = this.button(() => this.table.ritual.stepBack(), "TCT.GM.StepBack");
+    this.backButton.dataset.tooltip = game.i18n.localize("TCT.GM.StepBackHint");
     this.lightsButton = this.button(() => this.toggleLights());
     this.pauseButton = this.button(() => this.togglePause());
     this.draughtButton = this.button(() => this.draught(), "TCT.GM.Draught");

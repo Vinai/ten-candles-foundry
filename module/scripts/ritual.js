@@ -328,8 +328,8 @@ export class Ritual {
   }
 
   /**
-   * TEMPORARY, for testing: back to the previous step, keeping what was written, so passing can be tried again. What
-   * that step delivered leaves the sheets again, so the next pass looks like the first.
+   * The GM's way back to the previous step, e.g. to pass the cards again after a mistake. Everything written is kept;
+   * what that step delivered leaves the sheets again, so the next pass looks like the first.
    */
   stepBack() {
     return this.enqueue(async () => {

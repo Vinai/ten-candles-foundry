@@ -25,6 +25,8 @@
     },
     "GM": {
       "Seats": "Seating",
+      "StepBack": "Step back",
+      "StepBackHint": "Back to the previous step of character creation. Every card stays written; what that step passed on is passed on again.",
       "LightsOut": "Lights out",
       "LightsOn": "Lights on",
       "Pause": "Pause",
