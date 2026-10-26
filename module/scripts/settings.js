@@ -10,6 +10,7 @@ export const SETTINGS = {
   ritual: "ritual",
   recorder: "recorder",
   truths: "truths",
+  momentRoll: "momentRoll",
   plainTable: "plainTable"
 };
 
@@ -66,6 +67,15 @@ export function registerSettings() {
     type: Object,
     default: {},
     onChange: (value) => Hooks.callAll(SETTING_CHANGED_HOOK, SETTINGS.truths, value)
+  });
+
+  // A Moment whose conflict roll is under way, until the GM's browser settles it. See moments.js.
+  game.settings.register(MODULE_ID, SETTINGS.momentRoll, {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: {},
+    onChange: (value) => Hooks.callAll(SETTING_CHANGED_HOOK, SETTINGS.momentRoll, value)
   });
 
   // Escape hatch for weak machines or trouble: keep Foundry's own canvas and camera dock.

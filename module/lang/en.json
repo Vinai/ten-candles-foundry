@@ -129,6 +129,14 @@
     "Conflict": {
       "Failure": "Failure"
     },
+    "Moment": {
+      "Question": "Does the situation fit the Moment?",
+      "Fit": "Fits – roll",
+      "NotFit": "Doesn't fit",
+      "Rolling": "The roll decides: success brings hope.",
+      "Unfit": "Doesn't fit right now. The Moment stays in the stack.",
+      "PlayerAway": "{name} is not connected. The roll for the Moment cannot start right now."
+    },
     "Truths": {
       "Title": "Establishing truths",
       "One": "1 truth",

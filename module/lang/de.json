@@ -129,6 +129,14 @@
     "Conflict": {
       "Failure": "Fehlschlag"
     },
+    "Moment": {
+      "Question": "Passt die Situation zum Moment?",
+      "Fit": "Passt – würfeln",
+      "NotFit": "Passt nicht",
+      "Rolling": "Der Wurf entscheidet: Bei Erfolg gibt es Hoffnung.",
+      "Unfit": "Passt gerade nicht. Der Moment bleibt im Stapel.",
+      "PlayerAway": "{name} ist nicht verbunden. Der Wurf für den Moment kann gerade nicht starten."
+    },
     "Truths": {
       "Title": "Ritual der Wahrheiten",
       "One": "1 Wahrheit",

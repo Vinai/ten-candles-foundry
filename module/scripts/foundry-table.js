@@ -1,8 +1,10 @@
 import { isStarted, nextDeath } from "./candle-clock.js";
 import { GA_PAINTING, GA_STATE_HOOK, GA_STATE_SETTING, GA_SYSTEM_ID, MODULE_ID, SOCKET, TOTAL_CANDLES } from "./constants.js";
 import { CameraFaces } from "./faces.js";
+import { gaType } from "./ga-cards.js";
 import { GMControls } from "./gm-controls.js";
 import { ConflictMirror } from "./mirror.js";
+import { Moments } from "./moments.js";
 import { PlainStage } from "./plain-stage.js";
 import { seeded } from "./random.js";
 import { Recorder } from "./recorder.js";
@@ -54,6 +56,7 @@ export class FoundryTable {
     this.ritual = new Ritual(this);
     this.recorder = new Recorder(this);
     this.truths = new Truths(this);
+    this.moments = new Moments(this);
     this.sheets = new CharacterSheets(this);
     // Foundry's interface channel, so each player's interface volume applies. Silent until their first click.
     this.sounds = new TableSounds(() => (game.audio.locked ? null : game.audio.interface?.gainNode ?? null));
@@ -142,6 +145,7 @@ export class FoundryTable {
     }
     this.ritual.start();
     this.recorder.start();
+    this.moments.start();
     window.setInterval(() => this.applyGutter(), GUTTER_TICK_MS);
 
     Hooks.on(GA_STATE_HOOK, (state) => {
@@ -151,6 +155,7 @@ export class FoundryTable {
       this.applyState(state);
       this.mirror?.render();
       this.gm?.onGaState(state);
+      this.moments.onGaState(state);
       this.gm?.render();
     });
     Hooks.on(SETTING_CHANGED_HOOK, (key) => {
@@ -161,6 +166,8 @@ export class FoundryTable {
       if (key === SETTINGS.ritual || key === SETTINGS.candleClock) this.mirror?.render();
       if (key === SETTINGS.recorder) this.recorder.onChange();
       if (key === SETTINGS.truths) this.applyTruths();
+      // A Moment's card says whether its roll is under way.
+      if (key === SETTINGS.momentRoll) this.redrawCards("instant");
       // The stacks are locked from "Licht aus"; Foundry's pause follows the clock.
       if (key === SETTINGS.candleClock) {
         this.sheets.renderAll();
@@ -312,6 +319,14 @@ export class FoundryTable {
       this.recorder.refresh();
     }
     this.faces.sync();
+  }
+
+  /** Draws the Game Assistant's cards of a type again, in the chat and over the bowl, after a change of ours. */
+  redrawCards(type) {
+    for (const message of game.messages.contents) {
+      if (gaType(message) === type) ui.chat?.updateMessage(message);
+    }
+    this.mirror?.render();
   }
 
   refreshActor(actor) {

@@ -1,5 +1,6 @@
 import { isStarted } from "./candle-clock.js";
 import { GA_STATE_SETTING, GA_SYSTEM_ID, MODULE_ID } from "./constants.js";
+import { decorateMomentCard } from "./moments.js";
 import { skull } from "./rolling-dice.js";
 import { SETTINGS } from "./settings.js";
 
@@ -61,9 +62,7 @@ export function decorateCard(message, html, state) {
       html.querySelector(".ets-collective-state-band")?.remove();
       return;
     case "instant":
-      // Whether the Moment was lived is the GM's call, by the roll; the player only sees the question.
-      if (!game.user.isGM) html.querySelector("[data-instant-actions]")?.remove();
-      return;
+      return decorateMomentCard(message, html, state);
     case "darkness-progression":
       // The table's own truths card says what remains; this one is the GM's note in the chat.
       if (!game.user.isGM) html.classList.add("tct-hidden");
