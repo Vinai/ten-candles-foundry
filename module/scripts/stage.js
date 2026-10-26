@@ -13,12 +13,6 @@ const CANDLE_TO_CANDLE_MS = 500;
 // The X-card keeps this much room (in vw) to the tray, the faces and the stacks, where it can.
 const X_CARD_ROOM_VW = 2.5;
 const TOTAL_DICE = 10;
-// The dice row hangs this far below the tray; its dice and the stacks are sized in vw (see ten-candles.css).
-const DICE_ROW_GAP = 10;
-const DIE_VW = 1.1;
-const STACK_GAP_VW = 0.4;
-const STACK_HALF_VW = 1.65;
-const MAX_PEEK_VW = 0.72;
 const SLIDE_MS = 1800;
 // A passed card fades where it arrives; the recipient's stack shows it from then on.
 const ARRIVE_FADE_MS = 400;
@@ -459,8 +453,7 @@ export class TableStage {
       seat.style.top = `${pos.y}px`;
       const point = this.ringPoint(pos.angle);
       stack.style.left = `${point.x}px`;
-      // Your own stack lies below the dice row, however many cards it holds.
-      stack.style.top = `${pos.isViewer ? Math.max(point.y, this.belowDice(tray)) : point.y}px`;
+      stack.style.top = `${point.y}px`;
     });
     this.placeRecorder();
     if (this.xCard) this.placeXCard(tray);
@@ -469,8 +462,6 @@ export class TableStage {
       this.mirror.style.left = `${bowl.x}px`;
       this.mirror.style.top = `${bowl.y}px`;
     }
-    this.dice.style.left = `${tray.x}px`;
-    this.dice.style.top = `${tray.y + tray.ry + DICE_ROW_GAP}px`;
   }
 
   /**
@@ -504,12 +495,6 @@ export class TableStage {
     }
     this.xCard.style.left = `${best.x}px`;
     this.xCard.style.top = `${best.y}px`;
-  }
-
-  /** Where a stack's centre must be to clear the dice row under the tray, even with all cards fanned out. */
-  belowDice(tray) {
-    const vw = window.innerWidth / 100;
-    return tray.y + tray.ry + DICE_ROW_GAP + (DIE_VW + STACK_GAP_VW + STACK_HALF_VW + MAX_PEEK_VW) * vw;
   }
 
   updateLight() {

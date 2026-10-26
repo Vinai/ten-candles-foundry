@@ -202,8 +202,11 @@
 }
 
 /* The communal and GM dice pools under the tray. */
+/* The dice row lies just above the Game Assistant's roll button (see body.tct-active .ets-floating-roll). */
 .tct-dice {
   position: absolute;
+  left: calc(50% + 15vw);
+  bottom: calc(2.5rem + 3.65rem + 0.8rem);
   transform: translateX(-50%);
   display: flex;
   gap: 0.35vw;

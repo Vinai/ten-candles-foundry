@@ -24,6 +24,8 @@ const BEFORE_BURN_MS = 2400;
 const AFTER_BURN_MS = 5000;
 // The conflict card comes back this long after the dice came to rest.
 const AFTER_DICE_MS = 4000;
+// At "Licht aus" the dice row appears this long after the click: the match, the last candle catching, a breath.
+const DICE_AFTER_LIGHTS_MS = 2000;
 // A trait spent during its owner's conflict waits this long for the Game Assistant to say it was for a reroll.
 const REROLL_WAIT_MS = 2500;
 // The Game Assistant's buttons that ask for a roll, and how long after a click they wait for its dice to come.
@@ -411,14 +413,34 @@ export class FoundryTable {
       this.stage.setCandles(new Set(candleOrder(state.gameId).slice(0, litCount)), { instant });
       this.applyEnd();
     }
-    // No dice on the table before the game starts. During the truths the dice wait for the next scene, when the
-    // Game Assistant refills the pool.
-    if (!isStarted(this.clock())) this.stage.setDice({ player: 0, lost: 0, gm: 0 });
-    else {
-      const player = state.stage === "scene" ? Math.min(state.bluePoolRemaining, litCount) : litCount;
-      this.stage.setDice({ player, lost: litCount - player, gm: TOTAL_CANDLES - litCount });
-    }
+    this.applyDice(state, { instant });
     this.applyGutter();
+  }
+
+  /**
+   * The dice row: none before the game starts; at "Licht aus" it appears once the last candle has caught. During the
+   * truths the dice wait for the next scene, when the Game Assistant refills the pool.
+   */
+  applyDice(state, { instant = false } = {}) {
+    if (!isStarted(this.clock())) {
+      window.clearTimeout(this.diceTimer);
+      this.diceTimer = null;
+      this.diceShown = false;
+      this.stage.setDice({ player: 0, lost: 0, gm: 0 });
+      return;
+    }
+    if (!this.diceShown && !instant) {
+      this.diceTimer ??= window.setTimeout(() => {
+        this.diceTimer = null;
+        this.diceShown = true;
+        this.applyDice(this.gaState());
+      }, DICE_AFTER_LIGHTS_MS);
+      return;
+    }
+    this.diceShown = true;
+    const lit = this.visibleCandles(state);
+    const player = state.stage === "scene" ? Math.min(state.bluePoolRemaining, lit) : lit;
+    this.stage.setDice({ player, lost: lit - player, gm: TOTAL_CANDLES - lit });
   }
 
   /**
