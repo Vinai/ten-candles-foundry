@@ -5,8 +5,9 @@ const FOLDER = new URL("../sounds/", import.meta.url);
 const FILES = ["match-strike", "candle-out", "card-burn", "dice-single", "dice-pair", "recorder-start", "recorder-stop"];
 // A handful of dice sounds like this many pairs at most; more would only be louder.
 const MAX_DICE_LAYERS = 5;
-// The pairs of a handful land within this long of each other.
-const DICE_SPREAD_S = 0.18;
+// The pairs of a handful hit the table one after the other, this far apart, give or take a little.
+const DICE_STEP_S = 0.09;
+const DICE_JITTER_S = 0.04;
 
 /**
  * The few sounds the table makes itself: a match struck, a candle going out, a card burning, dice rolling, the
@@ -47,7 +48,7 @@ export class TableSounds {
     const layers = Math.min(Math.ceil(count / 2), MAX_DICE_LAYERS);
     for (let i = 0; i < layers; i++) {
       this.play("dice-pair", {
-        delay: i && Math.random() * DICE_SPREAD_S,
+        delay: i && i * DICE_STEP_S + (Math.random() - 0.5) * DICE_JITTER_S,
         rate: i ? 0.9 + Math.random() * 0.2 : 1,
         // Somewhat louder the more dice, without the pairs adding up to a roar.
         gain: layers ** -0.35
