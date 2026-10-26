@@ -126,7 +126,9 @@ export class Ritual {
       .map((kind) => ({
         label: game.i18n.localize(LABELS[kind]),
         text: state.cards[user.id][kind],
-        faceDown: !user.isSelf
+        faceDown: !user.isSelf,
+        // Picked up again with a click, until the cards are passed.
+        edit: user.isSelf ? () => this.write() : null
       }));
   }
 

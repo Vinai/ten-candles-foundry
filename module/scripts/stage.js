@@ -68,7 +68,10 @@ export class TableStage {
     this.root.remove();
   }
 
-  /** @param seats {{name: string, face: HTMLElement, cards: {label: string, text?: string, faceDown?: boolean}[], hope?: boolean}[]} */
+  /**
+   * @param seats {{name: string, face: HTMLElement, cards: {label: string, text?: string, faceDown?: boolean,
+   *   edit?: () => void}[], hope?: boolean}[]} a card with `edit` can be clicked to rewrite it
+   */
   setSeats(seats, viewer) {
     this.seatElements?.forEach(({ seat, stack }) => {
       seat.remove();
@@ -119,6 +122,11 @@ export class TableStage {
         el.querySelector(".tct-card-label").textContent = card.label;
         el.querySelector(".tct-card-text").textContent = card.text ?? "";
         el.classList.toggle("is-long", (card.text ?? "").length > LONG_TEXT);
+      }
+      if (card.edit) {
+        el.classList.add("is-editable");
+        el.dataset.tooltip = game.i18n.localize("TCT.Write.EditHint");
+        el.addEventListener("click", card.edit);
       }
       pile.append(el);
     });

@@ -60,6 +60,7 @@
     "Write": {
       "Button": "Write card",
       "Done": "Done",
+      "EditHint": "Click to change the card",
       "TraitsTitle": "Virtue and vice",
       "TraitsHint": "One word or a short phrase each.",
       "MomentTitle": "I will find hope …",

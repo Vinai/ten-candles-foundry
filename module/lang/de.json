@@ -60,6 +60,7 @@
     "Write": {
       "Button": "Karte schreiben",
       "Done": "Fertig",
+      "EditHint": "Anklicken, um die Karte zu ändern",
       "TraitsTitle": "Tugend und Laster",
       "TraitsHint": "Je ein Wort oder eine kurze Wendung.",
       "MomentTitle": "Ich werde Hoffnung finden …",

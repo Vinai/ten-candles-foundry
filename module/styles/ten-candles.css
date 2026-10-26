@@ -125,6 +125,16 @@
   );
 }
 
+/* A card you are still writing: pick it up again with a click, until the cards are passed. */
+.tct-card.is-editable {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.tct-card.is-editable:hover {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.8), 0 0 0.6vw rgba(255, 220, 160, 0.6);
+}
+
 /* A card on its way round the table to another seat. */
 .tct-card.tct-flying {
   inset: auto;
