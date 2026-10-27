@@ -11,3 +11,6 @@ DESIGN.md
 
 # Foundry downloads (licensed, not redistributable)
 *.zip
+
+# Private music
+music/
