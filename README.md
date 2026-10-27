@@ -1,4 +1,4 @@
-# Ten Candles – Tisch
+# Ten Candles – Table
 
 A Foundry VTT module that turns [Ten Candles](https://cavalrygames.com) into a candlelit table for groups playing
 online: ten tealights burning down in real time, everyone's camera around the tray, cards that are written, passed
