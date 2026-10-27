@@ -141,6 +141,7 @@
       "Martyr": "Martyr",
       "Save": "Apply",
       "NoRoll": "Your character has died and rolls no more. The roll was called off.",
+      "NoRollFor": "{name} has died and rolls no more. The roll was called off.",
       "HeirTitle": "Martyrdom",
       "HeirHint": "{name} dies a Martyr. Who gets the hope die?",
       "HeirChoose": "Pass it on",

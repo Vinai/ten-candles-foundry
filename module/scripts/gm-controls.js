@@ -294,9 +294,9 @@ export class GMControls {
     if (!this.table.truths.active && !dead) return;
     this.refused = resolution.id;
     game.evilTenCandles?.cancelActiveResolution();
-    const message = { type: "no-roll", gameId: state.gameId, dead };
+    const message = { type: "no-roll", gameId: state.gameId, dead, name: resolution.actorName };
+    // Also to this browser when the GM rolled: Foundry hands a message to its sender if they are a recipient.
     game.socket.emit(SOCKET, message, { recipients: [resolution.playerId] });
-    if (resolution.playerId === game.user.id) this.table.noRoll(message, game.user.id);
   }
 
   /**

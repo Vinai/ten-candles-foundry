@@ -141,6 +141,7 @@
       "Martyr": "Märtyrertod",
       "Save": "Übernehmen",
       "NoRoll": "Deine Figur ist gestorben und würfelt nicht mehr. Der Wurf wurde abgebrochen.",
+      "NoRollFor": "{name} ist gestorben und würfelt nicht mehr. Der Wurf wurde abgebrochen.",
       "HeirTitle": "Märtyrertod",
       "HeirHint": "{name} stirbt als Märtyrer. Wer bekommt den Hoffnungswürfel?",
       "HeirChoose": "Weitergeben",

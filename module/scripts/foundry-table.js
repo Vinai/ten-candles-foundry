@@ -717,7 +717,9 @@ export class FoundryTable {
   /** The GM called off a roll: during the truths, or by someone whose character has died. */
   noRoll(message, senderId) {
     if (senderId !== game.users.activeGM?.id || message.gameId !== this.gameId) return;
-    ui.notifications.warn(game.i18n.localize(message.dead ? "TCT.Death.NoRoll" : "TCT.Truths.NoRoll"));
+    // The GM may have rolled for someone else's character.
+    const key = message.dead ? (game.user.isGM ? "TCT.Death.NoRollFor" : "TCT.Death.NoRoll") : "TCT.Truths.NoRoll";
+    ui.notifications.warn(game.i18n.format(key, { name: message.name ?? "?" }));
   }
 
   showAlive() {
