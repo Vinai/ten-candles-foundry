@@ -815,7 +815,7 @@ body.tct-active #chat-notifications .chat-message.tct-ga-card {
 /* The holder's pocket recorder, where the write button sits during character creation: black, with chrome edges. */
 .tct-recorder-panel {
   position: relative;
-  width: 13rem;
+  width: 12rem;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -836,13 +836,13 @@ body.tct-active #chat-notifications .chat-message.tct-ga-card {
 
 .tct-dictaphone {
   position: relative;
-  width: 11rem;
+  width: 9.8rem;
   box-sizing: border-box;
-  padding: 1rem 0.9rem 0.9rem;
+  padding: 0.85rem 0.75rem 0.8rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.7rem;
+  gap: 0.55rem;
   background: linear-gradient(160deg, #3a3631 0%, #1f1c19 45%, #0e0d0c 100%);
   border-radius: 22px 22px 26px 26px;
   box-shadow: inset 0 0 0 2px #77726a, inset 0 0 0 3px #141210, inset 0 -6px 12px rgba(0, 0, 0, 0.5),
@@ -874,8 +874,8 @@ body.tct-active #chat-notifications .chat-message.tct-ga-card {
 }
 
 .tct-dictaphone-grille {
-  width: 8rem;
-  height: 3.2rem;
+  width: 7rem;
+  height: 2.5rem;
   border-radius: 8px;
   background: radial-gradient(circle, #8f887b 1.3px, transparent 1.7px) 0 0 / 7px 7px, linear-gradient(#24211e, #1a1816);
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.7);
@@ -883,8 +883,8 @@ body.tct-active #chat-notifications .chat-message.tct-ga-card {
 
 .tct-dictaphone-window {
   position: relative;
-  width: 8.6rem;
-  height: 4rem;
+  width: 7.6rem;
+  height: 3.4rem;
   display: flex;
   align-items: center;
   justify-content: space-around;
@@ -897,17 +897,17 @@ body.tct-active #chat-notifications .chat-message.tct-ga-card {
 .tct-dictaphone-window::before {
   content: "";
   position: absolute;
-  left: 2.2rem;
-  right: 2.2rem;
-  top: 2.3rem;
-  height: 6px;
+  left: 1.9rem;
+  right: 1.9rem;
+  top: 1.95rem;
+  height: 5px;
   background: #4a3424;
 }
 
 .tct-dictaphone-reel {
   position: relative;
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 2.1rem;
+  height: 2.1rem;
   border-radius: 50%;
   background: radial-gradient(circle, #e8dfc9 0 5px, #3b2e22 6px 8px, transparent 9px),
     repeating-conic-gradient(#8a775a 0 22deg, #2a2119 22deg 120deg);
@@ -939,12 +939,12 @@ body.tct-active #chat-notifications .chat-message.tct-ga-card {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  width: 9rem;
-  min-height: 2.6rem;
+  width: 8.2rem;
+  min-height: 2.4rem;
   height: auto;
-  padding: 0.3rem 0.5rem;
+  padding: 0.25rem 0.45rem;
   font-family: "Caveat", cursive;
-  font-size: 1.15rem;
+  font-size: 1.1rem;
   font-weight: 700;
   line-height: 1.05;
   text-align: left;
@@ -966,7 +966,7 @@ body.tct-active #chat-notifications .chat-message.tct-ga-card {
 }
 
 .tct-dictaphone-keys button {
-  height: 2.6rem;
+  height: 2.4rem;
   padding: 0;
   font-family: inherit;
   font-size: 0.7rem;
@@ -1034,6 +1034,7 @@ body.tct-active #chat-notifications .chat-message.tct-ga-card {
   padding: 0.2rem 0.4rem;
   font-family: "Caveat", cursive;
   font-size: 1.25rem;
+  line-height: 1.05;
   text-align: left;
   color: #2c2014;
   background: transparent;
@@ -1054,7 +1055,10 @@ body.tct-active #chat-notifications .chat-message.tct-ga-card {
 /* Handing it on is not a key on the device. */
 .tct-recorder-pass {
   width: auto;
-  padding: 0.45rem 1rem;
+  height: auto;
+  min-height: 2.4rem;
+  padding: 0.35rem 0.9rem;
+  line-height: 1.2;
   font-family: inherit;
   font-size: 0.95rem;
   color: #d8c9a8;
