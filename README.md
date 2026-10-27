@@ -66,6 +66,30 @@ machines or when something goes wrong; writing cards, the recorder and the X-car
 Seating · the next character-creation step · Step back · Lights out / Lights on · Pause / Resume · Draught · And we
 are alive. · The dead · Switch recorder on / Pass recorder on / Restart recorder · Next recording
 
+## Known issues
+
+Some rules are decided by the Game Assistant and are not fully implemented there yet. Pull requests for all three
+are open: [#1](https://github.com/ctotone/tencandles-ga/pull/1), [#2](https://github.com/ctotone/tencandles-ga/pull/2),
+[#3](https://github.com/ctotone/tencandles-ga/pull/3).
+
+- **Tied 6s.** The rulebook gives the narration to the GM on a tie; the Game Assistant gives it to the player. The
+  table shows the GM as narrator on a tie, but the Game Assistant offers the player to seize the narration only
+  when the GM is ahead. On a tie, a player who wants to seize it does so with the GM's *Draught* (#2).
+- **A Martyr's hope die** is announced to everyone but not rolled: the Game Assistant gives each character at most
+  one hope die, the one from their own Moment (#1).
+- **A failed Brink reroll** should burn the Brink and lose the hope dice; the Game Assistant keeps both. Handle it
+  at the table until #3 is merged.
+
+Other things to know:
+
+- **Firefox** keeps the module's old stylesheet after an update, even through a hard reload. Quit and restart
+  Firefox after updating the module mid-session.
+- **Safari** draws the table at a noticeably lower frame rate than Chrome or Firefox on the same machine.
+- **Before the ritual starts**, only connected players have a seat; someone who joins later gets theirs when they
+  connect.
+- **Foundry's own video chat** logs warnings and errors (`[SimplePeer] …`) when someone reloads; they are harmless,
+  and the faces reconnect after a few seconds.
+
 ## How it works with the Game Assistant
 
 The module uses only the Game Assistant's settings, hooks, socket API and rendered chat cards; it contains none of its
