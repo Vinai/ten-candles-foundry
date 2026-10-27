@@ -52,6 +52,11 @@ export class Recorder {
     this.panel = document.createElement("div");
     this.panel.className = "tct-recorder-panel";
     this.panel.addEventListener("click", (event) => this.onClick(event));
+    this.panel.addEventListener("change", (event) => {
+      if (event.target.matches("[data-microphone]")) game.settings.set(MODULE_ID, SETTINGS.microphone, event.target.value);
+    });
+    this.panel.addEventListener("focusin", (event) => event.target.matches("[data-microphone]") && this.nameMicrophones());
+    navigator.mediaDevices?.addEventListener?.("devicechange", () => this.fillMicrophones());
     this.table.ownControls.append(this.panel);
     this.lastPlayback = this.state().playback?.at ?? 0;
     // A message playing follows the interface volume slider.
@@ -171,22 +176,27 @@ export class Recorder {
     if (!mine) return;
     const t = (key, data) => game.i18n.format(`TCT.Recorder.${key}`, data ?? {});
     const button = (action, key) => `<button type="button" data-action="${action}">${t(key)}</button>`;
+    // Before each recording the microphone can be chosen, e.g. the headset rather than the laptop's own.
+    const microphone =
+      `<label class="tct-recorder-mic"><span>${t("Microphone")}</span><select data-microphone></select></label>`;
     const elapsed = this.recording ? formatSeconds(Date.now() - this.startedAt) : "";
     const views = {
-      idle: [t("Hint"), button("record", "Record") + button("pass", "PassEmpty")],
+      idle: [t("Hint"), button("record", "Record") + button("pass", "PassEmpty"), microphone],
       // Back again with a message from the round before: keep it or record a new one.
-      kept: [t("Kept"), button("listen-kept", "Listen") + button("record", "Again") + button("pass", "PassKeep")],
+      kept: [t("Kept"), button("listen-kept", "Listen") + button("record", "Again") + button("pass", "PassKeep"), microphone],
       opening: [t("Opening"), ""],
       recording: [t("Recording", { time: elapsed, max: formatSeconds(MAX_RECORDING_MS) }), button("stop", "Stop")],
-      recorded: [t("Recorded"), button("listen", "Listen") + button("record", "Again") + button("pass", "Pass")],
+      recorded: [t("Recorded"), button("listen", "Listen") + button("record", "Again") + button("pass", "Pass"), microphone],
       sending: [t("Sending"), ""]
     };
     const view = this.mode === "idle" && this.kept ? "kept" : this.mode;
-    const [text, buttons] = views[view];
+    const [text, buttons, field = ""] = views[view];
     // Only the clock changes while recording; keep the buttons so a click on them is never lost.
     if (this.renderedMode !== view || !this.panel.firstChild) {
-      this.panel.innerHTML = `<p class="tct-recorder-text"></p><div class="tct-recorder-buttons">${buttons}</div>`;
+      this.panel.innerHTML =
+        `<p class="tct-recorder-text"></p>${field}<div class="tct-recorder-buttons">${buttons}</div>`;
       this.renderedMode = view;
+      if (field) this.fillMicrophones();
     }
     this.panel.querySelector(".tct-recorder-text").textContent = text;
     this.panel.classList.toggle("is-recording", this.recording);
@@ -217,7 +227,7 @@ export class Recorder {
     this.render();
     let stream;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+      stream = await this.openMicrophone();
     } catch (error) {
       if (session !== this.session) return;
       console.warn(`${MODULE_ID} | No microphone`, error);
@@ -267,6 +277,58 @@ export class Recorder {
       else this.render();
     }, 250);
     this.render();
+  }
+
+  /** The chosen microphone; the browser's own if that one is not there any more. */
+  async openMicrophone() {
+    const audio = { echoCancellation: true, noiseSuppression: true };
+    const chosen = game.settings.get(MODULE_ID, SETTINGS.microphone);
+    if (chosen) {
+      try {
+        return await navigator.mediaDevices.getUserMedia({ audio: { ...audio, deviceId: { exact: chosen } } });
+      } catch (error) {
+        if (!["OverconstrainedError", "NotFoundError"].includes(error?.name)) throw error;
+        ui.notifications.warn(game.i18n.localize("TCT.Recorder.MicrophoneGone"));
+      }
+    }
+    return navigator.mediaDevices.getUserMedia({ audio });
+  }
+
+  /**
+   * The microphones this browser offers, with the chosen one selected. Browsers name them only once the page may use
+   * one; until then they are numbered.
+   */
+  async fillMicrophones() {
+    const select = this.panel.querySelector("[data-microphone]");
+    if (!select || !navigator.mediaDevices?.enumerateDevices) return;
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    // Chrome's "default" and "communications" are other names for real devices in the list.
+    const inputs = devices.filter(
+      (device) => device.kind === "audioinput" && device.deviceId && !["default", "communications"].includes(device.deviceId)
+    );
+    this.named = inputs.some((device) => device.label);
+    const t = (key, data) => game.i18n.format(`TCT.Recorder.${key}`, data ?? {});
+    const chosen = game.settings.get(MODULE_ID, SETTINGS.microphone);
+    const options = [
+      ["", t("MicrophoneDefault")],
+      ...inputs.map((device, i) => [device.deviceId, device.label || t("MicrophoneNumber", { n: i + 1 })])
+    ];
+    select.replaceChildren(...options.map(([value, label]) => new Option(label, value, false, value === chosen)));
+  }
+
+  /** Asks for the microphone once, when the list is opened before any recording, so the list can show names. */
+  async nameMicrophones() {
+    if (this.named !== false || this.naming) return;
+    this.naming = true;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach((track) => track.stop());
+      await this.fillMicrophones();
+    } catch {
+      // Not allowed: the list stays numbered, and recording asks again.
+    } finally {
+      this.naming = false;
+    }
   }
 
   stop() {

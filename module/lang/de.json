@@ -128,7 +128,11 @@
       "Unmute": "Schalte dich in Discord wieder laut.",
       "Dismiss": "Klicken zum Schließen",
       "UploadBroken": "Aufnahmen können gerade nicht gespeichert werden – vermutlich ist deine Anmeldung abgelaufen. Lade die Seite neu, melde dich wieder an und schalte den Rekorder dann ein.",
-      "PlaybackFailed": "Diese Nachricht konnte hier nicht abgespielt werden. Der GM kann sie noch einmal abspielen."
+      "PlaybackFailed": "Diese Nachricht konnte hier nicht abgespielt werden. Der GM kann sie noch einmal abspielen.",
+      "Microphone": "Mikrofon",
+      "MicrophoneDefault": "Standard des Browsers",
+      "MicrophoneNumber": "Mikrofon {n}",
+      "MicrophoneGone": "Das gewählte Mikrofon ist nicht verfügbar. Es wird mit dem Standardmikrofon des Browsers aufgenommen."
     },
     "Seats": {
       "Title": "Sitzordnung",

@@ -833,6 +833,27 @@ body.tct-active #chat-notifications .chat-message.tct-ga-card {
   font-size: 0.9rem;
 }
 
+.tct-recorder-mic {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+}
+
+.tct-recorder-mic select {
+  flex: 1;
+  min-width: 0;
+  height: auto;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  background: rgba(40, 32, 24, 0.9);
+  border: 1px solid rgba(216, 201, 168, 0.35);
+  border-radius: 3px;
+  padding: 0.2rem 0.4rem;
+}
+
 .tct-recorder-buttons {
   display: flex;
   flex-wrap: wrap;

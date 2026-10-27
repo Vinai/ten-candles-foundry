@@ -12,7 +12,8 @@ export const SETTINGS = {
   truths: "truths",
   momentRoll: "momentRoll",
   dead: "dead",
-  plainTable: "plainTable"
+  plainTable: "plainTable",
+  microphone: "microphone"
 };
 
 export function registerSettings() {
@@ -86,6 +87,14 @@ export function registerSettings() {
     type: Object,
     default: {},
     onChange: (value) => Hooks.callAll(SETTING_CHANGED_HOOK, SETTINGS.dead, value)
+  });
+
+  // The microphone this browser records parting messages with, by device id; empty for the browser's default.
+  game.settings.register(MODULE_ID, SETTINGS.microphone, {
+    scope: "client",
+    config: false,
+    type: String,
+    default: ""
   });
 
   // Escape hatch for weak machines or trouble: keep Foundry's own canvas and camera dock.

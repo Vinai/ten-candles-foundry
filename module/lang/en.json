@@ -128,7 +128,11 @@
       "Unmute": "Unmute yourself in Discord.",
       "Dismiss": "Click to close",
       "UploadBroken": "Recordings cannot be stored right now – your login has probably expired. Reload the page, log in again and then switch the recorder on.",
-      "PlaybackFailed": "This message could not be played here. The GM can play it again."
+      "PlaybackFailed": "This message could not be played here. The GM can play it again.",
+      "Microphone": "Microphone",
+      "MicrophoneDefault": "Browser default",
+      "MicrophoneNumber": "Microphone {n}",
+      "MicrophoneGone": "The chosen microphone is not available. Recording with the browser's default microphone."
     },
     "Seats": {
       "Title": "Seating",
