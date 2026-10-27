@@ -628,7 +628,7 @@ body.tct-active .ets-floating-roll {
 .tct-die-face.is-3 { transform: rotateX(90deg) translateZ(calc(var(--size) / 2)); }
 .tct-die-face.is-4 { transform: rotateX(-90deg) translateZ(calc(var(--size) / 2)); }
 
-.tct-die-face.is-1 { background-size: 78%; }
+.tct-die-face.is-skull { background-size: 78%; }
 
 /* On the Game Assistant's conflict card: a small black skull instead of a rolled 1. */
 .tct-skull-face {

@@ -24,6 +24,7 @@ export function skull() {
 
 // Which of the nine pip spots are filled for each face, row by row.
 const PIPS = {
+  1: [4],
   2: [2, 6],
   3: [2, 4, 6],
   4: [0, 2, 6, 8],
@@ -34,11 +35,12 @@ const PIPS = {
 // Where the pips sit across and down a side, in per cent: the nine spots of PIPS.
 const SPOT = [24, 50, 76];
 
-// Pips and skulls on each kind of die.
+// Pips on each kind of die, and the skull for a 1 where a 1 costs the players a die: only their own pool. A hope die
+// is not lost on a 1, and the GM's 1s cost nothing, so theirs show a plain pip.
 const INK = {
   player: { pip: "#f1ece2", skull: "#f1ece2" },
-  gm: { pip: "#f1ece2", skull: "#f1ece2" },
-  hope: { pip: "#2a2112", skull: "#0b0b0d" }
+  gm: { pip: "#f1ece2", skull: null },
+  hope: { pip: "#2a2112", skull: null }
 };
 
 // How the cube turns to show a face on top (towards the viewer); opposite faces add up to 7.
@@ -143,14 +145,15 @@ export class RollingDice {
 }
 
 /**
- * One side of a die: pips, or the skull for a 1. Painted as the side's own background: Firefox leaves out what lies
- * inside a side turned in 3D.
+ * One side of a die: pips, or the skull for a 1 on a player's die. Painted as the side's own background: Firefox leaves
+ * out what lies inside a side turned in 3D.
  */
 function face(value, ink) {
+  const skulled = value === 1 && ink.skull;
   const el = document.createElement("div");
-  el.className = `tct-die-face is-${value}`;
+  el.className = `tct-die-face is-${value}${skulled ? " is-skull" : ""}`;
   el.style.backgroundImage =
-    value === 1
+    skulled
       ? `url("data:image/svg+xml,${encodeURIComponent(SKULL.replace("<svg ", `<svg xmlns="http://www.w3.org/2000/svg" `).replace("currentColor", ink.skull))}")`
       : PIPS[value]
           .map((spot) => `radial-gradient(circle at ${SPOT[spot % 3]}% ${SPOT[Math.floor(spot / 3)]}%, ${ink.pip} 0.17vw, transparent 0.2vw)`)
