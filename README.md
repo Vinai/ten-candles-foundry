@@ -68,8 +68,8 @@ are alive. · The dead · Switch recorder on / Pass recorder on / Restart record
 
 ## Known issues
 
-Some rules are decided by the Game Assistant and are not fully implemented there yet. Pull requests for all three
-are open: [#1](https://github.com/ctotone/tencandles-ga/pull/1), [#2](https://github.com/ctotone/tencandles-ga/pull/2),
+Some rules are decided by the Game Assistant and are not fully implemented there yet. Pull requests for the first
+three are open: [#1](https://github.com/ctotone/tencandles-ga/pull/1), [#2](https://github.com/ctotone/tencandles-ga/pull/2),
 [#3](https://github.com/ctotone/tencandles-ga/pull/3).
 
 - **Tied 6s.** The rulebook gives the narration to the GM on a tie; the Game Assistant gives it to the player. The
@@ -79,6 +79,9 @@ are open: [#1](https://github.com/ctotone/tencandles-ga/pull/1), [#2](https://gi
   one hope die, the one from their own Moment (#1).
 - **A failed Brink reroll** should burn the Brink and lose the hope dice; the Game Assistant keeps both. Handle it
   at the table until #3 is merged.
+- **A Brink reroll keeps the hope die's result.** The rulebook rerolls the entire pool, hope die included ("even
+  dice that had landed on 6"); the Game Assistant rerolls only the character dice and keeps the hope die as it
+  fell. A hope die that showed 1–4 gets no second chance. A follow-up for the Game Assistant once #3 is merged.
 
 Other things to know:
 
