@@ -3,7 +3,7 @@
   "title": "Ten Candles – Tisch",
   "description": "Atmosphere for Ten Candles on Foundry VTT: candlelit table with camera feeds around the candles, real-time candle clock, card passing and burning, final recordings and an X-card. Built on top of the Ten Candles – Game Assistant system.",
   "version": "0.1.0",
-  "authors": [{ "name": "Vinai", "url": "https://github.com/Vinai" }],
+  "authors": [{ "name": "Vinai Kopp", "url": "https://github.com/Vinai" }],
   "license": "LICENSE",
   "compatibility": { "minimum": "14", "verified": "14" },
   "relationships": {
