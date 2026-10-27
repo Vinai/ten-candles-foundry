@@ -32,6 +32,9 @@ export class GMControls {
     this.draughtButton = this.button(() => this.draught(), "TCT.GM.Draught");
     this.draughtButton.dataset.tooltip = game.i18n.localize("TCT.GM.DraughtHint");
     this.deathsButton = this.button(() => this.table.deaths.edit(), "TCT.GM.Deaths");
+    // TEMPORARY, for designing the last scene's death card; revert this commit before the game.
+    this.departureTestButton = this.button(() => this.postTestDeparture());
+    this.departureTestButton.textContent = "Test: Abschiedskarte";
     this.deathsButton.dataset.tooltip = game.i18n.localize("TCT.GM.DeathsHint");
     this.aliveButton = this.button(() => this.table.sayAlive(), "TCT.GM.Alive");
     this.aliveButton.dataset.tooltip = game.i18n.localize("TCT.GM.AliveHint");
@@ -52,6 +55,7 @@ export class GMControls {
       this.draughtButton,
       this.aliveButton,
       this.deathsButton,
+      this.departureTestButton,
       this.recorderButton,
       this.playButton,
       this.status,
@@ -95,6 +99,25 @@ export class GMControls {
     // The candles start burning down the first time the lights go out.
     if (lightsOut && !isStarted(this.table.clock())) await this.saveClock(start(this.table.clock() ?? this.newClock()));
     await game.settings.set(MODULE_ID, SETTINGS.lightsOut, lightsOut);
+  }
+
+  /** TEMPORARY: posts the Game Assistant's death card of the last scene for a player at the table. */
+  async postTestDeparture() {
+    const actor = this.table.users.find((user) => !user.isGM && user.character)?.character;
+    if (!actor) return;
+    const content = await foundry.applications.handlebars.renderTemplate(
+      `systems/${GA_SYSTEM_ID}/templates/chat/character-departure-card.hbs`,
+      {
+        resolution: { id: foundry.utils.randomID(), actorName: actor.name },
+        departureParagraphs: ["…"],
+        collectiveSummary: { visible: false }
+      }
+    );
+    await ChatMessage.implementation.create({
+      content,
+      speaker: { alias: "Ten Candles" },
+      flags: { [GA_SYSTEM_ID]: { type: "character-departure", actorUuid: actor.uuid } }
+    });
   }
 
   async nextRitualStep() {
