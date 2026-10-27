@@ -18,6 +18,10 @@ const STOP_PAUSE_MS = 1000;
 // The holder gives up waiting for the GM after this long and may pass again.
 const PASS_TIMEOUT_MS = 45_000;
 const MIME_TYPES = ["audio/webm;codecs=opus", "audio/mp4", "audio/webm"];
+// A microphone just opened may deliver silence for a while (Bluetooth headsets switching mode take a second or two);
+// recording starts once it carries sound above this level, or after this long at the latest.
+const SOUND_LEVEL = 1e-5;
+const SOUND_WAIT_MS = 4000;
 const EXTENSIONS = { "audio/webm": "webm", "audio/mp4": "m4a", "audio/ogg": "ogg" };
 
 /**
@@ -272,10 +276,14 @@ export class Recorder {
     const session = this.session;
     this.mode = "opening";
     this.render();
+    // Made during the click: a browser lets a page play or listen to audio only then.
+    const context = new AudioContext();
     let stream;
     try {
       stream = await this.openMicrophone();
+      await this.untilSound(stream, context);
     } catch (error) {
+      context.close();
       if (session !== this.session) return;
       console.warn(`${MODULE_ID} | No microphone`, error);
       ui.notifications.error(game.i18n.localize("TCT.Recorder.NoMicrophone"));
@@ -283,6 +291,7 @@ export class Recorder {
       this.render();
       return;
     }
+    context.close();
     // Skipped or reset while the browser asked for the microphone: nobody wants this recording any more.
     if (session !== this.session || this.holder !== game.user) {
       stream.getTracks().forEach((track) => track.stop());
@@ -342,6 +351,28 @@ export class Recorder {
       }
     }
     return navigator.mediaDevices.getUserMedia({ audio });
+  }
+
+  /**
+   * Waits until the microphone carries sound, so the recording, its counter and the start click begin when it really
+   * hears the player, not while it is still waking up.
+   */
+  async untilSound(stream, context) {
+    try {
+      await context.resume();
+      const analyser = context.createAnalyser();
+      context.createMediaStreamSource(stream).connect(analyser);
+      const samples = new Float32Array(analyser.fftSize);
+      const until = Date.now() + SOUND_WAIT_MS;
+      while (Date.now() < until) {
+        analyser.getFloatTimeDomainData(samples);
+        if (samples.some((value) => Math.abs(value) > SOUND_LEVEL)) return;
+        await new Promise((resolve) => window.setTimeout(resolve, 50));
+      }
+    } catch (error) {
+      // Without a way to listen, recording starts at once as before.
+      console.warn(`${MODULE_ID} | Could not listen for the microphone`, error);
+    }
   }
 
   /** The name on the masking tape: the chosen microphone, or the browser's own. */
