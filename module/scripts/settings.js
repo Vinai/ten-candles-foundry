@@ -62,7 +62,7 @@ export function registerSettings() {
     onChange: (value) => Hooks.callAll(SETTING_CHANGED_HOOK, SETTINGS.recorder, value)
   });
 
-  // The truths after a candle went out, until the GM's "Und wir leben.". See truths.js.
+  // The truths after a candle went out, until the GM's "Und wir sind am Leben.". See truths.js.
   game.settings.register(MODULE_ID, SETTINGS.truths, {
     scope: "world",
     config: false,

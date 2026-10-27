@@ -5,7 +5,7 @@
     },
     "Ritual": {
       "WorldIsDark": "Diese Dinge sind wahr. Die Welt ist dunkel.",
-      "WeAreAlive": "Und wir leben.",
+      "WeAreAlive": "Und wir sind am Leben.",
       "Step": {
         "Traits": "Tugend & Laster schreiben",
         "Pass": "Karten weitergeben",
@@ -67,7 +67,7 @@
       "RecorderSkipHint": "Reicht den Rekorder ohne Nachricht weiter, z. B. wenn jemand nicht aufnehmen kann.",
       "RecorderWith": "Rekorder bei {name}",
       "RecorderDone": "Aufgenommene Nachrichten: {count}",
-      "Alive": "Und wir leben.",
+      "Alive": "Und wir sind am Leben.",
       "AliveHint": "Zeigt allen die letzte Wahrheit, die alle Spielenden gemeinsam sprechen. Danach beginnt die nächste Szene.",
       "RecorderRestart": "Rekorder neu starten",
       "RecorderRestartHint": "Der Rekorder geht noch einmal reihum. Wer schon eine Nachricht hat, kann sie behalten oder neu aufnehmen.",
@@ -78,7 +78,7 @@
     "Phrase": {
       "True": "Diese Dinge sind wahr.",
       "Dark": "Die Welt ist dunkel.",
-      "Alive": "Und wir leben."
+      "Alive": "Und wir sind am Leben."
     },
     "Settings": {
       "PlainTable": {
@@ -177,7 +177,7 @@
       "CandlesLeft": "{count} Kerzen bleiben.",
       "Opening": "Diese Dinge sind wahr. Die Welt ist dunkel.",
       "Truth": "{n}. Wahrheit: {name}",
-      "Alive": "{n}. Wahrheit: Und wir leben.",
+      "Alive": "{n}. Wahrheit: Und wir sind am Leben.",
       "NoRoll": "Während die Wahrheiten gesprochen werden, wird nicht gewürfelt. Der Wurf wurde abgebrochen."
     },
     "Sheet": {

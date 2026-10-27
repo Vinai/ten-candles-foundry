@@ -224,7 +224,7 @@ export class GMControls {
 
   /**
    * A candle going out on its own ends the scene like a failed conflict: one candle fewer, the dice pool refilled.
-   * Waits while a conflict or the truths are under way (until "Und wir leben."); the candle keeps guttering until then.
+   * Waits while a conflict or the truths are under way (until "Und wir sind am Leben."); the candle keeps guttering until then.
    */
   async darkenCandle() {
     const state = this.table.gaState();

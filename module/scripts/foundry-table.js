@@ -524,7 +524,7 @@ export class FoundryTable {
     return (byPlayer && this.playerOf(last)) || this.users.find((user) => user.isGM) || game.user;
   }
 
-  /** While the truths are spoken nobody rolls; the GM's "Und wir leben." ends them. */
+  /** While the truths are spoken nobody rolls; the GM's "Und wir sind am Leben." ends them. */
   applyTruths() {
     document.body.classList.toggle("tct-truths", this.truths.active);
     ui.controls?.render({ reset: true });
