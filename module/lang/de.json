@@ -20,7 +20,8 @@
         "Name": "Name: Wie heißt die Figur?",
         "Look": "Aussehen: Wie sieht sie auf den ersten Blick aus?",
         "Concept": "Konzept: Wer oder was ist sie, in wenigen Worten?",
-        "Then": "Danach: „{button}“."
+        "Then": "Danach: „{button}“.",
+        "Module": "Zuerst das Szenario vorstellen: Schauplatz und Lage des Abends vorlesen, wie eine Einsatzbesprechung."
       },
       "Arrange": {
         "Title": "Stapel ordnen",
@@ -28,7 +29,13 @@
         "Order": "Tugend, Laster und Moment in beliebiger Reihenfolge. Nur die oberste Karte ist aktiv.",
         "Brink": "Der Abgrund liegt immer ganz unten.",
         "Moments": "In der Runde möglichst nicht mehr als ein Moment obenauf.",
-        "Then": "Danach: „{button}“. Ab dann ist die Reihenfolge fest."
+        "Then": "Danach: „{button}“. Ab dann ist die Reihenfolge fest.",
+        "Supplies": "Vorräte: Jede Figur hat, was ihre Spielerin oder ihr Spieler gerade in den Taschen hat. Mehr gibt es nur durch Wahrheiten oder Konflikte."
+      },
+      "Begins": {
+        "Title": "Es beginnt",
+        "Ask": "Wenn du magst, lies das Szenario noch einmal vor und setze die erste Szene.",
+        "Then": "Danach: „{button}“. Jede Figur hinterlässt eine letzte Nachricht, dann beginnt die erste Szene."
       }
     },
     "Card": {

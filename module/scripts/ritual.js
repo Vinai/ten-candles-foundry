@@ -27,9 +27,14 @@ const STEPS = {
 };
 
 // What the GM is reminded of while the players work on their own: strings under TCT.Ritual.<key>, then the button.
+// `first` comes before the request to the players, `last` after its list.
 const GM_CARDS = {
-  concepts: { key: "Concepts", items: ["Name", "Look", "Concept"], then: STEPS.concepts.button },
-  arrange: { key: "Arrange", items: ["Order", "Brink", "Moments"], then: "TCT.GM.LightsOut" }
+  // The rulebook's "Introduce Module" comes before the concepts.
+  concepts: { key: "Concepts", first: "Module", items: ["Name", "Look", "Concept"], then: STEPS.concepts.button },
+  // "Inventory Supplies" follows the stacks, just before the last candle.
+  arrange: { key: "Arrange", items: ["Order", "Brink", "Moments"], last: "Supplies", then: "TCT.GM.LightsOut" },
+  // "How It Begins": the module may be read again, then the recorder goes round before the first scene.
+  begins: { key: "Begins", items: [], then: "TCT.GM.RecorderOn" }
 };
 
 const LABELS = {
@@ -147,17 +152,23 @@ export class Ritual {
    * arrange their stacks, until "Licht aus". Null at any other time, and for players.
    */
   gmCard() {
-    const step = this.state().step;
-    const card = GM_CARDS[step];
+    const card = GM_CARDS[this.state().step];
     if (!game.user.isGM || !card || isStarted(this.table.clock())) return null;
-    const t = (key, data) => foundry.utils.escapeHTML(game.i18n.format(`TCT.Ritual.${card.key}.${key}`, data ?? {}));
-    const element = document.createElement("article");
-    element.className = "tct-truths-card";
-    const items = card.items.map((key) => `<li>${t(key)}</li>`).join("");
-    element.innerHTML =
-      `<h3>${t("Title")}</h3><p class="tct-truths-left">${t("Ask")}</p><ul class="tct-truths-list">${items}</ul>` +
-      `<p class="tct-truths-opening tct-gm-then">${t("Then", { button: game.i18n.localize(card.then) })}</p>`;
-    return element;
+    return reminder(card);
+  }
+
+  /**
+   * The GM's card over the bowl after "Licht aus", until the recorder is switched on: read the module again if
+   * wanted, then the recorder round, then the first scene. It gives way to any card of the game, and goes for good
+   * once a conflict shows that the first scene has begun without the recorder.
+   */
+  beginsCard() {
+    const clock = this.table.clock();
+    const state = this.table.gaState();
+    if (!game.user.isGM || !isStarted(clock) || !this.table.recorder.unused || !(state.litCandles > 0)) return null;
+    const conflict = state.activeResolution ?? state.lastResolution;
+    if ((conflict?.createdAt ?? 0) > clock.startedAt) return null;
+    return reminder(GM_CARDS.begins);
   }
 
   /** The GM keeps the card the player on their right wrote about Them. */
@@ -434,4 +445,20 @@ export class Ritual {
     await user.update({ character: created.id });
     return created;
   }
+}
+
+/** A reminder card for the GM: title, what to do or ask of the players, then the button that comes next. */
+function reminder(card) {
+  const t = (key, data) => foundry.utils.escapeHTML(game.i18n.format(`TCT.Ritual.${card.key}.${key}`, data ?? {}));
+  const element = document.createElement("article");
+  element.className = "tct-truths-card";
+  const items = card.items.map((key) => `<li>${t(key)}</li>`).join("");
+  element.innerHTML =
+    `<h3>${t("Title")}</h3>` +
+    (card.first ? `<p class="tct-truths-left">${t(card.first)}</p>` : "") +
+    `<p class="tct-truths-left">${t("Ask")}</p>` +
+    (items ? `<ul class="tct-truths-list">${items}</ul>` : "") +
+    (card.last ? `<p class="tct-truths-left tct-gm-note">${t(card.last)}</p>` : "") +
+    `<p class="tct-truths-opening tct-gm-then">${t("Then", { button: game.i18n.localize(card.then) })}</p>`;
+  return element;
 }

@@ -1025,6 +1025,10 @@ body:not(.tct-the-end) .tct-phrase.is-final {
   margin: 1rem 0 0;
 }
 
+.tct-gm-note {
+  margin: 0.8rem 0 0;
+}
+
 .tct-truths-list li.is-alive {
   color: #f3d58a;
 }

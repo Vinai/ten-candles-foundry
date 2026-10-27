@@ -167,8 +167,8 @@ export class FoundryTable {
       if (key === SETTINGS.lightsOut) this.applyLights();
       if (key === SETTINGS.seatOrder) this.refreshSeats();
       if (key === SETTINGS.ritual) this.ritual.onChange();
-      // The GM's reminders over the bowl follow the ritual and go at "Licht aus".
-      if (key === SETTINGS.ritual || key === SETTINGS.candleClock) this.mirror?.render();
+      // The GM's reminders over the bowl follow the ritual; after "Licht aus" the last one goes with the recorder.
+      if ([SETTINGS.ritual, SETTINGS.candleClock, SETTINGS.recorder].includes(key)) this.mirror?.render();
       if (key === SETTINGS.recorder) this.recorder.onChange();
       if (key === SETTINGS.truths) this.applyTruths();
       // A Moment's card says whether its roll is under way.

@@ -14,7 +14,8 @@ const PRECEDENCE = ["resolution", "ball-of-truths", "instant"];
  * nobody needs the chat. It is the real message rendered once more: the Game Assistant wires up its buttons itself.
  * While the players work out their concepts or arrange their stacks, the GM finds what to ask of them there. While
  * the truths are spoken, the table's own truths card lies there instead (the GM keeps the Game Assistant's card while
- * it still has a button to press). The table can hold it back while dice roll or a card burns.
+ * it still has a button to press). After "Licht aus", while nothing else lies there, the GM is reminded of the recorder
+ * round. The table can hold it back while dice roll or a card burns.
  */
 export class ConflictMirror {
   constructor(table, element) {
@@ -128,7 +129,7 @@ export class ConflictMirror {
     }
     const recent =
       message && lingers(message) && !NO_LINGER.has(gaType(message)) && Date.now() - this.touchedAt < LINGER_MS;
-    if (!pinned && !recent) return null;
+    if (!pinned && !recent) return this.table.ritual.beginsCard();
     return message.renderHTML();
   }
 

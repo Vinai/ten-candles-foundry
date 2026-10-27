@@ -20,7 +20,8 @@
         "Name": "Name: what are they called?",
         "Look": "Look: what do they look like at a quick glance?",
         "Concept": "Concept: in a few words, who or what are they?",
-        "Then": "Then: “{button}”."
+        "Then": "Then: “{button}”.",
+        "Module": "First introduce the module: read out tonight's setting and situation, like a mission briefing."
       },
       "Arrange": {
         "Title": "Arrange stacks",
@@ -28,7 +29,13 @@
         "Order": "Virtue, Vice and Moment in any order. Only the top card is active.",
         "Brink": "The Brink always lies at the bottom.",
         "Moments": "Ideally no more than one Moment on top within the group.",
-        "Then": "Then: “{button}”. From then on the order is fixed."
+        "Then": "Then: “{button}”. From then on the order is fixed.",
+        "Supplies": "Supplies: each character has whatever their player has in their pockets right now. Anything more only through truths or conflicts."
+      },
+      "Begins": {
+        "Title": "It begins",
+        "Ask": "If you like, read the module once more and set the first scene.",
+        "Then": "Then: “{button}”. Each character leaves a final message; after that the first scene begins."
       }
     },
     "Card": {
