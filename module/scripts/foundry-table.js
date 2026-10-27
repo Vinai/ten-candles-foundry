@@ -159,7 +159,7 @@ export class FoundryTable {
       this.applyState(state);
       this.mirror?.render();
       this.gm?.onGaState(state);
-      this.moments.onGaState(state);
+      this.moments.onGaState();
       this.deaths.onGaState(state);
       this.gm?.render();
     });

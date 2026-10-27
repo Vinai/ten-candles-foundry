@@ -23,8 +23,9 @@ export class Moments {
   constructor(table) {
     this.table = table;
     // Requests the GM turned down. A roll of the Game Assistant under way when that happened brings one back with
-    // its next save; it is taken back again.
+    // its next save; it is taken back again. Their cards say so too, for a browser that takes over (`wasRejected`).
     this.rejected = new Set();
+    this.reconciling = Promise.resolve();
   }
 
   start() {
@@ -48,7 +49,7 @@ export class Moments {
     if (!this.inCharge) return;
     const roll = this.rolling();
     if (roll && !roll.resolutionId) window.setTimeout(() => this.giveUpUnstarted(), ROLL_START_MS + 100);
-    this.onGaState(this.table.gaState());
+    this.onGaState();
   }
 
   get inCharge() {
@@ -157,9 +158,18 @@ export class Moments {
    */
   async withdrawRejected() {
     const request = (this.table.gaState().instantRequests ?? []).find(
-      (candidate) => this.rejected.has(candidate.id) && candidate.status === "awaiting" && candidate.activeMessageId
+      (candidate) => candidate.status === "awaiting" && candidate.activeMessageId && this.wasRejected(candidate.id)
     );
     if (request) await this.withdraw(request.id);
+  }
+
+  /** Whether the GM turned this request down: in this browser, or in one before it that marked its cards. */
+  wasRejected(requestId) {
+    if (this.rejected.has(requestId)) return true;
+    return game.messages.contents.some(
+      (message) =>
+        message.flags?.[GA_SYSTEM_ID]?.instantRequestId === requestId && message.getFlag(MODULE_ID, "momentUnfit")
+    );
   }
 
   /** In the player's browser: the GM confirmed the Moment, so its conflict roll starts as if they had rolled. */
@@ -172,11 +182,23 @@ export class Moments {
    * In the GM's browser, with every change of the Game Assistant's state: ties the Moment to the conflict rolled for
    * it, and once that conflict is confirmed and the Moment's card is out again, settles the Moment by its result.
    * A conflict called off leaves the Moment open for the GM to decide again.
+   *
+   * One at a time, each with the state as it is once the withdrawals before it are done: one that had to wait must
+   * not decide by a state that has moved on, e.g. clear a Moment the GM has just let roll.
    */
-  async onGaState(state) {
+  onGaState() {
+    this.reconciling = this.reconciling
+      .then(() => this.reconcile())
+      .catch((error) => console.error(`${MODULE_ID} | Moments`, error));
+    return this.reconciling;
+  }
+
+  async reconcile() {
     if (!this.inCharge) return;
     await this.withdrawFromTheDead();
     await this.withdrawRejected();
+    if (!this.inCharge) return;
+    const state = this.table.gaState();
     let roll = this.rolling();
     if (!roll) return;
     const request = (state.instantRequests ?? []).find((candidate) => candidate.id === roll.requestId);
@@ -207,12 +229,11 @@ export class Moments {
     // Only once the Moment's new card is out: settled any earlier, the Game Assistant would post it as withdrawn.
     if (state.activeResolution || request.status !== "awaiting" || !request.activeMessageId) return;
     if (this.settling === roll.requestId) return;
+    // Not waited for: the next state changes are looked at meanwhile.
     this.settling = roll.requestId;
-    try {
-      await this.settle(roll, request);
-    } finally {
-      this.settling = null;
-    }
+    this.settle(roll, request)
+      .catch((error) => console.error(`${MODULE_ID} | Moments`, error))
+      .finally(() => (this.settling = null));
   }
 
   /**
