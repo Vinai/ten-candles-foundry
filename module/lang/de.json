@@ -108,13 +108,12 @@
     },
     "Recorder": {
       "Hint": "Du hast den Rekorder. Hinterlasse eine letzte Nachricht als deine Figur.",
-      "Record": "● Aufnehmen",
+      "Record": "Aufnehmen",
       "PassEmpty": "Ohne Nachricht weitergeben",
-      "Recording": "● Aufnahme {time} / {max}",
-      "Stop": "■ Stopp",
+      "Recording": "Aufnahme läuft – höchstens {max}.",
+      "Stop": "Stopp",
       "Recorded": "Aufgenommen. Anhören, neu aufnehmen oder weitergeben.",
-      "Listen": "▶ Anhören",
-      "Again": "Neu aufnehmen",
+      "Listen": "Anhören",
       "Pass": "Weitergeben",
       "Opening": "Mikrofon wird geöffnet …",
       "Sending": "Wird weitergegeben …",
@@ -129,10 +128,12 @@
       "Dismiss": "Klicken zum Schließen",
       "UploadBroken": "Aufnahmen können gerade nicht gespeichert werden – vermutlich ist deine Anmeldung abgelaufen. Lade die Seite neu, melde dich wieder an und schalte den Rekorder dann ein.",
       "PlaybackFailed": "Diese Nachricht konnte hier nicht abgespielt werden. Der GM kann sie noch einmal abspielen.",
-      "Microphone": "Mikrofon",
+      "Microphone": "Mikro: {name}",
       "MicrophoneDefault": "Standard des Browsers",
       "MicrophoneNumber": "Mikrofon {n}",
-      "MicrophoneGone": "Das gewählte Mikrofon ist nicht verfügbar. Es wird mit dem Standardmikrofon des Browsers aufgenommen."
+      "MicrophoneGone": "Das gewählte Mikrofon ist nicht verfügbar. Es wird mit dem Standardmikrofon des Browsers aufgenommen.",
+      "MicrophoneQuestion": "Welches Mikrofon?",
+      "Listening": "Du hörst deine Nachricht."
     },
     "Seats": {
       "Title": "Sitzordnung",

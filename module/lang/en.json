@@ -108,13 +108,12 @@
     },
     "Recorder": {
       "Hint": "You hold the recorder. Leave one last message as your character.",
-      "Record": "● Record",
+      "Record": "Record",
       "PassEmpty": "Pass on without a message",
-      "Recording": "● Recording {time} / {max}",
-      "Stop": "■ Stop",
+      "Recording": "Recording – {max} at most.",
+      "Stop": "Stop",
       "Recorded": "Recorded. Listen, record again or pass it on.",
-      "Listen": "▶ Listen",
-      "Again": "Record again",
+      "Listen": "Listen",
       "Pass": "Pass on",
       "Opening": "Opening the microphone …",
       "Sending": "Passing it on …",
@@ -129,10 +128,12 @@
       "Dismiss": "Click to close",
       "UploadBroken": "Recordings cannot be stored right now – your login has probably expired. Reload the page, log in again and then switch the recorder on.",
       "PlaybackFailed": "This message could not be played here. The GM can play it again.",
-      "Microphone": "Microphone",
+      "Microphone": "Mic: {name}",
       "MicrophoneDefault": "Browser default",
       "MicrophoneNumber": "Microphone {n}",
-      "MicrophoneGone": "The chosen microphone is not available. Recording with the browser's default microphone."
+      "MicrophoneGone": "The chosen microphone is not available. Recording with the browser's default microphone.",
+      "MicrophoneQuestion": "Which microphone?",
+      "Listening": "You are listening to your message."
     },
     "Seats": {
       "Title": "Seating",

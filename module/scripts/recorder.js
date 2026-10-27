@@ -49,13 +49,12 @@ export class Recorder {
   }
 
   start() {
-    this.panel = document.createElement("div");
-    this.panel.className = "tct-recorder-panel";
+    this.panel = this.buildPanel();
     this.panel.addEventListener("click", (event) => this.onClick(event));
-    this.panel.addEventListener("change", (event) => {
-      if (event.target.matches("[data-microphone]")) game.settings.set(MODULE_ID, SETTINGS.microphone, event.target.value);
+    // The slip with the microphones goes when the holder clicks anywhere else.
+    document.addEventListener("pointerdown", (event) => {
+      if (!this.panel.contains(event.target)) this.showMicrophones(false);
     });
-    this.panel.addEventListener("focusin", (event) => event.target.matches("[data-microphone]") && this.nameMicrophones());
     navigator.mediaDevices?.addEventListener?.("devicechange", () => this.fillMicrophones());
     this.table.ownControls.append(this.panel);
     this.lastPlayback = this.state().playback?.at ?? 0;
@@ -170,44 +169,90 @@ export class Recorder {
 
   // Holder ---------------------------------------------------------------------------------------------------------
 
+  /**
+   * The pocket recorder in the holder's hand: REC, STOP and PLAY keys, a counter, reels that turn while it records or
+   * plays, and the microphone written on a strip of masking tape. Handing it on is not a key on the device.
+   */
+  buildPanel() {
+    const t = (key) => foundry.utils.escapeHTML(game.i18n.localize(`TCT.Recorder.${key}`));
+    const panel = document.createElement("div");
+    panel.className = "tct-recorder-panel";
+    panel.innerHTML =
+      `<p class="tct-recorder-text"></p>` +
+      `<div class="tct-dictaphone">` +
+      `<div class="tct-dictaphone-top" aria-hidden="true"><span>MEMO</span><span class="tct-dictaphone-led"></span></div>` +
+      `<div class="tct-dictaphone-grille" aria-hidden="true"></div>` +
+      `<div class="tct-dictaphone-window" aria-hidden="true">` +
+      `<span class="tct-dictaphone-reel"></span><span class="tct-dictaphone-reel"></span></div>` +
+      `<div class="tct-dictaphone-counter"></div>` +
+      `<button type="button" class="tct-dictaphone-mic" data-action="microphones" aria-expanded="false"></button>` +
+      `<div class="tct-dictaphone-keys">` +
+      `<button type="button" class="is-record" data-action="record" aria-label="${t("Record")}">● REC</button>` +
+      `<button type="button" data-action="stop" aria-label="${t("Stop")}">■ STOP</button>` +
+      `<button type="button" data-action="play" aria-label="${t("Listen")}">▶ PLAY</button>` +
+      `</div>` +
+      `<div class="tct-dictaphone-list" hidden><p>${t("MicrophoneQuestion")}</p><div></div></div>` +
+      `</div>` +
+      `<button type="button" class="tct-recorder-pass" data-action="pass"></button>`;
+    return panel;
+  }
+
   render() {
     const mine = this.holder === game.user;
     this.panel.hidden = !mine;
-    if (!mine) return;
-    const t = (key, data) => game.i18n.format(`TCT.Recorder.${key}`, data ?? {});
-    const button = (action, key) => `<button type="button" data-action="${action}">${t(key)}</button>`;
-    // Before each recording the microphone can be chosen, e.g. the headset rather than the laptop's own.
-    const microphone =
-      `<label class="tct-recorder-mic"><span>${t("Microphone")}</span><select data-microphone></select></label>`;
-    const elapsed = this.recording ? formatSeconds(Date.now() - this.startedAt) : "";
-    const views = {
-      idle: [t("Hint"), button("record", "Record") + button("pass", "PassEmpty"), microphone],
-      // Back again with a message from the round before: keep it or record a new one.
-      kept: [t("Kept"), button("listen-kept", "Listen") + button("record", "Again") + button("pass", "PassKeep"), microphone],
-      opening: [t("Opening"), ""],
-      recording: [t("Recording", { time: elapsed, max: formatSeconds(MAX_RECORDING_MS) }), button("stop", "Stop")],
-      recorded: [t("Recorded"), button("listen", "Listen") + button("record", "Again") + button("pass", "Pass"), microphone],
-      sending: [t("Sending"), ""]
-    };
-    const view = this.mode === "idle" && this.kept ? "kept" : this.mode;
-    const [text, buttons, field = ""] = views[view];
-    // Only the clock changes while recording; keep the buttons so a click on them is never lost.
-    if (this.renderedMode !== view || !this.panel.firstChild) {
-      this.panel.innerHTML =
-        `<p class="tct-recorder-text"></p>${field}<div class="tct-recorder-buttons">${buttons}</div>`;
-      this.renderedMode = view;
-      if (field) this.fillMicrophones();
+    if (!mine) {
+      this.stopListening();
+      this.showMicrophones(false);
+      return;
     }
-    this.panel.querySelector(".tct-recorder-text").textContent = text;
+    const t = (key, data) => game.i18n.format(`TCT.Recorder.${key}`, data ?? {});
+    const q = (selector) => this.panel.querySelector(selector);
+    // Back again with a message from the round before: keep it or record a new one.
+    const view = this.mode === "idle" && this.kept ? "kept" : this.mode;
+    const texts = {
+      idle: t("Hint"),
+      kept: t("Kept"),
+      opening: t("Opening"),
+      recording: t("Recording", { max: formatSeconds(MAX_RECORDING_MS) }),
+      recorded: t("Recorded"),
+      sending: t("Sending")
+    };
+    const resting = ["idle", "kept", "recorded"].includes(view);
+    q(".tct-recorder-text").textContent = this.listening ? t("Listening") : texts[view];
+    q(".tct-dictaphone-counter").textContent = formatSeconds(this.counterMs());
     this.panel.classList.toggle("is-recording", this.recording);
+    this.panel.classList.toggle("is-running", this.recording || Boolean(this.listening));
+    q('[data-action="record"]').disabled = !resting;
+    q('[data-action="stop"]').disabled = !(this.recording || this.listening);
+    q('[data-action="play"]').disabled = !(view === "recorded" || view === "kept");
+    const microphone = q('[data-action="microphones"]');
+    microphone.disabled = !resting;
+    microphone.textContent = `${t("Microphone", { name: this.microphoneName() })} ▾`;
+    const pass = q('[data-action="pass"]');
+    pass.textContent = `${t(this.blob ? "Pass" : this.kept ? "PassKeep" : "PassEmpty")} →`;
+    pass.disabled = !resting;
+    if (!resting) this.showMicrophones(false);
+  }
+
+  /** What the counter shows: the time recorded so far, the place in the message being listened to, or its length. */
+  counterMs() {
+    if (this.recording) return Date.now() - this.startedAt;
+    if (this.listening) return (this.audio?.currentTime ?? 0) * 1000;
+    return this.blob ? (this.recordedMs ?? 0) : 0;
   }
 
   onClick(event) {
-    const action = event.target.closest("button")?.dataset.action;
+    const button = event.target.closest("button");
+    if (!button || button.disabled) return;
+    if (button.dataset.microphone !== undefined) {
+      this.chooseMicrophone(button.dataset.microphone, button.textContent);
+      return;
+    }
+    const action = button.dataset.action;
     if (action === "record") this.record();
-    else if (action === "stop") this.stop();
-    else if (action === "listen") this.listen();
-    else if (action === "listen-kept" && this.kept) this.preview(this.kept.path);
+    else if (action === "stop") this.recording ? this.stop() : this.stopListening();
+    else if (action === "play") this.listen();
+    else if (action === "microphones") this.showMicrophones(this.panel.querySelector(".tct-dictaphone-list").hidden);
     else if (action === "pass") this.pass();
   }
 
@@ -222,6 +267,8 @@ export class Recorder {
 
   async record() {
     if (!["idle", "recorded"].includes(this.mode) || this.holder !== game.user) return;
+    this.stopListening();
+    this.showMicrophones(false);
     const session = this.session;
     this.mode = "opening";
     this.render();
@@ -253,7 +300,10 @@ export class Recorder {
         if (this.media !== media) return;
         this.media = null;
         // Only a finished recording replaces the one before.
-        if (parts.length) this.blob = new Blob(parts, { type: media.mimeType });
+        if (parts.length) {
+          this.blob = new Blob(parts, { type: media.mimeType });
+          this.recordedMs = Math.min(Date.now() - this.startedAt, MAX_RECORDING_MS);
+        }
         this.mode = this.resting;
         this.signal();
         this.render();
@@ -282,7 +332,7 @@ export class Recorder {
   /** The chosen microphone; the browser's own if that one is not there any more. */
   async openMicrophone() {
     const audio = { echoCancellation: true, noiseSuppression: true };
-    const chosen = game.settings.get(MODULE_ID, SETTINGS.microphone);
+    const chosen = game.settings.get(MODULE_ID, SETTINGS.microphone)?.id;
     if (chosen) {
       try {
         return await navigator.mediaDevices.getUserMedia({ audio: { ...audio, deviceId: { exact: chosen } } });
@@ -294,13 +344,36 @@ export class Recorder {
     return navigator.mediaDevices.getUserMedia({ audio });
   }
 
+  /** The name on the masking tape: the chosen microphone, or the browser's own. */
+  microphoneName() {
+    const chosen = game.settings.get(MODULE_ID, SETTINGS.microphone);
+    return chosen?.id ? chosen.label : game.i18n.localize("TCT.Recorder.MicrophoneDefault");
+  }
+
+  /** Opens or closes the slip with the microphones on it; opened, the browser is asked to name them. */
+  async showMicrophones(open) {
+    const list = this.panel.querySelector(".tct-dictaphone-list");
+    if (list.hidden === !open) return;
+    list.hidden = !open;
+    this.panel.querySelector('[data-action="microphones"]').setAttribute("aria-expanded", String(open));
+    if (!open) return;
+    await this.fillMicrophones();
+    await this.nameMicrophones();
+  }
+
+  async chooseMicrophone(id, label) {
+    await game.settings.set(MODULE_ID, SETTINGS.microphone, id ? { id, label } : {});
+    this.showMicrophones(false);
+    this.render();
+  }
+
   /**
-   * The microphones this browser offers, with the chosen one selected. Browsers name them only once the page may use
-   * one; until then they are numbered.
+   * The microphones this browser offers, the chosen one ticked. Browsers name them only once the page may use one;
+   * until then they are numbered.
    */
   async fillMicrophones() {
-    const select = this.panel.querySelector("[data-microphone]");
-    if (!select || !navigator.mediaDevices?.enumerateDevices) return;
+    const list = this.panel.querySelector(".tct-dictaphone-list");
+    if (list.hidden || !navigator.mediaDevices?.enumerateDevices) return;
     const devices = await navigator.mediaDevices.enumerateDevices();
     // Chrome's "default" and "communications" are other names for real devices in the list.
     const inputs = devices.filter(
@@ -308,15 +381,24 @@ export class Recorder {
     );
     this.named = inputs.some((device) => device.label);
     const t = (key, data) => game.i18n.format(`TCT.Recorder.${key}`, data ?? {});
-    const chosen = game.settings.get(MODULE_ID, SETTINGS.microphone);
+    const chosen = game.settings.get(MODULE_ID, SETTINGS.microphone)?.id ?? "";
     const options = [
       ["", t("MicrophoneDefault")],
       ...inputs.map((device, i) => [device.deviceId, device.label || t("MicrophoneNumber", { n: i + 1 })])
     ];
-    select.replaceChildren(...options.map(([value, label]) => new Option(label, value, false, value === chosen)));
+    list.lastElementChild.replaceChildren(
+      ...options.map(([id, label]) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.dataset.microphone = id;
+        button.setAttribute("aria-pressed", String(id === chosen));
+        button.textContent = label;
+        return button;
+      })
+    );
   }
 
-  /** Asks for the microphone once, when the list is opened before any recording, so the list can show names. */
+  /** Asks for the microphone once, when the slip is opened before any recording, so it can show names. */
   async nameMicrophones() {
     if (this.named !== false || this.naming) return;
     this.naming = true;
@@ -336,19 +418,38 @@ export class Recorder {
     if (this.media?.state === "recording") this.media.stop();
   }
 
+  /** PLAY: the message just recorded, or the one kept from the round before. */
   listen() {
-    if (!this.blob) return;
-    const url = URL.createObjectURL(this.blob);
-    this.preview(url, () => URL.revokeObjectURL(url));
+    if (this.blob) {
+      const url = URL.createObjectURL(this.blob);
+      this.preview(url, () => URL.revokeObjectURL(url));
+    } else if (this.kept) this.preview(this.kept.path);
   }
 
-  /** The holder listens to their own message, at the interface volume like everything else. */
+  /** The holder listens to their own message, at the interface volume like everything else; the reels turn. */
   preview(src, done) {
     this.stopPlayback();
     const audio = (this.audio = new Audio(src));
     audio.volume = interfaceVolume();
-    if (done) audio.addEventListener("ended", done, { once: true });
-    audio.play().catch(() => {});
+    let over = false;
+    const finished = () => {
+      if (over) return;
+      over = true;
+      window.clearInterval(this.listenTicker);
+      if (this.listening === audio) this.listening = null;
+      done?.();
+      this.render();
+    };
+    for (const event of ["ended", "error", "tct-stop"]) audio.addEventListener(event, finished, { once: true });
+    this.listening = audio;
+    window.clearInterval(this.listenTicker);
+    this.listenTicker = window.setInterval(() => this.render(), 250);
+    this.render();
+    audio.play().catch(finished);
+  }
+
+  stopListening() {
+    if (this.listening) this.stopPlayback();
   }
 
   /**
@@ -357,6 +458,8 @@ export class Recorder {
    */
   async pass() {
     if (!["idle", "recorded"].includes(this.mode)) return;
+    this.stopListening();
+    this.showMicrophones(false);
     const gm = game.users.activeGM;
     if (!gm) {
       ui.notifications.warn(game.i18n.localize("TCT.Recorder.NoGM"));
@@ -396,6 +499,7 @@ export class Recorder {
 
   reset() {
     this.session++;
+    this.stopListening();
     window.clearInterval(this.ticker);
     window.clearTimeout(this.passTimer);
     const media = this.media;
