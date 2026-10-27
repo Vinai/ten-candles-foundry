@@ -13,6 +13,8 @@ const FOLDER = "ten-candles-recordings";
 const PLAYBACK_FRESH_MS = 15_000;
 // Each message begins with the recorder's click and this pause.
 const CLICK_PAUSE_MS = 750;
+// After the message, this much silence before the recorder is clicked off again.
+const STOP_PAUSE_MS = 1000;
 // The holder gives up waiting for the GM after this long and may pass again.
 const PASS_TIMEOUT_MS = 45_000;
 const MIME_TYPES = ["audio/webm;codecs=opus", "audio/mp4", "audio/webm"];
@@ -509,8 +511,9 @@ export class Recorder {
   }
 
   /**
-   * The recorder's click, a breath, then the message, at Foundry's interface volume like the click. The message plays
-   * straight from its element: routed through Web Audio, one from another server (Forge's assets) would be silent.
+   * The recorder's click, a breath, then the message, at Foundry's interface volume like the click; a second after it,
+   * the click that stops the recorder. The message plays straight from its element: routed through Web Audio, one
+   * from another server (Forge's assets) would be silent.
    */
   async playOne({ path }) {
     this.stopPlayback();
@@ -529,6 +532,8 @@ export class Recorder {
         audio.addEventListener("tct-stop", resolve, { once: true });
         audio.play().catch(resolve);
       });
+      await new Promise((resolve) => window.setTimeout(resolve, STOP_PAUSE_MS));
+      if (run === this.playback) this.table.sounds.click(false);
     } finally {
       if (run === this.playback) {
         this.playing = false;
