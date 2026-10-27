@@ -24,7 +24,7 @@
         "Module": "Zuerst das Szenario vorstellen: Schauplatz und Lage des Abends vorlesen, wie eine Einsatzbesprechung."
       },
       "Arrange": {
-        "Title": "Stapel ordnen",
+        "Title": "Stapel & Vorräte",
         "Ask": "Bitte die Spielerinnen und Spieler, im Charakterbogen ihren Stapel zu ordnen (eine Karte ziehen):",
         "Order": "Tugend, Laster und Moment in beliebiger Reihenfolge. Nur die oberste Karte ist aktiv.",
         "Brink": "Der Abgrund liegt immer ganz unten.",
