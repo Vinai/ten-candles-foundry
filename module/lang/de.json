@@ -176,7 +176,7 @@
       "NotSettled": "Der Moment von {name} ließ sich noch nicht abschließen. Beim nächsten Schritt im Spiel wird es erneut versucht."
     },
     "Truths": {
-      "Title": "Ritual der Wahrheiten",
+      "Title": "Wahrheit sprechen",
       "One": "1 Wahrheit",
       "Many": "{count} Wahrheiten",
       "CandleLeft": "Nur eine Kerze bleibt.",
@@ -208,9 +208,9 @@
   "ETC.NarrationSeize.Title": "Narrativ übernehmen",
   "ETC.NarrationSeize.Description": "{name} gelingt der Wurf, doch die SL würde erzählen. {name} kann eine Kerze löschen und das Narrativ übernehmen.",
   "ETC.NarrationSeize.RegieButton": "Bestätigen, Kerze löschen und Narrativ übergeben",
-  "ETC.Chat.BallInstructions": "Sprecht reihum eine Wahrheit aus. Danach beginnt die nächste Szene.",
-  "ETC.Chat.NarrationSeizedBallInstructions": "Sprecht reihum eine Wahrheit aus. Danach beginnt die nächste Szene.",
-  "ETC.Chat.StartNextScene": "Wahrheitsritual beginnen",
+  "ETC.Chat.BallInstructions": "Sprecht reihum eine Wahrheit. Danach beginnt die nächste Szene.",
+  "ETC.Chat.NarrationSeizedBallInstructions": "Sprecht reihum eine Wahrheit. Danach beginnt die nächste Szene.",
+  "ETC.Chat.StartNextScene": "Wahrheit sprechen",
   "ETC.Chat.GMName": "GM",
   "ETC.Chat.ValidateResolution": "Bestätigen",
   "ETC.Chat.CancelResolution": "Abbrechen",
