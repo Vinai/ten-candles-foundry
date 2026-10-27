@@ -149,6 +149,8 @@
       "NotFit": "Passt nicht",
       "Rolling": "Der Wurf entscheidet: Bei Erfolg gibt es Hoffnung.",
       "Unfit": "Passt gerade nicht. Der Moment bleibt im Stapel.",
+      "NotNow": "Gerade kann nicht gewürfelt werden: erst in einer Szene mit Würfeln und ohne offenen Konflikt.",
+      "RollDidNotStart": "Der Wurf für den Moment hat nicht begonnen. Entscheide noch einmal.",
       "PlayerAway": "{name} ist nicht verbunden. Der Wurf für den Moment kann gerade nicht starten."
     },
     "Truths": {

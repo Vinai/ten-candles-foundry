@@ -100,7 +100,7 @@ export class FoundryTable {
     await this.allowPlayerVideo();
     this.users = this.seatedUsers();
     if (plain) {
-      this.stage = new PlainStage();
+      this.stage = new PlainStage({ sounds: this.sounds });
     } else {
       const image = await loadImage(GA_PAINTING);
       await this.adoptPersonalPresentation();
@@ -210,6 +210,8 @@ export class FoundryTable {
     this.ritual.onChange();
     this.recorder.onChange();
     this.renderWriteButton();
+    // Characters of the old game seat nobody who is not there any more.
+    this.refreshSeats();
     if (game.user === game.users.activeGM && game.settings.get(MODULE_ID, SETTINGS.lightsOut)) {
       game.settings.set(MODULE_ID, SETTINGS.lightsOut, false);
     }

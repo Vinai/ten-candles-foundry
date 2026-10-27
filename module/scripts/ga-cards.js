@@ -128,14 +128,16 @@ function decorateDeparture(message, html) {
 
 /**
  * "When determining the winner of narration rights, ties always break in favor of the GM" (rulebook). The Game
- * Assistant gives ties to the player; counted from the dice on the card, a tie names the GM here. A narration the
- * player seized stays theirs.
+ * Assistant gives ties to the player; counted from the dice on the card, a tie names the GM here, if the GM rolled at
+ * all (with no GM dice or a skipped roll it stays the player's). A narration the player seized stays theirs. The
+ * Game Assistant offers seizing only when the GM is ahead, so on a tie a player who wants it seizes it by a draught.
  */
 function gmNarratesOnTies(html) {
-  const sixes = (selector) => [...html.querySelectorAll(selector)].filter((die) => die.textContent.trim() === "6").length;
-  const player = sixes(".ets-conflict-pool.is-player .ets-die");
-  const gm = sixes(".ets-conflict-pool.is-gm .ets-dice-row:not(.is-sizer) .ets-die");
-  if (gm !== player) return;
+  const sixes = (dice) => dice.filter((die) => die.textContent.trim() === "6").length;
+  const gmDice = [...html.querySelectorAll(".ets-conflict-pool.is-gm .ets-dice-row:not(.is-sizer) .ets-die")];
+  if (!gmDice.length) return;
+  const player = sixes([...html.querySelectorAll(".ets-conflict-pool.is-player .ets-die")]);
+  if (sixes(gmDice) !== player) return;
   const provisional = html.querySelector(".is-provisional-success .ets-conflict-result__main");
   if (provisional) provisional.textContent = game.i18n.localize("ETC.Chat.ProvisionalGMNarrates");
   const final = html.querySelector(".ets-conflict-result.is-success.is-final");

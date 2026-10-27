@@ -3,7 +3,9 @@
  * would show only as a picture is left out; the ritual words come as notifications, and the X-card is a small button.
  */
 export class PlainStage {
-  constructor() {
+  /** @param sounds {TableSounds} the table's sounds: dice are heard here too, e.g. when rolled to try them */
+  constructor({ sounds } = {}) {
+    this.sounds = sounds;
     this.table = { setGutter() {}, setRoomLight() {} };
   }
 
@@ -21,7 +23,8 @@ export class PlainStage {
     return Promise.resolve();
   }
 
-  rollDice() {
+  rollDice(seat, dice) {
+    this.sounds?.dice(dice.length);
     return Promise.resolve();
   }
 

@@ -149,6 +149,8 @@
       "NotFit": "Doesn't fit",
       "Rolling": "The roll decides: success brings hope.",
       "Unfit": "Doesn't fit right now. The Moment stays in the stack.",
+      "NotNow": "No roll can start right now: only in a scene with dice and no open conflict.",
+      "RollDidNotStart": "The roll for the Moment did not start. Decide again.",
       "PlayerAway": "{name} is not connected. The roll for the Moment cannot start right now."
     },
     "Truths": {

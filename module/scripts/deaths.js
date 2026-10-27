@@ -92,11 +92,15 @@ export class Deaths {
       rejectClose: false
     });
     if (!values || !this.inCharge) return;
-    const users = {};
+    // Read again: a death at the last candle or a Martyr's choice may have come in while the dialog was open.
+    const users = { ...this.state().users };
     for (const user of players) {
-      if (!values[`dead-${user.id}`]) continue;
+      if (!values[`dead-${user.id}`]) {
+        delete users[user.id];
+        continue;
+      }
       const martyr = Boolean(values[`martyr-${user.id}`]);
-      users[user.id] = { martyr, hopeTo: martyr ? (dead[user.id]?.hopeTo ?? null) : null };
+      users[user.id] = { martyr, hopeTo: martyr ? (users[user.id]?.hopeTo ?? null) : null };
     }
     await this.save(users);
     for (const [userId, entry] of Object.entries(users)) {
@@ -142,15 +146,17 @@ export class Deaths {
   async heirChosen(message, senderId) {
     if (!this.inCharge || message.gameId !== this.state().gameId) return;
     if (senderId !== message.userId && senderId !== game.user.id) return;
-    const users = this.state().users;
-    const entry = users[message.userId];
+    const entry = this.state().users[message.userId];
     const heir = game.users.get(message.heir);
     if (!entry?.martyr || entry.hopeTo || !heir || heir.isGM || this.isDead(heir)) return;
     const giver = game.users.get(message.userId)?.character;
     if (game.evilTenCandles?.transferHopeDie && giver && heir.character) {
       await game.evilTenCandles.transferHopeDie(giver.uuid, heir.character.uuid);
     }
-    await this.save({ ...users, [message.userId]: { ...entry, hopeTo: heir.id } });
+    // Read again after the transfer: the GM may have changed the list meanwhile.
+    const users = this.state().users;
+    if (!users[message.userId]) return;
+    await this.save({ ...users, [message.userId]: { ...users[message.userId], hopeTo: heir.id } });
   }
 
   /**

@@ -4,6 +4,8 @@ import { SETTINGS } from "./settings.js";
 // The Game Assistant is busy for a moment after a conflict; asked again this often, this far apart.
 const SETTLE_ATTEMPTS = 10;
 const SETTLE_RETRY_MS = 1000;
+// A roll the GM asked for that has not started a conflict by then (refused, or the player reloaded) is given up.
+const ROLL_START_MS = 15_000;
 
 /**
  * Living a Moment, as the rulebook has it: "When a character is ready to live their Moment, a conflict roll is
@@ -14,7 +16,7 @@ const SETTLE_RETRY_MS = 1000;
  * withdraws the request and the Moment stays in the stack. Once the GM has confirmed the conflict, the GM's browser
  * settles the Moment by its result, through the Game Assistant: success gives the hope die, failure does not.
  *
- * World setting `momentRoll`: {gameId, requestId, actorId, resolutionId} while a Moment's roll is under way.
+ * World setting `momentRoll`: {gameId, requestId, actorId, at, resolutionId} while a Moment's roll is under way.
  */
 export class Moments {
   constructor(table) {
@@ -41,14 +43,24 @@ export class Moments {
     return roll?.requestId && roll.gameId === this.table.gaState().gameId ? roll : null;
   }
 
-  /** The GM's call on a Moment's card: "fit" rolls for it, "unfit" withdraws it. */
+  /**
+   * The GM's call on a Moment's card: "fit" rolls for it, "unfit" withdraws it. "Unfit" still works while the roll
+   * asked for has not started; "fit" only when a roll can start now: in a scene, with dice, no other conflict open.
+   */
   async decide(choice, requestId) {
-    if (!this.inCharge || this.rolling()) return;
+    if (!this.inCharge) return;
+    const roll = this.rolling();
+    if (roll && (choice === "fit" || roll.resolutionId)) return;
     const state = this.table.gaState();
     const request = (state.instantRequests ?? []).find((candidate) => candidate.id === requestId);
     if (!request) return;
     if (choice === "unfit") {
+      if (roll) await this.clear();
       await this.withdraw(state, request);
+      return;
+    }
+    if (state.stage !== "scene" || state.activeResolution || !(state.bluePoolRemaining > 0)) {
+      ui.notifications.warn(game.i18n.localize("TCT.Moment.NotNow"));
       return;
     }
     const player = game.users.find((user) => !user.isGM && user.character?.id === request.actorId);
@@ -60,11 +72,22 @@ export class Moments {
       gameId: state.gameId,
       requestId,
       actorId: request.actorId,
+      at: Date.now(),
       resolutionId: null
     });
     game.socket.emit(SOCKET, { type: "moment-roll", gameId: state.gameId, actorUuid: request.actorUuid }, {
       recipients: [player.id]
     });
+    window.setTimeout(() => this.giveUpUnstarted(), ROLL_START_MS + 100);
+  }
+
+  /** The roll asked for never started a conflict: the Moment is the GM's to decide again. */
+  async giveUpUnstarted() {
+    const roll = this.rolling();
+    if (!this.inCharge || !roll || roll.resolutionId || Date.now() - (roll.at ?? 0) < ROLL_START_MS) return;
+    if (this.table.gaState().activeResolution?.actorId === roll.actorId) return;
+    await this.clear();
+    ui.notifications.warn(game.i18n.localize("TCT.Moment.RollDidNotStart"));
   }
 
   /**
@@ -101,9 +124,11 @@ export class Moments {
       return;
     }
     if (!roll.resolutionId) {
-      if (state.activeResolution?.actorId === roll.actorId) {
-        await game.settings.set(MODULE_ID, SETTINGS.momentRoll, { ...roll, resolutionId: state.activeResolution.id });
-      }
+      // Only a conflict of this character started after the GM's call is the Moment's roll.
+      const active = state.activeResolution;
+      if (active?.actorId === roll.actorId && (active.createdAt ?? 0) >= (roll.at ?? 0)) {
+        await game.settings.set(MODULE_ID, SETTINGS.momentRoll, { ...roll, resolutionId: active.id });
+      } else await this.giveUpUnstarted();
       return;
     }
     const resolution = state.lastResolution;
@@ -166,7 +191,8 @@ export function decorateMomentCard(message, html, state) {
   const roll = game.settings.get(MODULE_ID, SETTINGS.momentRoll);
   const rolling = roll?.requestId === requestId && roll.gameId === state.gameId;
   if (question) question.textContent = game.i18n.localize(rolling ? "TCT.Moment.Rolling" : "TCT.Moment.Question");
-  if (rolling || !game.user.isGM) {
+  // Until the roll has started, the GM can still take the call back.
+  if (!game.user.isGM || (rolling && roll.resolutionId)) {
     actions.remove();
     return;
   }
@@ -175,5 +201,5 @@ export function decorateMomentCard(message, html, state) {
     `data-tct-moment="${choice}" data-request-id="${foundry.utils.escapeHTML(requestId ?? "")}">` +
     `<i class="fa-solid ${icon}" aria-hidden="true"></i><span>${t(label)}</span></button>`;
   actions.removeAttribute("data-instant-actions");
-  actions.innerHTML = button("fit", "fa-dice", "Fit") + button("unfit", "fa-xmark", "NotFit");
+  actions.innerHTML = (rolling ? "" : button("fit", "fa-dice", "Fit")) + button("unfit", "fa-xmark", "NotFit");
 }

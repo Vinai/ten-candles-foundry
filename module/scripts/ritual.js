@@ -343,7 +343,11 @@ export class Ritual {
         const now = this.state();
         return now.gameId === state.gameId && now.step === state.step;
       };
-      if (state.step === "idle") await this.prepareCharacters();
+      if (state.step === "idle") {
+        await this.prepareCharacters();
+        // Only those at the table now take part; nobody absent from the old game keeps a seat.
+        this.table.refreshSeats();
+      }
       if (step.pass) {
         await this.save({ ...state, passing: { at: Date.now() } });
         await new Promise((resolve) => window.setTimeout(resolve, PASS_MS));
