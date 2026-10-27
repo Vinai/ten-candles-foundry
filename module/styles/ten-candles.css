@@ -336,6 +336,13 @@ body.tct-active .ets-floating-roll {
   color: #6b5f4d;
 }
 
+/* The rulebook's examples for a Virtue or Vice, on hover. */
+.tct-write-examples {
+  margin-left: 0.3rem;
+  color: #8a7a5c;
+  cursor: help;
+}
+
 .tct-write-field input {
   font-family: "Caveat", "Segoe Print", "Bradley Hand", cursive;
   font-size: 1.5rem;

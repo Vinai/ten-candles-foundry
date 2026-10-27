@@ -271,8 +271,14 @@ export class Ritual {
   prompt(kinds, own) {
     const escape = foundry.utils.escapeHTML;
     const name = (user) => escape(user.character?.name || user.name);
-    const field = (kind, label) =>
-      `<label class="tct-write-field"><span>${escape(game.i18n.localize(label))}</span>` +
+    // The rulebook's examples, on hover over a small icon beside the card's name.
+    const examples = (key) =>
+      key
+        ? ` <i class="fa-solid fa-circle-info tct-write-examples" aria-hidden="true" data-tooltip-direction="UP" ` +
+          `data-tooltip-text="${escape(game.i18n.localize(key))}"></i>`
+        : "";
+    const field = (kind, label, examplesKey) =>
+      `<label class="tct-write-field"><span>${escape(game.i18n.localize(label))}${examples(examplesKey)}</span>` +
       `<input type="text" name="${kind}" value="${escape(own[kind] ?? "")}" maxlength="${MAX_CARD_CHARS}" ` +
       `autocomplete="off" autofocus></label>`;
 
@@ -280,7 +286,8 @@ export class Ritual {
       return {
         title: game.i18n.localize("TCT.Write.TraitsTitle"),
         hint: game.i18n.localize("TCT.Write.TraitsHint"),
-        fields: field("virtue", LABELS.virtue) + field("vice", LABELS.vice)
+        fields:
+          field("virtue", LABELS.virtue, "TCT.Write.VirtueExamples") + field("vice", LABELS.vice, "TCT.Write.ViceExamples")
       };
     }
     if (kinds.includes("moment")) {
