@@ -56,11 +56,7 @@ export function decorateCard(message, html, state) {
     case "ball-of-truths":
       return decorateTruths(html, state);
     case "character-departure":
-      // A death in the last scene is the player's to narrate, not a farewell text picked at random; candles and dice
-      // are on the table already.
-      html.querySelector(".ets-departure-card__message")?.remove();
-      html.querySelector(".ets-collective-state-band")?.remove();
-      return;
+      return decorateDeparture(message, html);
     case "instant":
       return decorateMomentCard(message, html, state);
     case "darkness-progression":
@@ -105,6 +101,29 @@ function decorateConflict(message, html) {
   if (failure && !html.querySelector(".ets-conflict-resource-action:not([disabled])")) {
     failure.textContent = game.i18n.localize("TCT.Conflict.Failure");
   }
+}
+
+/**
+ * A death in the last scene: the name large, what befell them beneath, and that the last candle burns on. No farewell
+ * text picked at random (the death is the player's to narrate), no candle and dice counts (they are on the table).
+ */
+function decorateDeparture(message, html) {
+  html.querySelector(".ets-departure-card__message")?.remove();
+  html.querySelector(".ets-collective-state-band")?.remove();
+  const card = html.querySelector(".ets-departure-card");
+  card?.classList.add("tct-departure");
+  const title = html.querySelector(".ets-departure-card__title");
+  const name = fromUuidSync(message.flags?.[GA_SYSTEM_ID]?.actorUuid ?? "")?.name;
+  const text = title?.textContent.trim() ?? "";
+  if (title && name && text.startsWith(name)) {
+    const escape = foundry.utils.escapeHTML;
+    title.innerHTML =
+      `<span class="tct-departure-name">${escape(name)}</span>` +
+      `<span class="tct-departure-verb">${escape(text.slice(name.length).trim())}</span>`;
+  }
+  html
+    .querySelector(".ets-departure-card__last-candle")
+    ?.insertAdjacentHTML("afterbegin", '<i class="fa-solid fa-fire-flame-simple" aria-hidden="true"></i>');
 }
 
 /**

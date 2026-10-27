@@ -647,6 +647,57 @@ body.tct-active .ets-floating-roll {
   font-size: 0.85rem;
 }
 
+/* A death in the last scene: the name large and alone, what befell them beneath, and below a quiet line, the last
+   candle that burns on. */
+.ets-departure-card.tct-departure {
+  gap: 1.4rem;
+  padding: 2rem 1.5rem 1.4rem;
+  text-align: center;
+  box-shadow: 0 0 2.5rem rgba(0, 0, 0, 0.85), inset 0 0 3rem rgba(120, 30, 30, 0.25);
+}
+
+.ets-departure-card.tct-departure .ets-departure-card__title {
+  display: grid;
+  gap: 0.45rem;
+  line-height: 1;
+}
+
+.tct-departure-name {
+  font-size: 2.8rem;
+  color: #eadfcf;
+  overflow-wrap: anywhere;
+}
+
+.tct-departure-verb {
+  font-size: 1.15rem;
+  letter-spacing: 0.06em;
+  color: #c9827a;
+}
+
+.ets-departure-card.tct-departure .ets-departure-card__last-candle {
+  display: block;
+  padding: 0.9rem 0 0;
+  font-size: 0.82rem;
+  text-align: center;
+  border: none;
+  border-top: 1px solid rgba(225, 100, 100, 0.3);
+  border-radius: 0;
+  color: #e9c9b8;
+  background: none;
+  box-shadow: none;
+}
+
+.ets-departure-card.tct-departure .ets-departure-card__last-candle strong {
+  width: auto;
+  font-weight: 400;
+}
+
+.ets-departure-card.tct-departure .ets-departure-card__last-candle i {
+  margin-right: 0.45rem;
+  color: #f3b35a;
+  filter: drop-shadow(0 0 0.35rem rgba(255, 170, 70, 0.7));
+}
+
 /* The GM's two buttons on the conflict card side by side, so the card fits over the bowl. */
 .ets-conflict-gm-actions {
   grid-template-columns: repeat(2, minmax(0, 1fr));
