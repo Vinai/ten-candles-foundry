@@ -1,5 +1,6 @@
 import { isStarted } from "./candle-clock.js";
 import { topCard, unburned } from "./ga-cards.js";
+import { momentBurnedFor } from "./moments.js";
 import { traitUsedThisScene } from "./trait-scenes.js";
 
 /**
@@ -22,22 +23,25 @@ export class CharacterSheets {
   decorate(actor, element) {
     if (actor?.type !== "character") return;
     const system = actor.system;
-    const top = topCard(system);
+    // A Moment burned for its roll is off the stack already.
+    const momentBurned = momentBurnedFor(actor);
+    const inStack = (key) => unburned(system, key, momentBurned);
+    const top = topCard(system, momentBurned);
     const locked = isStarted(this.table.clock());
     const owner = game.users.find((user) => !user.isGM && user.character === actor);
     const dead = this.table.deaths.isDead(owner);
     for (const card of element.querySelectorAll(".etc-resource[data-resource-key]")) {
       const key = card.dataset.resourceKey;
       card.classList.toggle("tct-top", key === top);
-      if (unburned(system, key) && key !== top) card.classList.add("tct-below");
+      if (inStack(key) && key !== top) card.classList.add("tct-below");
       // The dead no longer burn cards or live their Moment. A burned card or a lived Moment does not come back; only
       // the GM can put one back, to correct a slip.
-      const spent = !unburned(system, key) && !game.user.isGM;
-      if ((unburned(system, key) && key !== top) || !locked || dead || spent) {
+      const spent = !inStack(key) && !game.user.isGM;
+      if ((inStack(key) && key !== top) || !locked || dead || spent) {
         card.querySelector(".etc-resource-state-action")?.setAttribute("disabled", "");
       }
       // "A player may not use both of their Traits in the same scene": the other one waits for the next scene.
-      const heldBack = ["virtue", "vice"].includes(key) && unburned(system, key) && !game.user.isGM;
+      const heldBack = ["virtue", "vice"].includes(key) && inStack(key) && !game.user.isGM;
       if (heldBack && traitUsedThisScene(actor)) {
         const action = card.querySelector(".etc-resource-state-action");
         action?.setAttribute("disabled", "");
@@ -66,9 +70,10 @@ export class CharacterSheets {
    */
   numberStack(actor, element) {
     for (const old of element.querySelectorAll(".tct-stack-position")) old.remove();
+    const momentBurned = momentBurnedFor(actor);
     const inStack = [...element.querySelectorAll(".etc-resource")].filter((card) => {
       const key = card.dataset.resourceKey;
-      return !key || unburned(actor.system, key);
+      return !key || unburned(actor.system, key, momentBurned);
     });
     inStack.forEach((card, i) => {
       const n = i + 1;

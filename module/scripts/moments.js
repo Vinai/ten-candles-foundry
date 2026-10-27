@@ -12,9 +12,10 @@ const ROLL_START_MS = 15_000;
  * required. If the roll is successful, hope is inspired. If the roll is unsuccessful, hope is lost."
  *
  * The player asks for it in their sheet; the Game Assistant puts the Moment's card over the bowl. The GM decides
- * whether the moment fits: "Passt – würfeln" starts the player's conflict roll in their browser, "Passt nicht"
- * withdraws the request and the Moment stays in the stack. Once the GM has confirmed the conflict, the GM's browser
- * settles the Moment by its result, through the Game Assistant: success gives the hope die, failure does not.
+ * whether the moment fits: "Passt – würfeln" burns the Moment's card in the bowl and starts the player's conflict roll
+ * in their browser (`momentBurnedFor`); "Passt nicht" withdraws the request and the Moment stays in the stack. Once the
+ * GM has confirmed the conflict, the GM's browser settles the Moment by its result, through the Game Assistant: success
+ * gives the hope die, failure does not.
  *
  * World setting `momentRoll`: {gameId, requestId, actorId, at, resolutionId, result} while a Moment's roll is under
  * way; `result` ("success" or "failure") once its conflict is confirmed, until the Moment is settled by it.
@@ -263,6 +264,17 @@ export class Moments {
     if (!this.inCharge || game.settings.get(MODULE_ID, SETTINGS.momentRoll)?.requestId !== requestId) return;
     await game.settings.set(MODULE_ID, SETTINGS.momentRoll, {});
   }
+}
+
+/**
+ * Whether this character's Moment is burned for a roll under way: "Once this has been declared, but before rolling
+ * dice, burn your Moment. This could open up a Trait or Brink for use in the conflict." (rulebook). From the GM's
+ * "Passt – würfeln" until the Moment is settled, the card is off the stack and the one beneath it is on top.
+ */
+export function momentBurnedFor(actor) {
+  const roll = game.settings.get(MODULE_ID, SETTINGS.momentRoll);
+  const gameId = game.settings.get(GA_SYSTEM_ID, GA_STATE_SETTING)?.gameId;
+  return Boolean(actor && roll?.requestId && roll.gameId === gameId && roll.actorId === actor.id);
 }
 
 /**

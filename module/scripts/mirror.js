@@ -158,7 +158,7 @@ function lingerMs(message) {
 
 /**
  * Whether a card stays a while after the game is done with it. A Moment's card does not: once it is settled, the
- * card burns in the bowl and must be seen. Only "Passt gerade nicht" stays, so the player sees why nothing happens.
+ * bowl is free for what follows. Only "Passt gerade nicht" stays, so the player sees why nothing happens.
  */
 function lingers(message) {
   return gaType(message) !== "instant" || Boolean(message.getFlag(MODULE_ID, "momentUnfit"));

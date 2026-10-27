@@ -1,6 +1,6 @@
 import { isStarted } from "./candle-clock.js";
 import { GA_STATE_SETTING, GA_SYSTEM_ID, MODULE_ID } from "./constants.js";
-import { decorateMomentCard } from "./moments.js";
+import { decorateMomentCard, momentBurnedFor } from "./moments.js";
 import { skull } from "./rolling-dice.js";
 import { SETTINGS } from "./settings.js";
 import { traitUsedThisScene } from "./trait-scenes.js";
@@ -27,9 +27,12 @@ export function isPractice(message, state) {
   return !(clock?.gameId === state.gameId && isStarted(clock));
 }
 
-/** Whether a trait card is still in the stack: not burned, or for the Moment, not yet lived. */
-export function unburned(system, key) {
-  if (key === "moment") return !system.momentAttempted;
+/**
+ * Whether a trait card is still in the stack: not burned, or for the Moment, not yet lived, nor burned for the roll
+ * under way (`momentBurned`, see moments.js).
+ */
+export function unburned(system, key, momentBurned = false) {
+  if (key === "moment") return !system.momentAttempted && !momentBurned;
   return Boolean(system[key]?.available);
 }
 
@@ -37,8 +40,9 @@ export function unburned(system, key) {
  * The card on top of a character's stack, the only one in play (rulebook: "only the top card of each stack is
  * active"). The order is the one the player arranged; null once only the Brink is left.
  */
-export function topCard(system) {
-  return [...(system?.resourceOrderList ?? [])].find((key) => TRAITS.includes(key) && unburned(system, key)) ?? null;
+export function topCard(system, momentBurned = false) {
+  const inStack = (key) => TRAITS.includes(key) && unburned(system, key, momentBurned);
+  return [...(system?.resourceOrderList ?? [])].find(inStack) ?? null;
 }
 
 /**
@@ -85,7 +89,8 @@ function decorateConflict(message, html) {
   // Only the card on top of the stack can be burned for a reroll, and not both traits in one scene.
   const actor = game.actors.get(message.speaker?.actor);
   if (!actor) return;
-  const top = topCard(actor.system);
+  // A Moment's roll: the Moment burned first, so the card beneath it may be burned for a reroll.
+  const top = topCard(actor.system, momentBurnedFor(actor));
   const usedThisScene = traitUsedThisScene(actor);
   for (const [key, selector] of [
     ["virtue", ".ets-conflict-resource-action.is-virtue"],

@@ -82,6 +82,10 @@ three are open: [#1](https://github.com/ctotone/tencandles-ga/pull/1), [#2](http
 - **A Brink reroll keeps the hope die's result.** The rulebook rerolls the entire pool, hope die included ("even
   dice that had landed on 6"); the Game Assistant rerolls only the character dice and keeps the hope die as it
   fell. A hope die that showed 1–4 gets no second chance. A follow-up for the Game Assistant once #3 is merged.
+- **No Brink in a Moment's own conflict.** The rulebook burns the Moment before its roll, which "could open up a
+  Trait or Brink for use in the conflict". The table burns the Moment card at "Passt – würfeln" and offers the
+  Virtue or Vice beneath it, but the Game Assistant decides at the start of a conflict whether the Brink is
+  available and counts the Moment only once it is settled.
 
 Other things to know:
 

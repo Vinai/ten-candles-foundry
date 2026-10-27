@@ -5,7 +5,7 @@ import { CameraFaces } from "./faces.js";
 import { gaType } from "./ga-cards.js";
 import { GMControls } from "./gm-controls.js";
 import { ConflictMirror } from "./mirror.js";
-import { Moments } from "./moments.js";
+import { momentBurnedFor, Moments } from "./moments.js";
 import { PlainStage } from "./plain-stage.js";
 import { seeded } from "./random.js";
 import { Recorder } from "./recorder.js";
@@ -180,7 +180,13 @@ export class FoundryTable {
       if (key === SETTINGS.recorder) this.recorder.onChange();
       if (key === SETTINGS.truths) this.applyTruths();
       // A Moment's card says whether its roll is under way.
-      if (key === SETTINGS.momentRoll) this.redrawCards("instant");
+      if (key === SETTINGS.momentRoll) {
+        this.redrawCards("instant");
+        // "Passt – würfeln": the Moment burns in the bowl before the dice are thrown, and the card beneath it is on
+        // top for this conflict. A roll that never started puts it back.
+        for (const user of this.users) if (user.character) this.refreshActor(user.character);
+        this.sheets.renderAll();
+      }
       if (key === SETTINGS.dead) this.deaths.onChange();
       // A Virtue or Vice burned: the other one waits for the next scene, on the conflict card and in the sheet.
       if (key === SETTINGS.traitBurns) {
@@ -325,7 +331,7 @@ export class FoundryTable {
     const own = game.user.isGM || user.isSelf;
     const pending = own ? [...this.ritual.gmCards(user), ...this.ritual.pendingCards(user)] : [];
     if (!system) return { cards: pending, hope: false };
-    const unburned = unburnedTraits(system);
+    const unburned = unburnedTraits(system, momentBurnedFor(user.character));
     this.unburned.set(user.character.id, unburned);
     // The dead roll no more; a Martyr's hope die is carried on by another.
     const hope = system.hopeDieAvailable && !this.deaths.isDead(user);
@@ -367,7 +373,7 @@ export class FoundryTable {
     if (index < 0) return;
     // Spent, not erased: the sheet still has the text, it is just no longer available.
     const before = this.unburned.get(actor.id) ?? {};
-    const now = unburnedTraits(actor.system);
+    const now = unburnedTraits(actor.system, momentBurnedFor(actor));
     const resolution = this.gaState().activeResolution;
     for (const key of Object.keys(before)) {
       if (key in now || !written(actor.system, key)) continue;
@@ -768,8 +774,13 @@ function written(system, key) {
 }
 
 /** Virtue, Vice and Moment that are written and not yet burned, by key. */
-function unburnedTraits(system) {
-  const unburned = { virtue: system.virtue.available, vice: system.vice.available, moment: !system.momentAttempted };
+/** The traits still on a stack; a Moment burned for its roll (`momentBurned`) has left it already. */
+function unburnedTraits(system, momentBurned = false) {
+  const unburned = {
+    virtue: system.virtue.available,
+    vice: system.vice.available,
+    moment: !system.momentAttempted && !momentBurned
+  };
   return Object.fromEntries(
     Object.keys(TRAIT_LABELS)
       .filter((key) => unburned[key] && written(system, key))
