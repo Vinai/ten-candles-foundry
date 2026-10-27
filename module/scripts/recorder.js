@@ -197,7 +197,7 @@ export class Recorder {
     if (action === "record") this.record();
     else if (action === "stop") this.stop();
     else if (action === "listen") this.listen();
-    else if (action === "listen-kept") new Audio(this.kept?.path).play().catch(() => {});
+    else if (action === "listen-kept" && this.kept) this.preview(this.kept.path);
     else if (action === "pass") this.pass();
   }
 
@@ -277,9 +277,16 @@ export class Recorder {
   listen() {
     if (!this.blob) return;
     const url = URL.createObjectURL(this.blob);
-    const audio = new Audio(url);
-    audio.addEventListener("ended", () => URL.revokeObjectURL(url), { once: true });
-    audio.play();
+    this.preview(url, () => URL.revokeObjectURL(url));
+  }
+
+  /** The holder listens to their own message, at the interface volume like everything else. */
+  preview(src, done) {
+    this.stopPlayback();
+    const audio = (this.audio = new Audio(src));
+    audio.volume = interfaceVolume();
+    if (done) audio.addEventListener("ended", done, { once: true });
+    audio.play().catch(() => {});
   }
 
   /**
@@ -295,6 +302,8 @@ export class Recorder {
     }
     const session = this.session;
     const id = this.blob ? foundry.utils.randomID() : null;
+    // The turn this pass belongs to: one arriving late, in a later round, is not taken for the holder's new turn.
+    const { gameId, round = 0 } = this.state();
     this.mode = "sending";
     this.transfer = id;
     this.render();
@@ -305,10 +314,11 @@ export class Recorder {
       const total = Math.ceil(data.length / CHUNK_CHARS);
       for (let index = 0; index < total; index++) {
         const chunk = data.slice(index * CHUNK_CHARS, (index + 1) * CHUNK_CHARS);
-        game.socket.emit(SOCKET, { type: "recording", id, index, total, mime: this.blob.type, chunk }, to);
+        const message = { type: "recording", gameId, round, id, index, total, mime: this.blob.type, chunk };
+        game.socket.emit(SOCKET, message, to);
       }
     }
-    game.socket.emit(SOCKET, { type: "recorder-pass", id }, to);
+    game.socket.emit(SOCKET, { type: "recorder-pass", gameId, round, id }, to);
     window.clearTimeout(this.passTimer);
     this.passTimer = window.setTimeout(() => this.passFailed(session, id, "PassFailed"), PASS_TIMEOUT_MS);
   }
@@ -414,9 +424,16 @@ export class Recorder {
     return null;
   }
 
+  /** Whether a message of the holder belongs to their current turn, not to an earlier round or game. */
+  currentTurn(senderId, { gameId, round }) {
+    const state = this.state();
+    return senderId === state.holder && gameId === state.gameId && round === (state.round ?? 0);
+  }
+
   /** Takes a piece of the holder's recording; anything from anyone else, or out of bounds, is dropped. */
-  receiveChunk(senderId, { id, index, total, mime, chunk }) {
-    if (senderId !== this.state().holder || typeof id !== "string") return;
+  receiveChunk(senderId, message) {
+    const { id, index, total, mime, chunk } = message;
+    if (!this.currentTurn(senderId, message) || typeof id !== "string") return;
     if (!Number.isInteger(total) || total < 1 || total > MAX_CHUNKS) return;
     if (!Number.isInteger(index) || index < 0 || index >= total) return;
     if (typeof chunk !== "string" || chunk.length > CHUNK_CHARS || !EXTENSIONS[baseType(mime)]) return;
@@ -434,9 +451,10 @@ export class Recorder {
    * The holder passes on: with a complete recording, it is stored first; without one (`id` null), the recorder just
    * moves on. Anything incomplete goes back to the holder as failed, who still has the recording.
    */
-  async receivePass(senderId, { id }) {
+  async receivePass(senderId, message) {
+    const { id } = message;
     const state = this.state();
-    if (state.holder !== senderId) return;
+    if (!this.currentTurn(senderId, message)) return;
     // This pass, as it was sent: the game, the round and the holder's latest attempt.
     const pass = { gameId: state.gameId, round: state.round ?? 0, token: id ?? foundry.utils.randomID() };
     this.latestPass.set(senderId, pass.token);
@@ -510,6 +528,13 @@ export class Recorder {
     return this.save({ ...this.state(), playback: { index, at: Date.now() } });
   }
 
+  /** The message just played, once more for everyone, e.g. when it did not play somewhere. */
+  replay() {
+    const index = this.nextIndex - 1;
+    if (game.user !== game.users.activeGM || index < 0 || index >= this.recordings.length) return;
+    return this.save({ ...this.state(), playback: { index, at: Date.now() } });
+  }
+
   /**
    * The recorder's click, a breath, then the message, at Foundry's interface volume like the click; a second after it,
    * the click that stops the recorder. The message plays straight from its element: routed through Web Audio, one
@@ -527,10 +552,20 @@ export class Recorder {
       await new Promise((resolve) => {
         const audio = (this.audio = new Audio(path));
         audio.volume = interfaceVolume();
+        // Said once, though a broken file both fails to load and refuses to play.
+        let reported = false;
+        const failed = (error) => {
+          if (!reported) {
+            reported = true;
+            console.warn(`${MODULE_ID} | Could not play ${path}`, error);
+            ui.notifications.error(game.i18n.localize("TCT.Recorder.PlaybackFailed"));
+          }
+          resolve();
+        };
         audio.addEventListener("ended", resolve, { once: true });
-        audio.addEventListener("error", resolve, { once: true });
+        audio.addEventListener("error", () => failed(audio.error), { once: true });
         audio.addEventListener("tct-stop", resolve, { once: true });
-        audio.play().catch(resolve);
+        audio.play().catch((error) => error?.name !== "AbortError" && failed(error));
       });
       await new Promise((resolve) => window.setTimeout(resolve, STOP_PAUSE_MS));
       if (run === this.playback) this.table.sounds.click(false);

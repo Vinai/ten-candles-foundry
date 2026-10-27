@@ -16,7 +16,8 @@ const ROLL_START_MS = 15_000;
  * withdraws the request and the Moment stays in the stack. Once the GM has confirmed the conflict, the GM's browser
  * settles the Moment by its result, through the Game Assistant: success gives the hope die, failure does not.
  *
- * World setting `momentRoll`: {gameId, requestId, actorId, at, resolutionId} while a Moment's roll is under way.
+ * World setting `momentRoll`: {gameId, requestId, actorId, at, resolutionId, result} while a Moment's roll is under
+ * way; `result` ("success" or "failure") once its conflict is confirmed, until the Moment is settled by it.
  */
 export class Moments {
   constructor(table) {
@@ -31,6 +32,10 @@ export class Moments {
       const button = event.target.closest?.("[data-tct-moment]");
       if (button) this.decide(button.dataset.tctMoment, button.dataset.requestId);
     });
+    // After a reload of the GM's browser: a roll asked for still waits to start, or a confirmed one to be settled.
+    const roll = this.rolling();
+    if (roll && !roll.resolutionId) window.setTimeout(() => this.giveUpUnstarted(), ROLL_START_MS + 100);
+    this.onGaState(this.table.gaState());
   }
 
   get inCharge() {
@@ -56,7 +61,7 @@ export class Moments {
     if (!request) return;
     if (choice === "unfit") {
       if (roll) await this.clear();
-      await this.withdraw(state, request);
+      if (this.inCharge) await this.withdraw(requestId);
       return;
     }
     if (state.stage !== "scene" || state.activeResolution || !(state.bluePoolRemaining > 0)) {
@@ -94,7 +99,11 @@ export class Moments {
    * The Game Assistant cannot take back a request whose card is out; the GM's browser drops it from the game state,
    * as the Game Assistant does itself when it settles one, and marks its cards so they say what happened.
    */
-  async withdraw(state, request) {
+  async withdraw(requestId) {
+    // Read just before writing, so that nothing the game did meanwhile is undone.
+    const state = this.table.gaState();
+    const request = (state.instantRequests ?? []).find((candidate) => candidate.id === requestId);
+    if (!request) return;
     await game.settings.set(GA_SYSTEM_ID, GA_STATE_SETTING, {
       ...state,
       instantRequests: state.instantRequests.filter((candidate) => candidate.id !== request.id),
@@ -107,7 +116,8 @@ export class Moments {
    * The dead live no Moment: a request of theirs (sent before their sheet knew) is taken back with its card. Only once
    * the Game Assistant has published it; taken back any earlier, its own next save would bring it back.
    */
-  async withdrawFromTheDead(state) {
+  async withdrawFromTheDead() {
+    const state = this.table.gaState();
     const request = (state.instantRequests ?? []).find((candidate) => {
       const owner = game.users.find((user) => !user.isGM && user.character?.id === candidate.actorId);
       return this.table.deaths.isDead(owner);
@@ -139,8 +149,8 @@ export class Moments {
    */
   async onGaState(state) {
     if (!this.inCharge) return;
-    await this.withdrawFromTheDead(state);
-    const roll = this.rolling();
+    await this.withdrawFromTheDead();
+    let roll = this.rolling();
     if (!roll) return;
     const request = (state.instantRequests ?? []).find((candidate) => candidate.id === roll.requestId);
     if (!request) {
@@ -155,18 +165,24 @@ export class Moments {
       } else await this.giveUpUnstarted();
       return;
     }
-    const resolution = state.lastResolution;
-    if (state.activeResolution || resolution?.id !== roll.resolutionId) return;
-    if (resolution.status === "cancelled") {
-      await this.clear();
-      return;
+    if (!roll.result) {
+      const resolution = state.lastResolution;
+      if (state.activeResolution || resolution?.id !== roll.resolutionId) return;
+      if (resolution.status === "cancelled") {
+        await this.clear();
+        return;
+      }
+      if (resolution.status !== "resolved") return;
+      // Kept, so the Moment is settled by it even after the next conflict has replaced it in the game state.
+      roll = { ...roll, result: resolution.finalSuccess ? "success" : "failure" };
+      await game.settings.set(MODULE_ID, SETTINGS.momentRoll, roll);
     }
     // Only once the Moment's new card is out: settled any earlier, the Game Assistant would post it as withdrawn.
-    if (resolution.status !== "resolved" || request.status !== "awaiting" || !request.activeMessageId) return;
+    if (state.activeResolution || request.status !== "awaiting" || !request.activeMessageId) return;
     if (this.settling === roll.requestId) return;
     this.settling = roll.requestId;
     try {
-      await this.settle(roll, resolution.finalSuccess ? "success" : "failure");
+      await this.settle(roll, request);
     } finally {
       this.settling = null;
     }
@@ -174,16 +190,24 @@ export class Moments {
 
   /**
    * Settles the Moment through the Game Assistant. It turns the request down while it is still finishing the
-   * conflict ("Ein Spielübergang läuft bereits"), so this asks again a few times until the Moment is settled.
+   * conflict ("Ein Spielübergang läuft bereits"), so this asks again a few times until the Moment is settled. Held
+   * back by a new conflict, or still turned down after that, the result is kept and the next change of the game
+   * state tries again.
    */
-  async settle(roll, result) {
+  async settle(roll, { actorName }) {
     for (let attempt = 0; attempt < SETTLE_ATTEMPTS; attempt++) {
       await new Promise((resolve) => window.setTimeout(resolve, SETTLE_RETRY_MS));
+      if (!this.inCharge || this.rolling()?.requestId !== roll.requestId) return;
       const request = (this.table.gaState().instantRequests ?? []).find((candidate) => candidate.id === roll.requestId);
-      if (!request) break;
-      if (await game.evilTenCandles?.requestAction("resolve-instant", { requestId: roll.requestId, result })) break;
+      if (!request) return this.clear();
+      if (request.status !== "awaiting") return;
+      const settled = await game.evilTenCandles?.requestAction("resolve-instant", {
+        requestId: roll.requestId,
+        result: roll.result
+      });
+      if (settled) return this.clear();
     }
-    await this.clear();
+    ui.notifications.warn(game.i18n.format("TCT.Moment.NotSettled", { name: actorName }));
   }
 
   clear() {

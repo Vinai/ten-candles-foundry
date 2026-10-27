@@ -37,6 +37,8 @@ export class GMControls {
     this.aliveButton.dataset.tooltip = game.i18n.localize("TCT.GM.AliveHint");
     this.recorderButton = this.button(() => this.recorderStep());
     this.playButton = this.button(() => this.table.recorder.playNext());
+    this.replayButton = this.button(() => this.table.recorder.replay());
+    this.replayButton.dataset.tooltip = game.i18n.localize("TCT.GM.ReplayHint");
     this.status = document.createElement("div");
     this.status.className = "tct-gm-status";
     // Conflicts called off before "Licht aus"; their cards stay out of sight.
@@ -54,6 +56,7 @@ export class GMControls {
       this.deathsButton,
       this.recorderButton,
       this.playButton,
+      this.replayButton,
       this.status,
       this.recorderStatus
     );
@@ -351,15 +354,22 @@ export class GMControls {
     this.recorderButton.dataset.tooltip = step === "On" ? "" : game.i18n.localize(`TCT.GM.Recorder${step}Hint`);
     const recordings = recorder.recordings;
     const next = recorder.nextIndex;
-    this.playButton.hidden =
-      !recorder.finished || next >= recordings.length || this.table.gaState().litCandles > 0 || holder !== null;
+    const playing = recorder.finished && this.table.gaState().litCandles <= 0 && holder === null;
+    this.playButton.hidden = !playing || next >= recordings.length;
     this.playButton.disabled = recorder.playing;
-    const speaker = game.users.get(recordings[next]?.userId);
+    const nameOf = (recording) => {
+      const speaker = game.users.get(recording?.userId);
+      return speaker?.character?.name || speaker?.name || "?";
+    };
     this.playButton.textContent = game.i18n.format("TCT.GM.PlayNext", {
-      name: speaker?.character?.name || speaker?.name || "?",
+      name: nameOf(recordings[next]),
       n: next + 1,
       total: recordings.length
     });
+    // A message that did not play everywhere can be played again.
+    this.replayButton.hidden = !playing || next < 1 || next > recordings.length;
+    this.replayButton.disabled = recorder.playing;
+    this.replayButton.textContent = game.i18n.format("TCT.GM.Replay", { name: nameOf(recordings[next - 1]) });
     this.recorderStatus.textContent = holder
       ? game.i18n.format("TCT.GM.RecorderWith", { name: holder.character?.name || holder.name })
       : recorder.finished

@@ -1,12 +1,13 @@
-import { MODULE_ID } from "./constants.js";
+import { GA_SYSTEM_ID, MODULE_ID } from "./constants.js";
 import { gaType, isPractice } from "./ga-cards.js";
 
 // How long a card stays above the bowl after its last change once nothing in the game still needs it.
 const LINGER_MS = 20000;
 // Cards of a conflict and its truths go as soon as the game is done with them; the table shows what follows.
 const NO_LINGER = new Set(["resolution", "ball-of-truths", "darkness-progression"]);
-// What the game waits on most: an open conflict before a Moment to decide, before the truths.
-const PRECEDENCE = ["resolution", "instant", "ball-of-truths"];
+// What the game waits on most: an open conflict, then the truths (the GM's button starts the next scene), then a
+// Moment to decide, which can only be rolled for in a scene.
+const PRECEDENCE = ["resolution", "ball-of-truths", "instant"];
 
 /**
  * The Game Assistant's latest chat card (conflict, Moment, truths, …) lies above the bowl in a pool of light, so
@@ -86,7 +87,12 @@ export class ConflictMirror {
       case "resolution":
         return Boolean(state.activeResolution) && state.activeResolution.chatMessageId === message.id;
       case "ball-of-truths":
-        return state.stage === "ball-of-truths";
+        // Only the card of the conflict that failed, not one of an earlier scene or game.
+        return (
+          state.stage === "ball-of-truths" &&
+          Boolean(state.lastResolution?.id) &&
+          message.flags?.[GA_SYSTEM_ID]?.resolutionId === state.lastResolution.id
+        );
       case "instant":
         // A Moment held back by a conflict comes back as a new card; the old one stays behind in the chat.
         return (state.instantRequests ?? []).some((request) => request.activeMessageId === message.id);
@@ -98,7 +104,6 @@ export class ConflictMirror {
   /** The card the game still waits on most, if any. */
   waitedOn(state) {
     const waiting = game.messages.contents.filter((m) => gaType(m) && m.visible && this.pinned(m, state));
-    const rank = (message) => PRECEDENCE.indexOf(gaType(message));
     return waiting.sort((a, b) => rank(a) - rank(b))[0] ?? null;
   }
 
@@ -108,13 +113,12 @@ export class ConflictMirror {
     if (reminder) return reminder;
     const state = this.table.gaState();
     let message = game.messages.get(this.messageId);
-    // Once this card is settled, another one may still be waiting, e.g. an earlier Moment.
-    if (!message || !this.pinned(message, state)) {
-      const waiting = this.waitedOn(state);
-      if (waiting) {
-        message = waiting;
-        this.messageId = waiting.id;
-      }
+    // Once this card is settled, another one may still be waiting, e.g. an earlier Moment. One the game waits on more
+    // goes first, e.g. the truths over a Moment that came out again after the conflict.
+    const waiting = this.waitedOn(state);
+    if (waiting && (!message || !this.pinned(message, state) || rank(waiting) < rank(message))) {
+      message = waiting;
+      this.messageId = waiting.id;
     }
     if (message && isPractice(message, state)) message = null;
     const pinned = message && this.pinned(message, state);
@@ -139,6 +143,10 @@ export class ConflictMirror {
     this.element.replaceChildren(html);
     this.element.classList.add("is-visible");
   }
+}
+
+function rank(message) {
+  return PRECEDENCE.indexOf(gaType(message));
 }
 
 /**

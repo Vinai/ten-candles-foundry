@@ -64,7 +64,9 @@
       "AliveHint": "Shows everyone the last truth, spoken by all players together. Then the next scene begins.",
       "RecorderRestart": "Restart recorder",
       "RecorderRestartHint": "The recorder goes round once more. Whoever has a message already may keep it or record a new one.",
-      "PlayNext": "Next recording: {name} ({n} / {total})"
+      "PlayNext": "Next recording: {name} ({n} / {total})",
+      "Replay": "Play again: {name}",
+      "ReplayHint": "Plays the last message once more for everyone, e.g. when it did not play somewhere."
     },
     "Phrase": {
       "True": "These things are true.",
@@ -118,7 +120,8 @@
       "Mute": "Mute yourself in Discord.",
       "Unmute": "Unmute yourself in Discord.",
       "Dismiss": "Click to close",
-      "UploadBroken": "Recordings cannot be stored right now – your login has probably expired. Reload the page, log in again and then switch the recorder on."
+      "UploadBroken": "Recordings cannot be stored right now – your login has probably expired. Reload the page, log in again and then switch the recorder on.",
+      "PlaybackFailed": "This message could not be played here. The GM can play it again."
     },
     "Seats": {
       "Title": "Seating",
@@ -151,7 +154,8 @@
       "Unfit": "Doesn't fit right now. The Moment stays in the stack.",
       "NotNow": "No roll can start right now: only in a scene with dice and no open conflict.",
       "RollDidNotStart": "The roll for the Moment did not start. Decide again.",
-      "PlayerAway": "{name} is not connected. The roll for the Moment cannot start right now."
+      "PlayerAway": "{name} is not connected. The roll for the Moment cannot start right now.",
+      "NotSettled": "{name}'s Moment could not be settled yet. It is tried again with the next change in the game."
     },
     "Truths": {
       "Title": "Establishing truths",

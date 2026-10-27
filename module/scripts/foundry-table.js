@@ -212,6 +212,8 @@ export class FoundryTable {
     this.renderWriteButton();
     // Characters of the old game seat nobody who is not there any more.
     this.refreshSeats();
+    // The dead of the old game roll again with their new characters.
+    this.deaths.newGame();
     if (game.user === game.users.activeGM && game.settings.get(MODULE_ID, SETTINGS.lightsOut)) {
       game.settings.set(MODULE_ID, SETTINGS.lightsOut, false);
     }

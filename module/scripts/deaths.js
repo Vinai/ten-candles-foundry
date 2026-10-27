@@ -32,6 +32,13 @@ export class Deaths {
     });
   }
 
+  /** A new game: nobody has died in it yet, whatever this browser showed of the last one. */
+  newGame() {
+    this.announced.clear();
+    this.departures.clear();
+    this.onChange();
+  }
+
   get inCharge() {
     return game.user === game.users.activeGM;
   }
@@ -93,14 +100,17 @@ export class Deaths {
       rejectClose: false
     });
     if (!values || !this.inCharge) return;
-    // Read again: a death at the last candle or a Martyr's choice may have come in while the dialog was open.
+    // Read again: a death at the last candle or a Martyr's choice may have come in while the dialog was open. Only
+    // the rows the GM changed count; an untouched one keeps whatever happened meanwhile.
     const users = { ...this.state().users };
     for (const user of players) {
-      if (!values[`dead-${user.id}`]) {
+      const died = Boolean(values[`dead-${user.id}`]);
+      const martyr = Boolean(values[`martyr-${user.id}`]);
+      if (died === Boolean(dead[user.id]) && martyr === Boolean(dead[user.id]?.martyr)) continue;
+      if (!died) {
         delete users[user.id];
         continue;
       }
-      const martyr = Boolean(values[`martyr-${user.id}`]);
       users[user.id] = { martyr, hopeTo: martyr ? (users[user.id]?.hopeTo ?? null) : null };
     }
     await this.save(users);

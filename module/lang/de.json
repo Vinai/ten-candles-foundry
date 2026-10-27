@@ -64,7 +64,9 @@
       "AliveHint": "Zeigt allen die letzte Wahrheit, die alle Spielenden gemeinsam sprechen. Danach beginnt die nächste Szene.",
       "RecorderRestart": "Rekorder neu starten",
       "RecorderRestartHint": "Der Rekorder geht noch einmal reihum. Wer schon eine Nachricht hat, kann sie behalten oder neu aufnehmen.",
-      "PlayNext": "Nächste Aufnahme: {name} ({n} / {total})"
+      "PlayNext": "Nächste Aufnahme: {name} ({n} / {total})",
+      "Replay": "Noch einmal: {name}",
+      "ReplayHint": "Spielt die letzte Nachricht noch einmal für alle ab, z. B. wenn sie irgendwo nicht zu hören war."
     },
     "Phrase": {
       "True": "Diese Dinge sind wahr.",
@@ -118,7 +120,8 @@
       "Mute": "Schalte dich in Discord stumm.",
       "Unmute": "Schalte dich in Discord wieder laut.",
       "Dismiss": "Klicken zum Schließen",
-      "UploadBroken": "Aufnahmen können gerade nicht gespeichert werden – vermutlich ist deine Anmeldung abgelaufen. Lade die Seite neu, melde dich wieder an und schalte den Rekorder dann ein."
+      "UploadBroken": "Aufnahmen können gerade nicht gespeichert werden – vermutlich ist deine Anmeldung abgelaufen. Lade die Seite neu, melde dich wieder an und schalte den Rekorder dann ein.",
+      "PlaybackFailed": "Diese Nachricht konnte hier nicht abgespielt werden. Der GM kann sie noch einmal abspielen."
     },
     "Seats": {
       "Title": "Sitzordnung",
@@ -151,7 +154,8 @@
       "Unfit": "Passt gerade nicht. Der Moment bleibt im Stapel.",
       "NotNow": "Gerade kann nicht gewürfelt werden: erst in einer Szene mit Würfeln und ohne offenen Konflikt.",
       "RollDidNotStart": "Der Wurf für den Moment hat nicht begonnen. Entscheide noch einmal.",
-      "PlayerAway": "{name} ist nicht verbunden. Der Wurf für den Moment kann gerade nicht starten."
+      "PlayerAway": "{name} ist nicht verbunden. Der Wurf für den Moment kann gerade nicht starten.",
+      "NotSettled": "Der Moment von {name} ließ sich noch nicht abschließen. Beim nächsten Schritt im Spiel wird es erneut versucht."
     },
     "Truths": {
       "Title": "Ritual der Wahrheiten",

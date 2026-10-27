@@ -29,8 +29,10 @@ export class CharacterSheets {
       const key = card.dataset.resourceKey;
       card.classList.toggle("tct-top", key === top);
       if (unburned(system, key) && key !== top) card.classList.add("tct-below");
-      // The dead no longer burn cards or live their Moment.
-      if ((unburned(system, key) && key !== top) || !locked || dead) {
+      // The dead no longer burn cards or live their Moment. A burned card or a lived Moment does not come back; only
+      // the GM can put one back, to correct a slip.
+      const spent = !unburned(system, key) && !game.user.isGM;
+      if ((unburned(system, key) && key !== top) || !locked || dead || spent) {
         card.querySelector(".etc-resource-state-action")?.setAttribute("disabled", "");
       }
       const handle = card.querySelector(".etc-resource-drag-handle");
