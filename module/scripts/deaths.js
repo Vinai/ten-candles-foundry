@@ -55,6 +55,7 @@ export class Deaths {
     document.body.classList.toggle("tct-dead", this.isDead(game.user));
     ui.controls?.render({ reset: true });
     this.table.refreshCards();
+    this.table.sheets.renderAll();
     this.table.mirror?.render();
     for (const [userId, entry] of Object.entries(this.state().users)) {
       const key = `${userId}:${entry.hopeTo}`;

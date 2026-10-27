@@ -1,3 +1,4 @@
+import { MODULE_ID } from "./constants.js";
 import { gaType, isPractice } from "./ga-cards.js";
 
 // How long a card stays above the bowl after its last change once nothing in the game still needs it.
@@ -121,7 +122,8 @@ export class ConflictMirror {
     if (this.table.truths.active && !(game.user.isGM && pinned && gaType(message) === "ball-of-truths")) {
       return this.table.truths.card();
     }
-    const recent = message && !NO_LINGER.has(gaType(message)) && Date.now() - this.touchedAt < LINGER_MS;
+    const recent =
+      message && lingers(message) && !NO_LINGER.has(gaType(message)) && Date.now() - this.touchedAt < LINGER_MS;
     if (!pinned && !recent) return null;
     return message.renderHTML();
   }
@@ -137,4 +139,12 @@ export class ConflictMirror {
     this.element.replaceChildren(html);
     this.element.classList.add("is-visible");
   }
+}
+
+/**
+ * Whether a card stays a while after the game is done with it. A Moment's card does not: once it is settled, the
+ * card burns in the bowl and must be seen. Only "Passt gerade nicht" stays, so the player sees why nothing happens.
+ */
+function lingers(message) {
+  return gaType(message) !== "instant" || Boolean(message.getFlag(MODULE_ID, "momentUnfit"));
 }

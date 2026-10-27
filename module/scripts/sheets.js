@@ -23,11 +23,14 @@ export class CharacterSheets {
     const system = actor.system;
     const top = topCard(system);
     const locked = isStarted(this.table.clock());
+    const owner = game.users.find((user) => !user.isGM && user.character === actor);
+    const dead = this.table.deaths.isDead(owner);
     for (const card of element.querySelectorAll(".etc-resource[data-resource-key]")) {
       const key = card.dataset.resourceKey;
       card.classList.toggle("tct-top", key === top);
       if (unburned(system, key) && key !== top) card.classList.add("tct-below");
-      if ((unburned(system, key) && key !== top) || !locked) {
+      // The dead no longer burn cards or live their Moment.
+      if ((unburned(system, key) && key !== top) || !locked || dead) {
         card.querySelector(".etc-resource-state-action")?.setAttribute("disabled", "");
       }
       const handle = card.querySelector(".etc-resource-drag-handle");

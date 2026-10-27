@@ -103,6 +103,29 @@ export class Moments {
     for (const id of request.messageIds ?? []) await game.messages.get(id)?.setFlag(MODULE_ID, "momentUnfit", true);
   }
 
+  /**
+   * The dead live no Moment: a request of theirs (sent before their sheet knew) is taken back with its card. Only once
+   * the Game Assistant has published it; taken back any earlier, its own next save would bring it back.
+   */
+  async withdrawFromTheDead(state) {
+    const request = (state.instantRequests ?? []).find((candidate) => {
+      const owner = game.users.find((user) => !user.isGM && user.character?.id === candidate.actorId);
+      return this.table.deaths.isDead(owner);
+    });
+    if (!request || request.status !== "awaiting" || !request.activeMessageId || this.withdrawing) return;
+    this.withdrawing = true;
+    try {
+      await game.settings.set(GA_SYSTEM_ID, GA_STATE_SETTING, {
+        ...state,
+        instantRequests: state.instantRequests.filter((candidate) => candidate.id !== request.id),
+        updatedAt: Date.now()
+      });
+      for (const id of request.messageIds ?? []) await game.messages.get(id)?.delete();
+    } finally {
+      this.withdrawing = false;
+    }
+  }
+
   /** In the player's browser: the GM confirmed the Moment, so its conflict roll starts as if they had rolled. */
   rollForMoment(message, senderId) {
     if (senderId !== game.users.activeGM?.id || message.gameId !== this.table.gaState().gameId) return;
@@ -116,6 +139,7 @@ export class Moments {
    */
   async onGaState(state) {
     if (!this.inCharge) return;
+    await this.withdrawFromTheDead(state);
     const roll = this.rolling();
     if (!roll) return;
     const request = (state.instantRequests ?? []).find((candidate) => candidate.id === roll.requestId);
