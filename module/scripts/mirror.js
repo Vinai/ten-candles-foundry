@@ -3,6 +3,8 @@ import { gaType, isPractice } from "./ga-cards.js";
 
 // How long a card stays above the bowl after its last change once nothing in the game still needs it.
 const LINGER_MS = 20000;
+// The Game Assistant's "Neues Spiel" card only says that a new game began; it goes sooner.
+const SHORT_LINGER_MS = { "new-game": 6000 };
 // Cards of a conflict and its truths go as soon as the game is done with them; the table shows what follows.
 const NO_LINGER = new Set(["resolution", "ball-of-truths", "darkness-progression"]);
 // What the game waits on most: an open conflict, then the truths (the GM's button starts the next scene), then a
@@ -70,7 +72,7 @@ export class ConflictMirror {
     this.touchedAt = Date.now();
     this.render();
     window.clearTimeout(this.lingerTimer);
-    this.lingerTimer = window.setTimeout(() => this.render(), LINGER_MS + 100);
+    this.lingerTimer = window.setTimeout(() => this.render(), lingerMs(message) + 100);
   }
 
   /**
@@ -128,7 +130,7 @@ export class ConflictMirror {
       return this.table.truths.card();
     }
     const recent =
-      message && lingers(message) && !NO_LINGER.has(gaType(message)) && Date.now() - this.touchedAt < LINGER_MS;
+      message && lingers(message) && !NO_LINGER.has(gaType(message)) && Date.now() - this.touchedAt < lingerMs(message);
     if (!pinned && !recent) return this.table.ritual.beginsCard();
     return message.renderHTML();
   }
@@ -148,6 +150,10 @@ export class ConflictMirror {
 
 function rank(message) {
   return PRECEDENCE.indexOf(gaType(message));
+}
+
+function lingerMs(message) {
+  return SHORT_LINGER_MS[gaType(message)] ?? LINGER_MS;
 }
 
 /**
