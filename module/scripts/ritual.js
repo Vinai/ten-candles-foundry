@@ -271,12 +271,19 @@ export class Ritual {
   prompt(kinds, own) {
     const escape = foundry.utils.escapeHTML;
     const name = (user) => escape(user.character?.name || user.name);
-    // The rulebook's examples, on hover over a small icon beside the card's name.
-    const examples = (key) =>
-      key
-        ? ` <i class="fa-solid fa-circle-info tct-write-examples" aria-hidden="true" data-tooltip-direction="UP" ` +
-          `data-tooltip-text="${escape(game.i18n.localize(key))}"></i>`
-        : "";
+    // The rulebook's examples, on hover over a small icon beside the card's name; one paragraph per line.
+    const examples = (key) => {
+      if (!key) return "";
+      const html = game.i18n
+        .localize(key)
+        .split("\n")
+        .map((line) => `<p>${escape(line)}</p>`)
+        .join("");
+      return (
+        ` <i class="fa-solid fa-circle-info tct-write-examples" aria-hidden="true" data-tooltip-direction="UP" ` +
+        `data-tooltip-class="tct-examples-tooltip" data-tooltip-html="${escape(html)}"></i>`
+      );
+    };
     const field = (kind, label, examplesKey) =>
       `<label class="tct-write-field"><span>${escape(game.i18n.localize(label))}${examples(examplesKey)}</span>` +
       `<input type="text" name="${kind}" value="${escape(own[kind] ?? "")}" maxlength="${MAX_CARD_CHARS}" ` +
@@ -299,15 +306,15 @@ export class Ritual {
     }
     const recipient = this.recipient(game.user, "brink");
     const label = this.brinkLabel(recipient);
-    const hint = {
-      "TCT.Card.Brink": "TCT.Write.BrinkHint",
-      "TCT.Card.BrinkByThem": "TCT.Write.BrinkByThemHint",
-      "TCT.Card.BrinkOfThem": "TCT.Write.BrinkOfThemHint"
+    const [hint, examplesKey] = {
+      "TCT.Card.Brink": ["TCT.Write.BrinkHint", "TCT.Write.BrinkExamples"],
+      "TCT.Card.BrinkByThem": ["TCT.Write.BrinkByThemHint", "TCT.Write.BrinkByThemExamples"],
+      "TCT.Card.BrinkOfThem": ["TCT.Write.BrinkOfThemHint", "TCT.Write.BrinkOfThemExamples"]
     }[label];
     return {
       title: game.i18n.localize(label),
       hint: game.i18n.format(hint, { name: name(recipient) }),
-      fields: field("brink", label)
+      fields: field("brink", label, examplesKey)
     };
   }
 

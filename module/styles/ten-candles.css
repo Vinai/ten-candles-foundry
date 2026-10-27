@@ -336,11 +336,24 @@ body.tct-active .ets-floating-roll {
   color: #6b5f4d;
 }
 
-/* The rulebook's examples for a Virtue or Vice, on hover. */
+/* The rulebook's examples for a Virtue, Vice or Brink, on hover. */
 .tct-write-examples {
   margin-left: 0.3rem;
   color: #8a7a5c;
   cursor: help;
+}
+
+#tooltip.tct-examples-tooltip {
+  max-width: 26rem;
+  text-align: left;
+}
+
+#tooltip.tct-examples-tooltip p {
+  margin: 0 0 0.4rem;
+}
+
+#tooltip.tct-examples-tooltip p:last-child {
+  margin-bottom: 0;
 }
 
 .tct-write-field input {
