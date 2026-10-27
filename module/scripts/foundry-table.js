@@ -1,4 +1,4 @@
-import { isStarted, nextDeath } from "./candle-clock.js";
+import { burningCandles, isStarted, nextDeath } from "./candle-clock.js";
 import { GA_PAINTING, GA_STATE_HOOK, GA_STATE_SETTING, GA_SYSTEM_ID, MODULE_ID, SOCKET, TOTAL_CANDLES } from "./constants.js";
 import { Deaths } from "./deaths.js";
 import { CameraFaces } from "./faces.js";
@@ -15,6 +15,7 @@ import { SETTING_CHANGED_HOOK, SETTINGS } from "./settings.js";
 import { CharacterSheets } from "./sheets.js";
 import { TableSounds } from "./sounds.js";
 import { TableStage } from "./stage.js";
+import { TraitScenes } from "./trait-scenes.js";
 import { Truths } from "./truths.js";
 
 const GUTTER_TICK_MS = 1000;
@@ -60,6 +61,7 @@ export class FoundryTable {
     this.moments = new Moments(this);
     this.deaths = new Deaths(this);
     this.sheets = new CharacterSheets(this);
+    this.traitScenes = new TraitScenes(this);
     // Foundry's interface channel, so each player's interface volume applies. Silent until their first click.
     this.sounds = new TableSounds(() => (game.audio.locked ? null : game.audio.interface?.gainNode ?? null));
     // A conflict or Moment request already seen, so a sheet only makes way for a new one.
@@ -149,11 +151,17 @@ export class FoundryTable {
     this.recorder.start();
     this.moments.start();
     this.deaths.start();
+    this.traitScenes.start();
     document.body.classList.toggle("tct-dead", this.deaths.isDead(game.user));
     window.setInterval(() => this.applyGutter(), GUTTER_TICK_MS);
 
     Hooks.on(GA_STATE_HOOK, (state) => {
       if (state.gameId !== this.gameId) this.newGame(state);
+      // A new scene frees the traits held back in the last one.
+      if (burningCandles(state) !== this.scene) {
+        this.scene = burningCandles(state);
+        this.sheets.renderAll();
+      }
       this.observeRolls(state);
       this.makeWayFor(state);
       this.applyState(state);
@@ -174,6 +182,11 @@ export class FoundryTable {
       // A Moment's card says whether its roll is under way.
       if (key === SETTINGS.momentRoll) this.redrawCards("instant");
       if (key === SETTINGS.dead) this.deaths.onChange();
+      // A Virtue or Vice burned: the other one waits for the next scene, on the conflict card and in the sheet.
+      if (key === SETTINGS.traitBurns) {
+        this.redrawCards("resolution");
+        this.sheets.renderAll();
+      }
       // The stacks are locked from "Licht aus"; Foundry's pause follows the clock.
       if (key === SETTINGS.candleClock) {
         this.sheets.renderAll();
@@ -256,12 +269,9 @@ export class FoundryTable {
     return owner ?? game.users.get(resolution.playerId) ?? null;
   }
 
-  /**
-   * Candles burning on the table. A failed conflict darkens one at once, while the Game Assistant only counts it
-   * down when the truths are done.
-   */
+  /** Candles burning on the table; see candle-clock.js. */
   burningCandles(state = this.gaState()) {
-    return state.stage === "ball-of-truths" ? Math.max(state.litCandles - 1, 0) : state.litCandles;
+    return burningCandles(state);
   }
 
   /** Candles on the table: lit step by step during character creation, then burning down from "Licht aus". */

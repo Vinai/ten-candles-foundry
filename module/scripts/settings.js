@@ -12,6 +12,7 @@ export const SETTINGS = {
   truths: "truths",
   momentRoll: "momentRoll",
   dead: "dead",
+  traitBurns: "traitBurns",
   plainTable: "plainTable",
   microphone: "microphone"
 };
@@ -95,6 +96,15 @@ export function registerSettings() {
     config: false,
     type: Object,
     default: {}
+  });
+
+  // Who burned a Virtue or Vice in which scene, so the other one waits for the next. See trait-scenes.js.
+  game.settings.register(MODULE_ID, SETTINGS.traitBurns, {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: {},
+    onChange: (value) => Hooks.callAll(SETTING_CHANGED_HOOK, SETTINGS.traitBurns, value)
   });
 
   // Escape hatch for weak machines or trouble: keep Foundry's own canvas and camera dock.

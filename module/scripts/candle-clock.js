@@ -15,6 +15,14 @@ export function createClock(count, random = Math.random) {
   return { startedAt: null, pausedAt: null, lifetimes, gutters };
 }
 
+/**
+ * Candles burning on the table, from the Game Assistant's state. A failed conflict darkens one at once, while the
+ * Game Assistant only counts it down when the truths are done.
+ */
+export function burningCandles(state) {
+  return state.stage === "ball-of-truths" ? Math.max(state.litCandles - 1, 0) : state.litCandles;
+}
+
 export function isStarted(clock) {
   return Boolean(clock?.startedAt);
 }

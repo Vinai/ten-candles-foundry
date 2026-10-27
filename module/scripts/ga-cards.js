@@ -3,6 +3,7 @@ import { GA_STATE_SETTING, GA_SYSTEM_ID, MODULE_ID } from "./constants.js";
 import { decorateMomentCard } from "./moments.js";
 import { skull } from "./rolling-dice.js";
 import { SETTINGS } from "./settings.js";
+import { traitUsedThisScene } from "./trait-scenes.js";
 
 /**
  * The Game Assistant's cards and sheets as each person at our table should see them. Its markup is changed only in
@@ -81,15 +82,21 @@ function decorateConflict(message, html) {
     for (const die of waiting.children) die.textContent = "?";
   }
   gmNarratesOnTies(html);
-  // Only the card on top of the stack can be burned for a reroll.
+  // Only the card on top of the stack can be burned for a reroll, and not both traits in one scene.
   const actor = game.actors.get(message.speaker?.actor);
   if (!actor) return;
   const top = topCard(actor.system);
+  const usedThisScene = traitUsedThisScene(actor);
   for (const [key, selector] of [
     ["virtue", ".ets-conflict-resource-action.is-virtue"],
     ["vice", ".ets-conflict-resource-action.is-vice"]
   ]) {
-    if (key !== top) html.querySelector(selector)?.remove();
+    const button = html.querySelector(selector);
+    if (key !== top) button?.remove();
+    else if (usedThisScene && button) {
+      button.disabled = true;
+      button.dataset.tooltipText = game.i18n.localize("TCT.Sheet.TraitUsedThisScene");
+    }
   }
   const actions = html.querySelector(".ets-conflict-resource-actions");
   if (actions && !actions.querySelector("button")) {

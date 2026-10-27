@@ -187,7 +187,8 @@
       "Button": "Character sheet",
       "Top": "{n} · top",
       "Bottom": "{n} · bottom",
-      "PositionHint": "Place in the stack: only the top card is active. Drag a card to change the order."
+      "PositionHint": "Place in the stack: only the top card is active. Drag a card to change the order.",
+      "TraitUsedThisScene": "A Virtue or Vice was already used in this scene – the other one only in the next scene."
     }
   }
 }

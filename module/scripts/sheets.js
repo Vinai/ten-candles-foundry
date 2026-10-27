@@ -1,5 +1,6 @@
 import { isStarted } from "./candle-clock.js";
 import { topCard, unburned } from "./ga-cards.js";
+import { traitUsedThisScene } from "./trait-scenes.js";
 
 /**
  * The Game Assistant's character sheets at our table. Only the top card of a stack is in play, so only it can be
@@ -34,6 +35,13 @@ export class CharacterSheets {
       const spent = !unburned(system, key) && !game.user.isGM;
       if ((unburned(system, key) && key !== top) || !locked || dead || spent) {
         card.querySelector(".etc-resource-state-action")?.setAttribute("disabled", "");
+      }
+      // "A player may not use both of their Traits in the same scene": the other one waits for the next scene.
+      const heldBack = ["virtue", "vice"].includes(key) && unburned(system, key) && !game.user.isGM;
+      if (heldBack && traitUsedThisScene(actor)) {
+        const action = card.querySelector(".etc-resource-state-action");
+        action?.setAttribute("disabled", "");
+        if (action) action.dataset.tooltipText = game.i18n.localize("TCT.Sheet.TraitUsedThisScene");
       }
       const handle = card.querySelector(".etc-resource-drag-handle");
       // "Once stacks are built, they are locked and cannot be changed."
