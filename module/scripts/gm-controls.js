@@ -290,7 +290,7 @@ export class GMControls {
   refuseRoll(state) {
     const resolution = state.activeResolution;
     if (!resolution || this.refused === resolution.id) return;
-    const dead = this.table.deaths.isDead(game.users.get(resolution.playerId));
+    const dead = this.table.deaths.isDead(this.table.playerOf(resolution));
     if (!this.table.truths.active && !dead) return;
     this.refused = resolution.id;
     game.evilTenCandles?.cancelActiveResolution();

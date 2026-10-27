@@ -22,6 +22,9 @@ const ROLL_START_MS = 15_000;
 export class Moments {
   constructor(table) {
     this.table = table;
+    // Requests the GM turned down. A roll of the Game Assistant under way when that happened brings one back with
+    // its next save; it is taken back again.
+    this.rejected = new Set();
   }
 
   start() {
@@ -32,7 +35,17 @@ export class Moments {
       const button = event.target.closest?.("[data-tct-moment]");
       if (button) this.decide(button.dataset.tctMoment, button.dataset.requestId);
     });
-    // After a reload of the GM's browser: a roll asked for still waits to start, or a confirmed one to be settled.
+    // Another GM's browser takes over when the active GM leaves.
+    Hooks.on("userConnected", () => this.resume());
+    this.resume();
+  }
+
+  /**
+   * After a reload, or when this browser has just become the active GM's: a roll asked for still waits to start, or
+   * a confirmed one to be settled.
+   */
+  resume() {
+    if (!this.inCharge) return;
     const roll = this.rolling();
     if (roll && !roll.resolutionId) window.setTimeout(() => this.giveUpUnstarted(), ROLL_START_MS + 100);
     this.onGaState(this.table.gaState());
@@ -55,12 +68,14 @@ export class Moments {
   async decide(choice, requestId) {
     if (!this.inCharge) return;
     const roll = this.rolling();
-    if (roll && (choice === "fit" || roll.resolutionId)) return;
+    const own = roll?.requestId === requestId;
+    if (roll && (choice === "fit" || (own && roll.resolutionId))) return;
     const state = this.table.gaState();
     const request = (state.instantRequests ?? []).find((candidate) => candidate.id === requestId);
     if (!request) return;
     if (choice === "unfit") {
-      if (roll) await this.clear();
+      this.rejected.add(requestId);
+      if (own) await this.clear(requestId);
       if (this.inCharge) await this.withdraw(requestId);
       return;
     }
@@ -91,7 +106,7 @@ export class Moments {
     const roll = this.rolling();
     if (!this.inCharge || !roll || roll.resolutionId || Date.now() - (roll.at ?? 0) < ROLL_START_MS) return;
     if (this.table.gaState().activeResolution?.actorId === roll.actorId) return;
-    await this.clear();
+    await this.clear(roll.requestId);
     ui.notifications.warn(game.i18n.localize("TCT.Moment.RollDidNotStart"));
   }
 
@@ -136,6 +151,17 @@ export class Moments {
     }
   }
 
+  /**
+   * A request the GM turned down that a roll of the Game Assistant brought back. Only once it is out again: taken
+   * back any earlier, the Game Assistant's next save would bring it back once more.
+   */
+  async withdrawRejected() {
+    const request = (this.table.gaState().instantRequests ?? []).find(
+      (candidate) => this.rejected.has(candidate.id) && candidate.status === "awaiting" && candidate.activeMessageId
+    );
+    if (request) await this.withdraw(request.id);
+  }
+
   /** In the player's browser: the GM confirmed the Moment, so its conflict roll starts as if they had rolled. */
   rollForMoment(message, senderId) {
     if (senderId !== game.users.activeGM?.id || message.gameId !== this.table.gaState().gameId) return;
@@ -150,11 +176,12 @@ export class Moments {
   async onGaState(state) {
     if (!this.inCharge) return;
     await this.withdrawFromTheDead();
+    await this.withdrawRejected();
     let roll = this.rolling();
     if (!roll) return;
     const request = (state.instantRequests ?? []).find((candidate) => candidate.id === roll.requestId);
     if (!request) {
-      await this.clear();
+      await this.clear(roll.requestId);
       return;
     }
     if (!roll.resolutionId) {
@@ -169,7 +196,7 @@ export class Moments {
       const resolution = state.lastResolution;
       if (state.activeResolution || resolution?.id !== roll.resolutionId) return;
       if (resolution.status === "cancelled") {
-        await this.clear();
+        await this.clear(roll.requestId);
         return;
       }
       if (resolution.status !== "resolved") return;
@@ -199,19 +226,21 @@ export class Moments {
       await new Promise((resolve) => window.setTimeout(resolve, SETTLE_RETRY_MS));
       if (!this.inCharge || this.rolling()?.requestId !== roll.requestId) return;
       const request = (this.table.gaState().instantRequests ?? []).find((candidate) => candidate.id === roll.requestId);
-      if (!request) return this.clear();
+      if (!request) return this.clear(roll.requestId);
       if (request.status !== "awaiting") return;
       const settled = await game.evilTenCandles?.requestAction("resolve-instant", {
         requestId: roll.requestId,
         result: roll.result
       });
-      if (settled) return this.clear();
+      if (settled) return this.clear(roll.requestId);
     }
     ui.notifications.warn(game.i18n.format("TCT.Moment.NotSettled", { name: actorName }));
   }
 
-  clear() {
-    return game.settings.set(MODULE_ID, SETTINGS.momentRoll, {});
+  /** The roll for this request is over; one asked for meanwhile for another request stays. */
+  async clear(requestId) {
+    if (!this.inCharge || game.settings.get(MODULE_ID, SETTINGS.momentRoll)?.requestId !== requestId) return;
+    await game.settings.set(MODULE_ID, SETTINGS.momentRoll, {});
   }
 }
 

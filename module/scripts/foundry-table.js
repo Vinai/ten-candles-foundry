@@ -247,6 +247,16 @@ export class FoundryTable {
   }
 
   /**
+   * The player whose character a conflict is about. The Game Assistant's `playerId` is whoever rolled, and the GM
+   * may roll for any character; the character's player counts, the roller only when no player has it.
+   */
+  playerOf(resolution) {
+    if (!resolution) return null;
+    const owner = game.users.find((user) => !user.isGM && user.character?.id === resolution.actorId);
+    return owner ?? game.users.get(resolution.playerId) ?? null;
+  }
+
+  /**
    * Candles burning on the table. A failed conflict darkens one at once, while the Game Assistant only counts it
    * down when the truths are done.
    */
@@ -511,7 +521,7 @@ export class FoundryTable {
     const last = state.lastResolution;
     const recent = last && Date.now() - (last.updatedAt ?? 0) < CAUSE_MS;
     const byPlayer = recent && (state.stage === "ball-of-truths" || last.narrationSeized);
-    return (byPlayer && game.users.get(last.playerId)) || this.users.find((user) => user.isGM) || game.user;
+    return (byPlayer && this.playerOf(last)) || this.users.find((user) => user.isGM) || game.user;
   }
 
   /** While the truths are spoken nobody rolls; the GM's "Und wir leben." ends them. */
@@ -558,7 +568,7 @@ export class FoundryTable {
   }
 
   throwEntry(resolution, entry, next, seed) {
-    const player = this.users.findIndex((user) => user.id === resolution.playerId);
+    const player = this.users.indexOf(this.playerOf(resolution));
     const dice = (values, kind) => (values ?? []).map((value) => ({ value, kind }));
     switch (entry.type) {
       case "player-roll": {

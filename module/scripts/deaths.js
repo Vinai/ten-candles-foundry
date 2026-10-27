@@ -179,8 +179,9 @@ export class Deaths {
     const resolution = state.lastResolution;
     if (resolution?.status !== "resolved" || !resolution.characterDeparture || this.departures.has(resolution.id)) return;
     this.departures.add(resolution.id);
+    const player = this.table.playerOf(resolution);
     const users = this.state().users;
-    if (!resolution.playerId || users[resolution.playerId]) return;
-    await this.save({ ...users, [resolution.playerId]: { martyr: false, hopeTo: null } });
+    if (!player || player.isGM || users[player.id]) return;
+    await this.save({ ...users, [player.id]: { martyr: false, hopeTo: null } });
   }
 }
