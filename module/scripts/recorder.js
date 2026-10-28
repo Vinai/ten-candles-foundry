@@ -705,7 +705,9 @@ export class Recorder {
 
   async upload(gameId, writer, base64, mime, name = `${gameId}-${writer}-${Date.now()}.${EXTENSIONS[mime]}`) {
     const FilePicker = foundry.applications.apps.FilePicker.implementation;
-    const source = globalThis.ForgeVTT?.usingTheForge ? "forgevtt" : "data";
+    // The Forge's own check: its ForgeVTT is a global name of a script, not a property of globalThis. Its Assets Library
+    // takes uploads to "data" as well, at the same path, but "forgevtt" goes there directly.
+    const source = typeof ForgeVTT !== "undefined" && ForgeVTT.usingTheForge ? "forgevtt" : "data";
     const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
     name = name.replace(/[^\w.-]/g, "_");
     try {
