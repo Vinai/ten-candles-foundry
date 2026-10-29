@@ -97,7 +97,8 @@ export class Moments {
       at: Date.now(),
       resolutionId: null
     });
-    game.socket.emit(SOCKET, { type: "moment-roll", gameId: state.gameId, actorUuid: request.actorUuid }, {
+    const message = { type: "moment-roll", gameId: state.gameId, actorUuid: request.actorUuid, requestId };
+    game.socket.emit(SOCKET, message, {
       recipients: [player.id]
     });
     window.setTimeout(() => this.giveUpUnstarted(), ROLL_START_MS + 100);
@@ -176,7 +177,9 @@ export class Moments {
   /** In the player's browser: the GM confirmed the Moment, so its conflict roll starts as if they had rolled. */
   rollForMoment(message, senderId) {
     if (senderId !== game.users.activeGM?.id || message.gameId !== this.table.gaState().gameId) return;
-    game.evilTenCandles?.requestPlayerRoll(message.actorUuid);
+    // Declared as the Moment's roll, so a Game Assistant that knows Moment rolls opens the Brink for it; one that does
+    // not ignores the option.
+    game.evilTenCandles?.requestPlayerRoll(message.actorUuid, { momentRequestId: message.requestId ?? null });
   }
 
   /**

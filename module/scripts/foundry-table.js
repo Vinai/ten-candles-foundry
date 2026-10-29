@@ -604,7 +604,8 @@ export class FoundryTable {
       case "gm-roll":
         return this.throwDice(this.users.findIndex((user) => user.isGM), dice(entry.results, "gm"), seed);
       case "limit":
-        return this.throwDice(player, dice(entry.results, "player"), seed);
+        // The whole pool again; the hope dice too where the Game Assistant rerolls them with the Brink.
+        return this.throwDice(player, [...dice(entry.results, "player"), ...dice(entry.hopeResults, "hope")], seed);
       case "virtue":
       case "vice":
         return this.burnForReroll(resolution, entry.type, dice(entry.results, "player"), seed);

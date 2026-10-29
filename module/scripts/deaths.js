@@ -10,7 +10,8 @@ import { SETTINGS } from "./settings.js";
  * The dead stay at the table, their face in black and white like an old television. They no longer roll and no
  * longer speak truths; they still record their final message. A Martyr's hope die (rulebook: "they may grant their
  * hope die to another survivor") is passed on by the Game Assistant: through its API where it offers one
- * (`transferHopeDie`), else in its own state control, which this opens for the GM with what to transfer to whom.
+ * (`transferHopeDie`, by actor id), else in its own state window, which this opens for the GM with what to transfer to
+ * whom.
  *
  * World setting `dead`: {gameId, users: {userId: {martyr, hopeTo}}}, written by the active GM.
  */
@@ -161,10 +162,8 @@ export class Deaths {
     const heir = game.users.get(message.heir);
     if (!entry?.martyr || entry.hopeTo || !heir || heir.isGM || this.isDead(heir)) return;
     const giver = game.users.get(message.userId)?.character;
-    if (game.evilTenCandles?.transferHopeDie && giver && heir.character) {
-      await game.evilTenCandles.transferHopeDie(giver.uuid, heir.character.uuid);
-    } else if (giver && heir.character) {
-      // Since 1.1.0 the Game Assistant passes a hope die on only in its GM state control.
+    if (giver && heir.character && !(await this.transfer(giver, heir.character))) {
+      // Without the API, or when it refuses (e.g. a conflict is open), the GM passes it on in the state window.
       game.evilTenCandles?.openStateControl?.();
       ui.notifications.info(
         game.i18n.format("TCT.Death.TransferInStateControl", { from: giver.name, to: heir.character.name }),
@@ -175,6 +174,18 @@ export class Deaths {
     const users = this.state().users;
     if (!users[message.userId]) return;
     await this.save({ ...users, [message.userId]: { ...users[message.userId], hopeTo: heir.id } });
+  }
+
+  /** The hope die passed on through the Game Assistant's API, where it has one; whether that worked. */
+  async transfer(giver, receiver) {
+    if (!game.evilTenCandles?.transferHopeDie) return false;
+    try {
+      await game.evilTenCandles.transferHopeDie(giver.id, receiver.id);
+      return true;
+    } catch (error) {
+      console.warn(`${MODULE_ID} | The hope die could not be passed on`, error);
+      return false;
+    }
   }
 
   /**
