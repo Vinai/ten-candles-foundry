@@ -69,7 +69,7 @@ export class TableStage {
 
   /**
    * @param seats {{name: string, face: HTMLElement, cards: {label: string, text?: string, faceDown?: boolean,
-   *   edit?: () => void}[], hope?: boolean}[]} a card with `edit` can be clicked to rewrite it
+   *   edit?: () => void}[], hope?: number}[]} a card with `edit` can be clicked to rewrite it
    */
   setSeats(seats, viewer) {
     this.seatElements?.forEach(({ seat, stack }) => {
@@ -132,9 +132,11 @@ export class TableStage {
       }
       pile.append(el);
     });
-    if (data.hope) {
+    // One gold die per hope die; a Martyr's makes it two.
+    for (let i = 0; i < Number(data.hope ?? 0); i++) {
       const die = document.createElement("div");
       die.className = "tct-hope-die";
+      die.style.setProperty("--tct-hope-index", String(i));
       pile.append(die);
     }
     stack.replaceChildren(pile);

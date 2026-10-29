@@ -85,7 +85,6 @@ function decorateConflict(message, html) {
     waiting.classList.add("tct-gm-dice-waiting");
     for (const die of waiting.children) die.textContent = "?";
   }
-  gmNarratesOnTies(html);
   // Only the card on top of the stack can be burned for a reroll, and not both traits in one scene.
   const actor = game.actors.get(message.speaker?.actor);
   if (!actor) return;
@@ -136,26 +135,6 @@ function decorateDeparture(message, html) {
   html
     .querySelector(".ets-departure-card__last-candle")
     ?.insertAdjacentHTML("afterbegin", '<i class="fa-solid fa-fire-flame-simple" aria-hidden="true"></i>');
-}
-
-/**
- * "When determining the winner of narration rights, ties always break in favor of the GM" (rulebook). The Game
- * Assistant gives ties to the player; counted from the dice on the card, a tie names the GM here, if the GM rolled at
- * all (with no GM dice or a skipped roll it stays the player's). A narration the player seized stays theirs. The
- * Game Assistant offers seizing only when the GM is ahead, so on a tie a player who wants it seizes it by a draught.
- */
-function gmNarratesOnTies(html) {
-  const sixes = (dice) => dice.filter((die) => die.textContent.trim() === "6").length;
-  const gmDice = [...html.querySelectorAll(".ets-conflict-pool.is-gm .ets-dice-row:not(.is-sizer) .ets-die")];
-  if (!gmDice.length) return;
-  const player = sixes([...html.querySelectorAll(".ets-conflict-pool.is-player .ets-die")]);
-  if (sixes(gmDice) !== player) return;
-  const provisional = html.querySelector(".is-provisional-success .ets-conflict-result__main");
-  if (provisional) provisional.textContent = game.i18n.localize("ETC.Chat.ProvisionalGMNarrates");
-  const final = html.querySelector(".ets-conflict-result.is-success.is-final");
-  if (final && !final.querySelector(".ets-conflict-result__note")) {
-    final.querySelector(".ets-conflict-result__main").textContent = game.i18n.localize("ETC.Chat.FinalGMNarrates");
-  }
 }
 
 /**

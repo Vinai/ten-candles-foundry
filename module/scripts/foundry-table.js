@@ -66,8 +66,9 @@ export class FoundryTable {
     this.sounds = new TableSounds(() => (game.audio.locked ? null : game.audio.interface?.gainNode ?? null));
     // A conflict or Moment request already seen, so a sheet only makes way for a new one.
     this.seenRequests = new Set();
-    // Per actor, the traits last seen unburned, to notice the moment one is spent.
+    // Per actor, the traits last seen unburned, to notice the moment one is spent; and whether the Brink was burned.
     this.unburned = new Map();
+    this.brinkBurned = new Map();
     // Traits spent for a reroll that still lie on their stack until their turn to burn, by "actorId:key".
     this.rerollBurns = new Map();
     // What the table shows happens one thing after the other: dice, a burning card, a candle going out.
@@ -330,18 +331,20 @@ export class FoundryTable {
     const system = user.character?.system;
     const own = game.user.isGM || user.isSelf;
     const pending = own ? [...this.ritual.gmCards(user), ...this.ritual.pendingCards(user)] : [];
-    if (!system) return { cards: pending, hope: false };
+    if (!system) return { cards: pending, hope: 0 };
     const unburned = unburnedTraits(system, momentBurnedFor(user.character));
     this.unburned.set(user.character.id, unburned);
-    // The dead roll no more; a Martyr's hope die is carried on by another.
-    const hope = system.hopeDieAvailable && !this.deaths.isDead(user);
+    // The dead roll no more; a Martyr's hope die is carried on by another, who may then have two.
+    const hope = this.deaths.isDead(user) ? 0 : (system.hopeDiceCount ?? (system.hopeDieAvailable ? 1 : 0));
+    this.brinkBurned.set(user.character.id, Boolean(system.brink?.burned));
     if (!own) return { cards: [], hope };
     const waiting = (key) => this.rerollBurns.get(`${user.character.id}:${key}`);
     const traits = [...system.resourceOrderList]
       .reverse()
       .filter((key) => key in unburned || waiting(key))
       .map((key) => waiting(key) ?? traitCard(key, unburned[key]));
-    const brink = written(system, "brink")
+    // A Brink that consumed its character in a failed reroll is burned and gone.
+    const brink = written(system, "brink") && !system.brink?.burned
       ? [{ label: game.i18n.localize(this.ritual.brinkLabel(user)), text: system.brink.text, faceDown: true }]
       : [];
     return { cards: [...brink, ...traits, ...pending], hope };
@@ -375,6 +378,11 @@ export class FoundryTable {
     const before = this.unburned.get(actor.id) ?? {};
     const now = unburnedTraits(actor.system, momentBurnedFor(actor));
     const resolution = this.gaState().activeResolution;
+    // "If not, the Brink is burned": a failed Brink reroll consumes it; it was embraced, so everyone has heard it.
+    if (this.brinkBurned.get(actor.id) === false && actor.system.brink?.burned && written(actor.system, "brink")) {
+      const label = game.i18n.localize(this.ritual.brinkLabel(this.users[index]));
+      this.beat(() => this.stage.burnCard(this.seatOf(actor), { label, text: actor.system.brink.text }));
+    }
     for (const key of Object.keys(before)) {
       if (key in now || !written(actor.system, key)) continue;
       // The sheet makes way, so the burning can be seen.

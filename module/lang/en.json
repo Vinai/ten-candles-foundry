@@ -162,7 +162,8 @@
       "HeirTitle": "Martyrdom",
       "HeirHint": "{name} dies a Martyr. Who gets the hope die?",
       "HeirChoose": "Pass it on",
-      "HopeGiven": "{to} receives {from}'s hope die."
+      "HopeGiven": "{to} receives {from}'s hope die.",
+      "TransferInStateControl": "Now pass the hope die from {from} to {to} in the \"Ten Candles Shared State\" window: select {from}, recipient {to}, \"Transfer\"."
     },
     "Moment": {
       "Question": "Does the situation fit the Moment?",

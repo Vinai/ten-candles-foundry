@@ -9,8 +9,8 @@ import { SETTINGS } from "./settings.js";
  *
  * The dead stay at the table, their face in black and white like an old television. They no longer roll and no
  * longer speak truths; they still record their final message. A Martyr's hope die (rulebook: "they may grant their
- * hope die to another survivor") is passed on through the Game Assistant where it can (`transferHopeDie`); where it
- * cannot give a character a second hope die, it is a note to everyone and the table keeps track of it.
+ * hope die to another survivor") is passed on by the Game Assistant: through its API where it offers one
+ * (`transferHopeDie`), else in its own state control, which this opens for the GM with what to transfer to whom.
  *
  * World setting `dead`: {gameId, users: {userId: {martyr, hopeTo}}}, written by the active GM.
  */
@@ -163,6 +163,13 @@ export class Deaths {
     const giver = game.users.get(message.userId)?.character;
     if (game.evilTenCandles?.transferHopeDie && giver && heir.character) {
       await game.evilTenCandles.transferHopeDie(giver.uuid, heir.character.uuid);
+    } else if (giver && heir.character) {
+      // Since 1.1.0 the Game Assistant passes a hope die on only in its GM state control.
+      game.evilTenCandles?.openStateControl?.();
+      ui.notifications.info(
+        game.i18n.format("TCT.Death.TransferInStateControl", { from: giver.name, to: heir.character.name }),
+        { permanent: true }
+      );
     }
     // Read again after the transfer: the GM may have changed the list meanwhile.
     const users = this.state().users;

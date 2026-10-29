@@ -13,7 +13,7 @@ The interface is in German and English.
 ## Requirements
 
 - Foundry VTT v14.
-- The game system **Ten Candles – Game Assistant** (`tencandles-ga`), version 1.0.1 or later.
+- The game system **Ten Candles – Game Assistant** (`tencandles-ga`), version 1.1.0 or later (1.0.1 still works, without its rule fixes).
 - Foundry's audio/video set to **video only** is recommended; voice runs best in a separate app (e.g. Discord).
 
 ## Installation
@@ -68,20 +68,14 @@ are alive. · The dead · Switch recorder on / Pass recorder on / Restart record
 
 ## Known issues
 
-Some rules are decided by the Game Assistant and are not fully implemented there yet. Pull requests for the first
-three are open: [#1](https://github.com/ctotone/tencandles-ga/pull/1), [#2](https://github.com/ctotone/tencandles-ga/pull/2),
-[#3](https://github.com/ctotone/tencandles-ga/pull/3).
+Since version 1.1.0 the Game Assistant gives tied 6s to the GM, supports several hope dice, and burns the Brink and
+the hope dice on a failed Brink reroll (pull requests #1–#3). What is left:
 
-- **Tied 6s.** The rulebook gives the narration to the GM on a tie; the Game Assistant gives it to the player. The
-  table shows the GM as narrator on a tie, but the Game Assistant offers the player to seize the narration only
-  when the GM is ahead. On a tie, a player who wants to seize it does so with the GM's *Draught* (#2).
-- **A Martyr's hope die** is announced to everyone but not rolled: the Game Assistant gives each character at most
-  one hope die, the one from their own Moment (#1).
-- **A failed Brink reroll** should burn the Brink and lose the hope dice; the Game Assistant keeps both. Handle it
-  at the table until #3 is merged.
+- **A Martyr's hope die** is passed on by the GM in the Game Assistant's "Ten Candles Shared State" window; the table
+  opens it for the GM once the Martyr has chosen the heir and says what to transfer to whom.
 - **A Brink reroll keeps the hope die's result.** The rulebook rerolls the entire pool, hope die included ("even
   dice that had landed on 6"); the Game Assistant rerolls only the character dice and keeps the hope die as it
-  fell. A hope die that showed 1–4 gets no second chance. A follow-up for the Game Assistant once #3 is merged.
+  fell. A hope die that showed 1–4 gets no second chance.
 - **No Brink in a Moment's own conflict.** The rulebook burns the Moment before its roll, which "could open up a
   Trait or Brink for use in the conflict". The table burns the Moment card at "Passt – würfeln" and offers the
   Virtue or Vice beneath it, but the Game Assistant decides at the start of a conflict whether the Brink is

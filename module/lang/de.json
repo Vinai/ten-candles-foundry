@@ -162,7 +162,8 @@
       "HeirTitle": "Märtyrertod",
       "HeirHint": "{name} stirbt als Märtyrer. Wer bekommt den Hoffnungswürfel?",
       "HeirChoose": "Weitergeben",
-      "HopeGiven": "{to} erhält den Hoffnungswürfel von {from}."
+      "HopeGiven": "{to} erhält den Hoffnungswürfel von {from}.",
+      "TransferInStateControl": "Übertrage jetzt im Fenster „Ten Candles – Spielstand“ den Hoffnungswürfel von {from} an {to}: {from} auswählen, Empfänger {to}, „Übertragen“."
     },
     "Moment": {
       "Question": "Passt die Situation zum Moment?",
