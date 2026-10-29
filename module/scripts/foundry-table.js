@@ -594,18 +594,16 @@ export class FoundryTable {
   throwEntry(resolution, entry, next, seed) {
     const player = this.users.indexOf(this.playerOf(resolution));
     const dice = (values, kind) => (values ?? []).map((value) => ({ value, kind }));
+    // The hope dice rolled with these dice follow as their own entry. A character may roll several (their own and a
+    // Martyr's), and a Brink reroll rolls them again where the Game Assistant is set to.
+    const hope = dice(next?.type === "hope-roll" ? (next.results ?? [next.result]) : [], "hope");
     switch (entry.type) {
-      case "player-roll": {
-        // A character may roll several hope dice (their own and a Martyr's), where the Game Assistant allows it.
-        const hopeResults = next?.type === "hope-roll" ? (next.results ?? [next.result]) : [];
-        const hope = hopeResults.map((value) => ({ value, kind: "hope" }));
+      case "player-roll":
         return this.throwDice(player, [...dice(entry.results, "player"), ...hope], seed);
-      }
       case "gm-roll":
         return this.throwDice(this.users.findIndex((user) => user.isGM), dice(entry.results, "gm"), seed);
       case "limit":
-        // The whole pool again; the hope dice too where the Game Assistant rerolls them with the Brink.
-        return this.throwDice(player, [...dice(entry.results, "player"), ...dice(entry.hopeResults, "hope")], seed);
+        return this.throwDice(player, [...dice(entry.results, "player"), ...hope], seed);
       case "virtue":
       case "vice":
         return this.burnForReroll(resolution, entry.type, dice(entry.results, "player"), seed);

@@ -1,6 +1,10 @@
 import { MODULE_ID, SOCKET } from "./constants.js";
 import { SETTINGS } from "./settings.js";
 
+// The Game Assistant is busy for a moment after a conflict; a put-off transfer is tried this often, this far apart.
+const RETRY_ATTEMPTS = 5;
+const RETRY_MS = 1500;
+
 /**
  * Characters who have died. Before the last scene a character dies only when their player chooses it, after a failed
  * dire conflict; in the last scene ("The Last Stand") any failed conflict kills, and the Game Assistant says so on
@@ -13,13 +17,17 @@ import { SETTINGS } from "./settings.js";
  * (`transferHopeDie`, by actor id), else in its own state window, which this opens for the GM with what to transfer to
  * whom.
  *
- * World setting `dead`: {gameId, users: {userId: {martyr, hopeTo}}}, written by the active GM.
+ * World setting `dead`: {gameId, users: {userId: {martyr, hopeTo, pending}}}, written by the active GM. `pending`: the
+ * Game Assistant turned the transfer down (a conflict was still open); it is tried again once the conflict is over,
+ * and only then announced.
  */
 export class Deaths {
   constructor(table) {
     this.table = table;
     this.announced = new Set();
     this.departures = new Set();
+    // Martyrs whose hope die is being passed on in this browser right now.
+    this.passing = new Set();
   }
 
   start() {
@@ -67,7 +75,7 @@ export class Deaths {
     this.table.mirror?.render();
     for (const [userId, entry] of Object.entries(this.state().users)) {
       const key = `${userId}:${entry.hopeTo}`;
-      if (!entry.hopeTo || this.announced.has(key)) continue;
+      if (!entry.hopeTo || entry.pending || this.announced.has(key)) continue;
       this.announced.add(key);
       ui.notifications.info(
         game.i18n.format("TCT.Death.HopeGiven", { to: this.nameOf(entry.hopeTo), from: this.nameOf(userId) }),
@@ -162,18 +170,60 @@ export class Deaths {
     const heir = game.users.get(message.heir);
     if (!entry?.martyr || entry.hopeTo || !heir || heir.isGM || this.isDead(heir)) return;
     const giver = game.users.get(message.userId)?.character;
-    if (giver && heir.character && !(await this.transfer(giver, heir.character))) {
-      // Without the API, or when it refuses (e.g. a conflict is open), the GM passes it on in the state window.
-      game.evilTenCandles?.openStateControl?.();
-      ui.notifications.info(
-        game.i18n.format("TCT.Death.TransferInStateControl", { from: giver.name, to: heir.character.name }),
-        { permanent: true }
-      );
+    // Without both characters there is no die to pass on; a second answer while the first is being handled is dropped.
+    if (!giver || !heir.character || this.passing.has(message.userId)) return;
+    this.passing.add(message.userId);
+    try {
+      const api = Boolean(game.evilTenCandles?.transferHopeDie);
+      const passed = await this.transfer(giver, heir.character);
+      // Without the API the GM passes it on in the state window, straight away.
+      if (!api) this.instruct(giver, heir.character);
+      // Read again after the transfer: the GM may have changed the list meanwhile.
+      const users = this.state().users;
+      if (!users[message.userId] || users[message.userId].hopeTo) return;
+      const pending = api && !passed;
+      await this.save({ ...users, [message.userId]: { ...users[message.userId], hopeTo: heir.id, pending } });
+    } finally {
+      this.passing.delete(message.userId);
     }
-    // Read again after the transfer: the GM may have changed the list meanwhile.
-    const users = this.state().users;
-    if (!users[message.userId]) return;
-    await this.save({ ...users, [message.userId]: { ...users[message.userId], hopeTo: heir.id } });
+  }
+
+  /** The GM passes the hope die on in the Game Assistant's state window; this opens it and says what to do. */
+  instruct(giver, receiver) {
+    game.evilTenCandles?.openStateControl?.();
+    ui.notifications.info(
+      game.i18n.format("TCT.Death.TransferInStateControl", { from: giver.name, to: receiver.name }),
+      { permanent: true }
+    );
+  }
+
+  /**
+   * In the GM's browser: a transfer the Game Assistant turned down while a conflict was open is tried again once no
+   * conflict is open. Turned down again, the GM passes it on in the state window.
+   */
+  async retryPending(state) {
+    if (state.activeResolution) return;
+    for (const [userId, entry] of Object.entries(this.state().users)) {
+      if (!entry.pending || this.passing.has(userId)) continue;
+      const giver = game.users.get(userId)?.character;
+      const receiver = game.users.get(entry.hopeTo)?.character;
+      this.passing.add(userId);
+      try {
+        let passed = false;
+        for (let attempt = 0; attempt < RETRY_ATTEMPTS && !passed && giver && receiver; attempt++) {
+          await new Promise((resolve) => window.setTimeout(resolve, RETRY_MS));
+          // A new conflict meanwhile: tried again once that one is over.
+          if (!this.inCharge || this.table.gaState().activeResolution || !this.state().users[userId]?.pending) return;
+          passed = await this.transfer(giver, receiver);
+        }
+        if (!passed && giver && receiver) this.instruct(giver, receiver);
+        const users = this.state().users;
+        if (!users[userId]?.pending) continue;
+        await this.save({ ...users, [userId]: { ...users[userId], pending: false } });
+      } finally {
+        this.passing.delete(userId);
+      }
+    }
   }
 
   /** The hope die passed on through the Game Assistant's API, where it has one; whether that worked. */
@@ -194,6 +244,7 @@ export class Deaths {
    */
   async onGaState(state) {
     if (!this.inCharge) return;
+    await this.retryPending(state);
     const resolution = state.lastResolution;
     if (resolution?.status !== "resolved" || !resolution.characterDeparture || this.departures.has(resolution.id)) return;
     this.departures.add(resolution.id);

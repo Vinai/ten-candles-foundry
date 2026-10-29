@@ -75,6 +75,10 @@ export class Moments {
     const state = this.table.gaState();
     const request = (state.instantRequests ?? []).find((candidate) => candidate.id === requestId);
     if (!request) return;
+    // Its roll has started (a Game Assistant that knows Moment rolls says so before this browser has linked it): the
+    // Moment is burned and stays in play.
+    const started = request.momentRollResolutionId || state.activeResolution?.momentRequestId === requestId;
+    if (choice === "unfit" && started) return;
     if (choice === "unfit") {
       this.rejected.add(requestId);
       if (own) await this.clear(requestId);
@@ -211,9 +215,12 @@ export class Moments {
       return;
     }
     if (!roll.resolutionId) {
-      // Only a conflict of this character started after the GM's call is the Moment's roll.
+      // The Moment's roll: the conflict the Game Assistant declared for this request, where it does; else a conflict
+      // of this character started after the GM's call.
       const active = state.activeResolution;
-      if (active?.actorId === roll.actorId && (active.createdAt ?? 0) >= (roll.at ?? 0)) {
+      const declared = active?.momentRequestId === roll.requestId;
+      const sameActor = active?.actorId === roll.actorId && (active.createdAt ?? 0) >= (roll.at ?? 0);
+      if (declared || (!active?.momentRequestId && sameActor)) {
         await game.settings.set(MODULE_ID, SETTINGS.momentRoll, { ...roll, resolutionId: active.id });
       } else await this.giveUpUnstarted();
       return;
