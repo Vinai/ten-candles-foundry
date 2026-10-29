@@ -31,14 +31,22 @@ export class Deaths {
   }
 
   start() {
-    // Hope passed on before this page loaded is not announced again.
+    // Hope passed on before this page loaded is not announced again; one still pending is, once it has passed.
     for (const [userId, entry] of Object.entries(this.state().users)) {
-      if (entry.hopeTo) this.announced.add(`${userId}:${entry.hopeTo}`);
+      if (entry.hopeTo && !entry.pending) this.announced.add(`${userId}:${entry.hopeTo}`);
     }
     game.socket.on(SOCKET, (message, senderId) => {
       if (message?.type === "martyr-choose") this.chooseHeir(message, senderId);
       if (message?.type === "martyr-chosen") this.heirChosen(message, senderId);
     });
+    // After a reload of the GM's browser: a transfer still waiting is tried again.
+    this.retryLater();
+  }
+
+  /** Tries the waiting transfers again in the background, if this is the active GM's browser. */
+  retryLater() {
+    if (!this.inCharge) return;
+    this.retryPending(this.table.gaState()).catch((error) => console.error(`${MODULE_ID} | Martyr`, error));
   }
 
   /** A new game: nobody has died in it yet, whatever this browser showed of the last one. */
@@ -173,6 +181,7 @@ export class Deaths {
     // Without both characters there is no die to pass on; a second answer while the first is being handled is dropped.
     if (!giver || !heir.character || this.passing.has(message.userId)) return;
     this.passing.add(message.userId);
+    let retry = false;
     try {
       const api = Boolean(game.evilTenCandles?.transferHopeDie);
       const passed = await this.transfer(giver, heir.character);
@@ -183,9 +192,13 @@ export class Deaths {
       if (!users[message.userId] || users[message.userId].hopeTo) return;
       const pending = api && !passed;
       await this.save({ ...users, [message.userId]: { ...users[message.userId], hopeTo: heir.id, pending } });
+      retry = pending;
     } finally {
       this.passing.delete(message.userId);
     }
+    // Turned down: tried again right away if no conflict is open (the Game Assistant may just have been busy), else
+    // once the conflict is over.
+    if (retry) this.retryLater();
   }
 
   /** The GM passes the hope die on in the Game Assistant's state window; this opens it and says what to do. */
@@ -209,16 +222,25 @@ export class Deaths {
       const receiver = game.users.get(entry.hopeTo)?.character;
       this.passing.add(userId);
       try {
+        // Without both characters there is nothing to pass on, and nothing to announce.
+        if (!giver || !receiver) {
+          const users = this.state().users;
+          if (users[userId]) await this.save({ ...users, [userId]: { ...users[userId], hopeTo: null, pending: false } });
+          continue;
+        }
         let passed = false;
-        for (let attempt = 0; attempt < RETRY_ATTEMPTS && !passed && giver && receiver; attempt++) {
+        let later = false;
+        for (let attempt = 0; attempt < RETRY_ATTEMPTS && !passed; attempt++) {
           await new Promise((resolve) => window.setTimeout(resolve, RETRY_MS));
-          // A new conflict meanwhile: tried again once that one is over.
-          if (!this.inCharge || this.table.gaState().activeResolution || !this.state().users[userId]?.pending) return;
+          // A new conflict meanwhile, or another browser took over: tried again later. Unticked: nothing to do.
+          later = !this.inCharge || Boolean(this.table.gaState().activeResolution);
+          if (later || !this.state().users[userId]?.pending) break;
           passed = await this.transfer(giver, receiver);
         }
-        if (!passed && giver && receiver) this.instruct(giver, receiver);
+        if (later || !this.state().users[userId]?.pending) continue;
+        // Turned down every time: the GM passes it on in the state window.
+        if (!passed) this.instruct(giver, receiver);
         const users = this.state().users;
-        if (!users[userId]?.pending) continue;
         await this.save({ ...users, [userId]: { ...users[userId], pending: false } });
       } finally {
         this.passing.delete(userId);
@@ -244,7 +266,7 @@ export class Deaths {
    */
   async onGaState(state) {
     if (!this.inCharge) return;
-    await this.retryPending(state);
+    if (!state.activeResolution) this.retryLater();
     const resolution = state.lastResolution;
     if (resolution?.status !== "resolved" || !resolution.characterDeparture || this.departures.has(resolution.id)) return;
     this.departures.add(resolution.id);
