@@ -13,7 +13,8 @@ The interface is in German and English.
 ## Requirements
 
 - Foundry VTT v14.
-- The game system **Ten Candles – Game Assistant** (`tencandles-ga`), version 1.1.0 or later (1.0.1 still works, without its rule fixes).
+- The game system **Ten Candles – Game Assistant** (`tencandles-ga`), version 1.2.0 or later (1.0.1 and 1.1.0 still work,
+  without their rule fixes).
 - Foundry's audio/video set to **video only** is recommended; voice runs best in a separate app (e.g. Discord).
 
 ## Installation
@@ -68,18 +69,19 @@ are alive. · The dead · Switch recorder on / Pass recorder on / Restart record
 
 ## Known issues
 
-Since version 1.1.0 the Game Assistant gives tied 6s to the GM, supports several hope dice, and burns the Brink and
-the hope dice on a failed Brink reroll (pull requests #1–#3). What is left:
+Since version 1.2.0 the Game Assistant follows the rulebook in every point the table relies on: tied 6s go to the GM,
+a Martyr's hope die passes on to the heir the player chooses, a Brink reroll rerolls the hope dice too, a failed one
+burns the Brink and the hope dice, and a Moment burns before its roll, opening the Brink for it (pull requests #1–#6).
+With older versions:
 
-- **A Martyr's hope die** is passed on by the GM in the Game Assistant's "Ten Candles Shared State" window; the table
-  opens it for the GM once the Martyr has chosen the heir and says what to transfer to whom.
-- **A Brink reroll keeps the hope die's result.** The rulebook rerolls the entire pool, hope die included ("even
-  dice that had landed on 6"); the Game Assistant rerolls only the character dice and keeps the hope die as it
-  fell. A hope die that showed 1–4 gets no second chance.
-- **No Brink in a Moment's own conflict.** The rulebook burns the Moment before its roll, which "could open up a
-  Trait or Brink for use in the conflict". The table burns the Moment card at "Passt – würfeln" and offers the
-  Virtue or Vice beneath it, but the Game Assistant decides at the start of a conflict whether the Brink is
-  available and counts the Moment only once it is settled.
+- **1.1.0:** a Martyr's hope die is passed on by the GM in the Game Assistant's "Ten Candles Shared State" window (the
+  table opens it and says what to transfer to whom); a Brink reroll keeps the hope dice's results; the Brink is not
+  available in a Moment's own conflict.
+- **1.0.1:** also ties go to the player, a Martyr's hope die is only announced, and a failed Brink reroll keeps the
+  Brink and the hope die.
+
+The Game Assistant 1.2.0 has a voice recorder of its own ("Final Messages", from the Actors sidebar). The table uses
+its own recorder, which goes round the table; use one of the two, not both.
 
 Other things to know:
 
