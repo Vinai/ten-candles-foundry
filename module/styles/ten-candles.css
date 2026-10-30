@@ -1421,3 +1421,8 @@ body.tct-truths :is(.ets-floating-roll, .ets-sheet-roll) {
   opacity: 0.7;
 }
 
+/* The Game Assistant's own voice recorder ("Final Messages", from 1.2.0): the table passes its own recorder round,
+   so its only entry point, the button in the Actors sidebar, is hidden; nobody records into the wrong one. */
+#tencandles-ga-actor-directory-voice-access {
+  display: none !important;
+}

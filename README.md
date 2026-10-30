@@ -80,8 +80,8 @@ With older versions:
 - **1.0.1:** also ties go to the player, a Martyr's hope die is only announced, and a failed Brink reroll keeps the
   Brink and the hope die.
 
-The Game Assistant 1.2.0 has a voice recorder of its own ("Final Messages", from the Actors sidebar). The table uses
-its own recorder, which goes round the table; use one of the two, not both.
+The Game Assistant 1.2.0 has a voice recorder of its own ("Final Messages", from the Actors sidebar). The table passes
+its own recorder round, so it hides the button that opens the Game Assistant's; nobody records into the wrong one.
 
 Other things to know:
 
